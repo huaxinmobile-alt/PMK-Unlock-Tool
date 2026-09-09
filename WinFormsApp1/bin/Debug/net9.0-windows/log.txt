@@ -1,0 +1,18 @@
+Trying with no loader given ...
+Waiting for the device
+Device detected :)
+Mode detected: firehose
+Trying to connect to firehose loader ...
+
+Nop succeeded.
+No supported functions detected, configuring qc generic commands
+
+No --memory option set, we assume "UFS" as default ..., if it fails, try using "--memory" with "UFS","NAND" or "spinor" instead !
+ERROR: Only nop and sig tag can be recevied before authentication.
+Xiaomi EDL Auth detected.
+EDL Authenticated successfully.
+Supported functions:
+-----------------
+configure,program,firmwarewrite,patch,setbootablestoragedrive,ufs,emmc,power,benchmark,read,getstorageinfo,getcrc16digest,getsha256digest,erase,peek,poke,nop,xml
+Sector size in XML 4096 does not match disk sector size 512
+Sector size in XML 4096 does not match disk sector size 512

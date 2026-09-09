@@ -1,0 +1,1 @@
+{"flashmode": "XFLASH", "patched": true, "hwcode": 1799, "meid": "2a9e48df8d8b8c9926f357b38a15f9b2", "socid": "7f8456277cb72dd975db459f82311d80db0b435ee1d3495ff01b2a8203fc0937", "flashtype": "emmc", "flashsize": 125074145280, "target_config": {"sbc": true, "sla": true, "daa": true, "epp": false, "cert": false, "memread": true, "memwrite": true, "cmdC8": true}}

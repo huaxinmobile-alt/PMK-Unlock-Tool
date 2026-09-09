@@ -1,0 +1,667 @@
+[2026-09-06 07:55:14:227:227338  COM11]:MiFlash - Qualcomm No Auth | iReverse Qualcomm Native C# Re-work
+[2026-09-06 07:55:14:228:228635  COM11]:vboytest index:11
+[2026-09-06 07:55:14:230:230048  COM11]:flash in thread name:COM11,id:11
+[2026-09-06 07:55:14:233:233274  COM11]:vboytest do open :
+[2026-09-06 07:55:14:235:235763  COM11]: serial port COM11 opend successfully
+[2026-09-06 07:55:14:238:238014  COM11]:[COM11]:start flash.
+[2026-09-06 07:55:14:239:239273  COM11]:received hello packet
+[2026-09-06 07:55:14:240:240418  COM11]:programmertype: 0
+[2026-09-06 07:55:14:240:240418  COM11]:swPath:C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite
+[2026-09-06 07:55:14:241:241444  COM11]:download programmer file: C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\prog_emmc_firehose_8937_ddr.mbn
+[2026-09-06 07:55:14:241:241444  COM11]:download programmer C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\prog_emmc_firehose_8937_ddr.mbn
+[2026-09-06 07:55:14:243:243963  COM11]:sahara read data:imgID 13, offset 0,length 52
+[2026-09-06 07:55:14:243:243963  COM11]:sahara read data:imgID 13, offset 52,length 320
+[2026-09-06 07:55:14:245:245299  COM11]:sahara read data:imgID 13, offset 4096,length 4096
+[2026-09-06 07:55:14:296:296047  COM11]:sahara read data:imgID 13, offset 8192,length 2664
+[2026-09-06 07:55:14:347:347507  COM11]:sahara read data:imgID 13, offset 447416,length 4096
+[2026-09-06 07:55:14:411:411110  COM11]:sahara read data:imgID 13, offset 451512,length 4096
+[2026-09-06 07:55:14:473:473404  COM11]:sahara read data:imgID 13, offset 455608,length 2168
+[2026-09-06 07:55:14:474:474424  COM11]:sahara read data:imgID 13, offset 457776,length 2856
+[2026-09-06 07:55:14:536:536072  COM11]:sahara read data:imgID 13, offset 12288,length 4096
+[2026-09-06 07:55:14:587:587116  COM11]:sahara read data:imgID 13, offset 16384,length 4096
+[2026-09-06 07:55:14:645:645515  COM11]:sahara read data:imgID 13, offset 20480,length 4096
+[2026-09-06 07:55:14:707:707570  COM11]:sahara read data:imgID 13, offset 24576,length 4096
+[2026-09-06 07:55:14:770:770444  COM11]:sahara read data:imgID 13, offset 28672,length 4096
+[2026-09-06 07:55:14:832:832994  COM11]:sahara read data:imgID 13, offset 32768,length 4096
+[2026-09-06 07:55:14:894:894534  COM11]:sahara read data:imgID 13, offset 36864,length 4096
+[2026-09-06 07:55:14:956:956637  COM11]:sahara read data:imgID 13, offset 40960,length 4096
+[2026-09-06 07:55:15:019:019826  COM11]:sahara read data:imgID 13, offset 45056,length 4096
+[2026-09-06 07:55:15:072:072050  COM11]:sahara read data:imgID 13, offset 49152,length 4096
+[2026-09-06 07:55:15:128:128923  COM11]:sahara read data:imgID 13, offset 53248,length 4096
+[2026-09-06 07:55:15:191:191857  COM11]:sahara read data:imgID 13, offset 57344,length 4096
+[2026-09-06 07:55:15:243:243275  COM11]:sahara read data:imgID 13, offset 61440,length 4096
+[2026-09-06 07:55:15:303:303205  COM11]:sahara read data:imgID 13, offset 65536,length 4096
+[2026-09-06 07:55:15:366:366684  COM11]:sahara read data:imgID 13, offset 69632,length 4096
+[2026-09-06 07:55:15:429:429122  COM11]:sahara read data:imgID 13, offset 73728,length 4096
+[2026-09-06 07:55:15:491:491986  COM11]:sahara read data:imgID 13, offset 77824,length 4096
+[2026-09-06 07:55:15:554:554667  COM11]:sahara read data:imgID 13, offset 81920,length 4096
+[2026-09-06 07:55:15:617:617587  COM11]:sahara read data:imgID 13, offset 86016,length 4096
+[2026-09-06 07:55:15:680:680686  COM11]:sahara read data:imgID 13, offset 90112,length 4096
+[2026-09-06 07:55:15:742:742969  COM11]:sahara read data:imgID 13, offset 94208,length 4096
+[2026-09-06 07:55:15:806:806038  COM11]:sahara read data:imgID 13, offset 98304,length 4096
+[2026-09-06 07:55:15:869:869111  COM11]:sahara read data:imgID 13, offset 102400,length 4096
+[2026-09-06 07:55:15:932:932121  COM11]:sahara read data:imgID 13, offset 106496,length 4096
+[2026-09-06 07:55:15:996:996011  COM11]:sahara read data:imgID 13, offset 110592,length 4096
+[2026-09-06 07:55:16:059:059004  COM11]:sahara read data:imgID 13, offset 114688,length 4096
+[2026-09-06 07:55:16:120:120806  COM11]:sahara read data:imgID 13, offset 118784,length 4096
+[2026-09-06 07:55:16:184:184145  COM11]:sahara read data:imgID 13, offset 122880,length 4096
+[2026-09-06 07:55:16:246:246525  COM11]:sahara read data:imgID 13, offset 126976,length 4096
+[2026-09-06 07:55:16:310:310265  COM11]:sahara read data:imgID 13, offset 131072,length 4096
+[2026-09-06 07:55:16:372:372701  COM11]:sahara read data:imgID 13, offset 135168,length 4096
+[2026-09-06 07:55:16:434:434906  COM11]:sahara read data:imgID 13, offset 139264,length 4096
+[2026-09-06 07:55:16:496:496563  COM11]:sahara read data:imgID 13, offset 143360,length 4096
+[2026-09-06 07:55:16:559:559120  COM11]:sahara read data:imgID 13, offset 147456,length 4096
+[2026-09-06 07:55:16:620:620940  COM11]:sahara read data:imgID 13, offset 151552,length 4096
+[2026-09-06 07:55:16:672:672740  COM11]:sahara read data:imgID 13, offset 155648,length 4096
+[2026-09-06 07:55:16:731:731514  COM11]:sahara read data:imgID 13, offset 159744,length 4096
+[2026-09-06 07:55:16:794:794051  COM11]:sahara read data:imgID 13, offset 163840,length 4096
+[2026-09-06 07:55:16:856:856080  COM11]:sahara read data:imgID 13, offset 167936,length 4096
+[2026-09-06 07:55:16:918:918900  COM11]:sahara read data:imgID 13, offset 172032,length 4096
+[2026-09-06 07:55:16:982:982338  COM11]:sahara read data:imgID 13, offset 176128,length 4096
+[2026-09-06 07:55:17:045:045607  COM11]:sahara read data:imgID 13, offset 180224,length 4096
+[2026-09-06 07:55:17:107:107131  COM11]:sahara read data:imgID 13, offset 184320,length 4096
+[2026-09-06 07:55:17:109:109976  COM11]:sahara read data:imgID 13, offset 188416,length 4096
+[2026-09-06 07:55:17:111:111934  COM11]:sahara read data:imgID 13, offset 192512,length 4096
+[2026-09-06 07:55:17:114:114547  COM11]:sahara read data:imgID 13, offset 196608,length 4096
+[2026-09-06 07:55:17:117:117854  COM11]:sahara read data:imgID 13, offset 200704,length 4096
+[2026-09-06 07:55:17:120:120553  COM11]:sahara read data:imgID 13, offset 204800,length 4096
+[2026-09-06 07:55:17:123:123094  COM11]:sahara read data:imgID 13, offset 208896,length 4096
+[2026-09-06 07:55:17:125:125548  COM11]:sahara read data:imgID 13, offset 212992,length 4096
+[2026-09-06 07:55:17:128:128254  COM11]:sahara read data:imgID 13, offset 217088,length 4096
+[2026-09-06 07:55:17:130:130783  COM11]:sahara read data:imgID 13, offset 221184,length 4096
+[2026-09-06 07:55:17:133:133855  COM11]:sahara read data:imgID 13, offset 225280,length 4096
+[2026-09-06 07:55:17:135:135704  COM11]:sahara read data:imgID 13, offset 229376,length 4096
+[2026-09-06 07:55:17:138:138792  COM11]:sahara read data:imgID 13, offset 233472,length 4096
+[2026-09-06 07:55:17:140:140781  COM11]:sahara read data:imgID 13, offset 237568,length 4096
+[2026-09-06 07:55:17:209:209582  COM11]:sahara read data:imgID 13, offset 241664,length 4096
+[2026-09-06 07:55:17:262:262378  COM11]:sahara read data:imgID 13, offset 245760,length 4096
+[2026-09-06 07:55:17:326:326208  COM11]:sahara read data:imgID 13, offset 249856,length 4096
+[2026-09-06 07:55:17:389:389930  COM11]:sahara read data:imgID 13, offset 253952,length 4096
+[2026-09-06 07:55:17:452:452169  COM11]:sahara read data:imgID 13, offset 258048,length 4096
+[2026-09-06 07:55:17:516:516382  COM11]:sahara read data:imgID 13, offset 262144,length 4096
+[2026-09-06 07:55:17:577:577981  COM11]:sahara read data:imgID 13, offset 266240,length 4096
+[2026-09-06 07:55:17:641:641006  COM11]:sahara read data:imgID 13, offset 270336,length 4096
+[2026-09-06 07:55:17:704:704369  COM11]:sahara read data:imgID 13, offset 274432,length 4096
+[2026-09-06 07:55:17:767:767081  COM11]:sahara read data:imgID 13, offset 278528,length 4096
+[2026-09-06 07:55:17:769:769124  COM11]:sahara read data:imgID 13, offset 282624,length 4096
+[2026-09-06 07:55:17:770:770561  COM11]:sahara read data:imgID 13, offset 286720,length 4096
+[2026-09-06 07:55:17:772:772047  COM11]:sahara read data:imgID 13, offset 290816,length 4096
+[2026-09-06 07:55:17:773:773552  COM11]:sahara read data:imgID 13, offset 294912,length 4096
+[2026-09-06 07:55:17:774:774978  COM11]:sahara read data:imgID 13, offset 299008,length 4096
+[2026-09-06 07:55:17:829:829632  COM11]:sahara read data:imgID 13, offset 303104,length 4096
+[2026-09-06 07:55:17:831:831845  COM11]:sahara read data:imgID 13, offset 307200,length 4096
+[2026-09-06 07:55:17:833:833637  COM11]:sahara read data:imgID 13, offset 311296,length 4096
+[2026-09-06 07:55:17:835:835633  COM11]:sahara read data:imgID 13, offset 315392,length 4096
+[2026-09-06 07:55:17:837:837297  COM11]:sahara read data:imgID 13, offset 319488,length 4096
+[2026-09-06 07:55:17:838:838972  COM11]:sahara read data:imgID 13, offset 323584,length 4096
+[2026-09-06 07:55:17:840:840687  COM11]:sahara read data:imgID 13, offset 327680,length 4096
+[2026-09-06 07:55:17:842:842059  COM11]:sahara read data:imgID 13, offset 331776,length 4096
+[2026-09-06 07:55:17:844:844079  COM11]:sahara read data:imgID 13, offset 335872,length 4096
+[2026-09-06 07:55:17:847:847066  COM11]:sahara read data:imgID 13, offset 339968,length 4096
+[2026-09-06 07:55:17:849:849135  COM11]:sahara read data:imgID 13, offset 344064,length 4096
+[2026-09-06 07:55:17:850:850844  COM11]:sahara read data:imgID 13, offset 348160,length 4096
+[2026-09-06 07:55:17:852:852560  COM11]:sahara read data:imgID 13, offset 352256,length 4096
+[2026-09-06 07:55:17:853:853565  COM11]:sahara read data:imgID 13, offset 356352,length 4096
+[2026-09-06 07:55:17:855:855850  COM11]:sahara read data:imgID 13, offset 360448,length 4096
+[2026-09-06 07:55:17:857:857471  COM11]:sahara read data:imgID 13, offset 364544,length 4096
+[2026-09-06 07:55:17:858:858831  COM11]:sahara read data:imgID 13, offset 368640,length 4096
+[2026-09-06 07:55:17:860:860174  COM11]:sahara read data:imgID 13, offset 372736,length 4096
+[2026-09-06 07:55:17:862:862842  COM11]:sahara read data:imgID 13, offset 376832,length 3896
+[2026-09-06 07:55:17:864:864490  COM11]:sahara read data:imgID 13, offset 380728,length 4096
+[2026-09-06 07:55:17:865:865852  COM11]:sahara read data:imgID 13, offset 384824,length 4096
+[2026-09-06 07:55:17:867:867140  COM11]:sahara read data:imgID 13, offset 388920,length 4096
+[2026-09-06 07:55:17:868:868439  COM11]:sahara read data:imgID 13, offset 393016,length 4096
+[2026-09-06 07:55:17:869:869719  COM11]:sahara read data:imgID 13, offset 397112,length 4096
+[2026-09-06 07:55:17:870:870993  COM11]:sahara read data:imgID 13, offset 401208,length 4096
+[2026-09-06 07:55:17:871:871996  COM11]:sahara read data:imgID 13, offset 405304,length 4096
+[2026-09-06 07:55:17:873:873637  COM11]:sahara read data:imgID 13, offset 409400,length 4096
+[2026-09-06 07:55:17:874:874640  COM11]:sahara read data:imgID 13, offset 413496,length 4096
+[2026-09-06 07:55:17:876:876184  COM11]:sahara read data:imgID 13, offset 417592,length 4096
+[2026-09-06 07:55:17:877:877971  COM11]:sahara read data:imgID 13, offset 421688,length 4096
+[2026-09-06 07:55:17:950:950350  COM11]:sahara read data:imgID 13, offset 425784,length 4096
+[2026-09-06 07:55:18:015:015250  COM11]:sahara read data:imgID 13, offset 429880,length 4096
+[2026-09-06 07:55:18:079:079692  COM11]:sahara read data:imgID 13, offset 433976,length 4096
+[2026-09-06 07:55:18:154:154172  COM11]:sahara read data:imgID 13, offset 438072,length 4096
+[2026-09-06 07:55:18:263:263473  COM11]:sahara read data:imgID 13, offset 442168,length 4096
+[2026-09-06 07:55:18:265:265466  COM11]:sahara read data:imgID 13, offset 446264,length 1152
+[2026-09-06 07:55:18:443:443705  COM11]:Send done packet
+[2026-09-06 07:55:18:446:446980  COM11]:file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\prog_emmc_firehose_8937_ddr.mbn transferred successfully
+[2026-09-06 07:55:20:472:472191  COM11]:send nop command
+[2026-09-06 07:55:20:472:472191  COM11]:send command:<?xml version="1.0" ?><data><nop verbose="0"  value="ping"/></data>
+[2026-09-06 07:55:20:612:612669  COM11]:get response from target
+[2026-09-06 07:55:20:615:615254  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="logbuf@0x0807EDA0 fh@0x0807BC08" /></data>
+
+
+[2026-09-06 07:55:20:675:675418  COM11]:send configure command
+[2026-09-06 07:55:20:676:676418  COM11]:send command:<?xml version="1.0" ?><data><configure verbose="0" AlwaysValidate="0"  ZlpAwareHost="1"  MaxPayloadSizeToTargetInBytes="131072" MemoryName="emmc" SkipStorageInit="0"/></data>
+[2026-09-06 07:55:20:677:677167  COM11]:get response from target
+[2026-09-06 07:55:20:677:677167  COM11]:bypassing authentication: please wait [3 min]...
+
+
+[2026-09-06 07:55:21:646:646734  COM11]:no Binary dump
+[2026-09-06 07:55:22:365:365095  COM11]:no Binary dump
+[2026-09-06 07:55:23:104:104172  COM11]:no Binary dump
+[2026-09-06 07:55:23:803:803996  COM11]:no Binary dump
+[2026-09-06 07:55:24:503:503090  COM11]:no Binary dump
+[2026-09-06 07:55:25:204:204737  COM11]:no Binary dump
+[2026-09-06 07:55:25:864:864586  COM11]:no Binary dump
+[2026-09-06 07:55:26:536:536058  COM11]:no Binary dump
+[2026-09-06 07:55:27:170:170819  COM11]:no Binary dump
+[2026-09-06 07:55:27:820:820619  COM11]:no Binary dump
+[2026-09-06 07:55:28:538:538770  COM11]:no Binary dump
+[2026-09-06 07:55:29:229:229980  COM11]:no Binary dump
+[2026-09-06 07:55:29:902:902043  COM11]:no Binary dump
+[2026-09-06 07:55:30:602:602900  COM11]:no Binary dump
+[2026-09-06 07:55:31:269:269015  COM11]:no Binary dump
+[2026-09-06 07:55:31:987:987090  COM11]:no Binary dump
+[2026-09-06 07:55:32:671:671111  COM11]:no Binary dump
+[2026-09-06 07:55:33:353:353740  COM11]:no Binary dump
+[2026-09-06 07:55:34:016:016714  COM11]:no Binary dump
+[2026-09-06 07:55:34:698:698171  COM11]:no Binary dump
+[2026-09-06 07:55:35:380:380550  COM11]:no Binary dump
+[2026-09-06 07:55:36:033:033422  COM11]:no Binary dump
+[2026-09-06 07:55:36:751:751325  COM11]:no Binary dump
+[2026-09-06 07:55:37:485:485135  COM11]:no Binary dump
+[2026-09-06 07:55:38:180:180854  COM11]:no Binary dump
+[2026-09-06 07:55:38:837:837468  COM11]:no Binary dump
+[2026-09-06 07:55:39:531:531731  COM11]:no Binary dump
+[2026-09-06 07:55:40:218:218858  COM11]:no Binary dump
+[2026-09-06 07:55:40:903:903227  COM11]:no Binary dump
+[2026-09-06 07:55:41:566:566165  COM11]:no Binary dump
+[2026-09-06 07:55:42:219:219968  COM11]:no Binary dump
+[2026-09-06 07:55:42:284:284989  COM11]:edl authentication
+[2026-09-06 07:55:42:290:290308  COM11]:authentication edl.
+[2026-09-06 07:55:42:290:290308  COM11]:send command:<?xml version="1.0" ?><data> <sig TargetName="sig" size_in_bytes="256" verbose="1"/></data>
+[2026-09-06 07:55:42:291:291366  COM11]:get response from target
+[2026-09-06 07:55:42:291:291366  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 07:55:42:342:342542  COM11]:get response from target
+[2026-09-06 07:55:42:468:468712  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="INFO: EDL Authenticated" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 07:55:42:529:529869  COM11]:send command:<?xml version="1.0" ?><data><configure verbose="0" AlwaysValidate="0"  ZlpAwareHost="1"  MaxPayloadSizeToTargetInBytes="131072" MemoryName="emmc" SkipStorageInit="0"/></data>
+[2026-09-06 07:55:42:531:531562  COM11]:get response from target
+[2026-09-06 07:55:42:532:532593  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="logbuf@0x0807EDA0 fh@0x0807BC08" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" MinVersionSupported="1" MemoryName="eMMC" MaxPayloadSizeFromTargetInBytes="4096" MaxPayloadSizeToTargetInBytes="131072" MaxPayloadSizeToTargetInBytesSupported="1048576" MaxXMLSizeInBytes="4096" Version="1" TargetName="8937" /></data>
+
+
+[2026-09-06 07:55:42:593:593506  COM11]:max buffer sector is 256
+[2026-09-06 07:55:42:600:600490  COM11]:open program file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\rawprogram0.xml
+[2026-09-06 07:55:42:602:602835  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sec.dat to partition[sec] sector 88
+[2026-09-06 07:55:42:604:604239  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 88, num 1" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:624:624764  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 89" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:624:624764  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:624:624764  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sec.dat transferred successfully,elapse 00:00:00.0219289
+[2026-09-06 07:55:42:626:626473  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vbmeta.img to partition[vbmeta] sector 512
+[2026-09-06 07:55:42:627:627382  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 512, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:640:640428  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 520" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:640:640428  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:640:640428  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vbmeta.img transferred successfully,elapse 00:00:00.0144729
+[2026-09-06 07:55:42:641:641471  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vbmeta.img to partition[vbmetabak] sector 640
+[2026-09-06 07:55:42:642:642053  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 640, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:655:655946  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 648" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:655:655946  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:656:656946  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vbmeta.img transferred successfully,elapse 00:00:00.0154759
+[2026-09-06 07:55:42:658:658941  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\devcfg.mbn to partition[devcfg] sector 1024
+[2026-09-06 07:55:42:662:662247  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 1024, num 75" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:672:672654  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 1099" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:672:672654  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:672:672654  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\devcfg.mbn transferred successfully,elapse 00:00:00.0157072
+[2026-09-06 07:55:42:672:672654  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\devcfg.mbn to partition[devcfgbak] sector 1536
+[2026-09-06 07:55:42:676:676286  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 1536, num 75" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:687:687919  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 1611" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:687:687919  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:687:687919  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\devcfg.mbn transferred successfully,elapse 00:00:00.0152656
+[2026-09-06 07:55:42:689:689704  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dummy.img to partition[apdp] sector 2048
+[2026-09-06 07:55:42:691:691443  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2048, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:703:703255  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 2064" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:703:703255  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:704:704328  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dummy.img transferred successfully,elapse 00:00:00.0153617
+[2026-09-06 07:55:42:704:704917  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dummy.img to partition[msadp] sector 2560
+[2026-09-06 07:55:42:706:706630  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2560, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:718:718428  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 2576" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:719:719462  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:720:720479  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dummy.img transferred successfully,elapse 00:00:00.0155614
+[2026-09-06 07:55:42:722:722919  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sbl1.mbn to partition[sbl1] sector 3072
+[2026-09-06 07:55:42:750:750120  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 3072, num 799" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:765:765937  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 3871" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:767:767049  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:768:768081  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sbl1.mbn transferred successfully,elapse 00:00:00.0465882
+[2026-09-06 07:55:42:770:770122  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sbl1.mbn to partition[sbl1bak] sector 4096
+[2026-09-06 07:55:42:795:795076  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 4096, num 799" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:812:812431  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 4895" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:813:813523  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:815:815025  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\sbl1.mbn transferred successfully,elapse 00:00:00.0459121
+[2026-09-06 07:55:42:818:818232  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\rpm.mbn to partition[rpm] sector 5120
+[2026-09-06 07:55:42:829:829947  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 5120, num 331" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:843:843426  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 5451" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:844:844458  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:846:846100  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\rpm.mbn transferred successfully,elapse 00:00:00.0300700
+[2026-09-06 07:55:42:847:847431  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\rpm.mbn to partition[rpmbak] sector 6144
+[2026-09-06 07:55:42:858:858894  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 6144, num 331" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:874:874602  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 6475" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:875:875704  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:876:876736  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\rpm.mbn transferred successfully,elapse 00:00:00.0293047
+[2026-09-06 07:55:42:880:880534  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib_30.mbn to partition[cmnlib] sector 10240
+[2026-09-06 07:55:42:894:894349  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 10240, num 402" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:905:905908  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 10642" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:907:907034  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:908:908068  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib_30.mbn transferred successfully,elapse 00:00:00.0290399
+[2026-09-06 07:55:42:910:910132  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib_30.mbn to partition[cmnlibbak] sector 12288
+[2026-09-06 07:55:42:923:923003  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12288, num 402" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:937:937310  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12690" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:938:938429  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:939:939466  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib_30.mbn transferred successfully,elapse 00:00:00.0303668
+[2026-09-06 07:55:42:943:943167  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib64_30.mbn to partition[cmnlib64] sector 14336
+[2026-09-06 07:55:42:960:960714  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14336, num 518" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:42:972:972172  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14854" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:42:973:973272  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:42:974:974305  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib64_30.mbn transferred successfully,elapse 00:00:00.0327872
+[2026-09-06 07:55:42:976:976368  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib64_30.mbn to partition[cmnlib64bak] sector 16384
+[2026-09-06 07:55:43:020:020233  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16384, num 518" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:035:035653  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16902" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:036:036728  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:037:037750  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cmnlib64_30.mbn transferred successfully,elapse 00:00:00.0624139
+[2026-09-06 07:55:43:130:130108  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\km4.mbn to partition[keymaster] sector 18432
+[2026-09-06 07:55:43:187:187013  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 18432, num 625" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:198:198991  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 19057" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:200:200021  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:201:201085  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\km4.mbn transferred successfully,elapse 00:00:00.1452719
+[2026-09-06 07:55:43:203:203133  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\km4.mbn to partition[keymasterbak] sector 20480
+[2026-09-06 07:55:43:222:222590  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 20480, num 625" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:235:235461  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 21105" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:236:236492  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:237:237528  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\km4.mbn transferred successfully,elapse 00:00:00.0343947
+[2026-09-06 07:55:43:241:241072  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\misc.img to partition[misc] sector 22528
+[2026-09-06 07:55:43:244:244095  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 22528, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:266:266109  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 22544" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:267:267221  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:268:268253  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\misc.img transferred successfully,elapse 00:00:00.0284295
+[2026-09-06 07:55:43:272:272190  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\emmc_appsboot.mbn to partition[aboot] sector 24576
+[2026-09-06 07:55:43:320:320057  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 24576, num 1523" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:331:331643  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 26099" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:332:332921  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:333:333962  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\emmc_appsboot.mbn transferred successfully,elapse 00:00:00.0633576
+[2026-09-06 07:55:43:336:336241  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\emmc_appsboot.mbn to partition[abootbak] sector 26624
+[2026-09-06 07:55:43:379:379855  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 26624, num 1523" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:395:395374  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 28147" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:396:396376  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:396:396376  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\emmc_appsboot.mbn transferred successfully,elapse 00:00:00.0614068
+[2026-09-06 07:55:43:412:412170  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\tz.mbn to partition[tz] sector 32768
+[2026-09-06 07:55:43:497:497254  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 32768, num 2984" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:523:523198  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 35752" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:523:523198  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:524:524235  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\tz.mbn transferred successfully,elapse 00:00:00.1126577
+[2026-09-06 07:55:43:524:524235  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\tz.mbn to partition[tzbak] sector 36864
+[2026-09-06 07:55:43:607:607206  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 36864, num 2984" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:43:620:620666  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 39848" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:43:620:620666  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:43:620:620666  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\tz.mbn transferred successfully,elapse 00:00:00.0964310
+[2026-09-06 07:55:43:632:632740  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dtbo.img to partition[dtbo] sector 65536
+[2026-09-06 07:55:44:166:166043  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 65536, num 16384" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:44:187:187984  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 81920" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:44:189:189161  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:44:190:190184  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dtbo.img transferred successfully,elapse 00:00:00.5682024
+[2026-09-06 07:55:44:192:192225  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dtbo.img to partition[dtbobak] sector 81920
+[2026-09-06 07:55:44:651:651696  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 81920, num 16384" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:44:669:669905  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 98304" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:44:670:670936  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:44:671:671969  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\dtbo.img transferred successfully,elapse 00:00:00.4797442
+[2026-09-06 07:55:44:685:685963  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\splash.img to partition[splash] sector 163840
+[2026-09-06 07:55:44:752:752230  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 163840, num 2480" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:44:764:764570  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 166320" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:44:764:764570  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:44:764:764570  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\splash.img transferred successfully,elapse 00:00:00.0906793
+[2026-09-06 07:55:44:765:765616  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\adspso.bin to partition[dsp] sector 196608
+[2026-09-06 07:55:45:713:713930  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 196608, num 32768" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:45:756:756737  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 229376" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:45:756:756737  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:45:756:756737  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\adspso.bin transferred successfully,elapse 00:00:00.9911215
+[2026-09-06 07:55:45:757:757797  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\adspso.bin to partition[dspbak] sector 229376
+[2026-09-06 07:55:46:651:651989  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 229376, num 32768" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:46:662:662668  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 262144" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:46:662:662668  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:46:663:663726  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\adspso.bin transferred successfully,elapse 00:00:00.9059294
+[2026-09-06 07:55:46:668:668983  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\persist.img to partition[persist] sector 262144
+[2026-09-06 07:55:48:515:515160  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 262144, num 65536" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:48:533:533792  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 327680" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:48:534:534877  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:48:535:535911  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\persist.img transferred successfully,elapse 00:00:01.8721847
+[2026-09-06 07:55:48:539:539433  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\mdtp.img to partition[mdtp] sector 393216
+[2026-09-06 07:55:49:504:504495  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 393216, num 34782" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:49:524:524871  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 427998" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:49:525:525902  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:49:527:527972  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\mdtp.img transferred successfully,elapse 00:00:00.9889859
+[2026-09-06 07:55:49:529:529275  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\mdtp.img to partition[mdtpbak] sector 458752
+[2026-09-06 07:55:50:516:516925  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 458752, num 34782" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:50:532:532061  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 493534" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:50:533:533229  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:50:534:534253  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\mdtp.img transferred successfully,elapse 00:00:01.0049781
+[2026-09-06 07:55:50:538:538454  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\boot.img to partition[boot] sector 524288
+[2026-09-06 07:55:52:367:367307  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 524288, num 65536" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:52:386:386146  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 589824" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:52:387:387178  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:52:388:388744  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\boot.img transferred successfully,elapse 00:00:01.8518447
+[2026-09-06 07:55:52:391:391824  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\recovery.img to partition[recovery] sector 655360
+[2026-09-06 07:55:56:102:102337  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 655360, num 131072" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:56:117:117629  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 786432" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:56:118:118761  COM11]:1 chunks match 2 ack
+[2026-09-06 07:55:56:120:120827  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\recovery.img transferred successfully,elapse 00:00:03.7300436
+[2026-09-06 07:55:56:123:123998  COM11]:Write sparse file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cache.img to partition[cache] sector 1966080
+[2026-09-06 07:55:56:151:151986  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 1966080, num 224" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 1966304" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 1982680, num 48" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 1982728" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2228224, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 2228240" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2490368, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 2490376" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2506768, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:55:56:163:163581  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 2506776" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:55:56:163:163581  COM11]:5 chunks match 10 ack
+[2026-09-06 07:55:56:163:163581  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cache.img transferred successfully,elapse 00:00:00.0417217
+[2026-09-06 07:55:56:165:165421  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\NON-HLOS.bin to partition[modem] sector 2752512
+[2026-09-06 07:56:04:819:819277  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 2752512, num 262144" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 07:56:04:835:835121  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 3014656" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 07:56:04:836:836227  COM11]:1 chunks match 2 ack
+[2026-09-06 07:56:04:837:837259  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\NON-HLOS.bin transferred successfully,elapse 00:00:08.6726788
+[2026-09-06 07:56:04:841:841240  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\system.img to partition[system] sector 3014656
+[2026-09-06 08:00:06:150:150662  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 3014656, num 8388608" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:00:06:163:163862  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 11403264" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:00:06:163:163862  COM11]:1 chunks match 2 ack
+[2026-09-06 08:00:06:165:165324  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\system.img transferred successfully,elapse 00:04:01.3260243
+[2026-09-06 08:00:06:167:167476  COM11]:Write sparse file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vendor.img to partition[vendor] sector 11403264
+[2026-09-06 08:00:48:916:916300  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 11403264, num 3640" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 11406904" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 11407824, num 257600" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 11665424" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 11665920, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 11665928" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 11669968, num 257592" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 11927560" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 11931600, num 258112" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12189712" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12190208, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12190216" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12194256, num 257592" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12451848" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12455888, num 258112" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12714000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12714496, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12714504" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12718544, num 257592" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:00:48:934:934252  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 12976136" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:00:48:934:934252  COM11]:10 chunks match 20 ack
+[2026-09-06 08:00:56:818:818956  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 12980176, num 257824" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13238000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13238272, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13238288" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13238784, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13238792" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13467160, num 16264" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13483424" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13483424, num 16448" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13499872" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13499872, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13499880" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13500408, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:00:56:836:836132  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13500416" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:00:56:837:837245  COM11]:7 chunks match 14 ack
+[2026-09-06 08:00:56:839:839280  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\vendor.img transferred successfully,elapse 00:00:50.6722258
+[2026-09-06 08:00:56:842:842537  COM11]:Write sparse file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cust.img to partition[cust] sector 13500416
+[2026-09-06 08:01:24:529:529647  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13500416, num 1464" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13501880" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13504664, num 257912" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13762576" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13762984, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 13762992" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 13766808, num 257904" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14024712" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14028528, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14028536" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14061296, num 225568" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14286864" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14287272, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14287280" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14291096, num 257904" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14549000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14552816, num 6616" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14559432" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 14811136, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:01:24:541:541080  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 14811152" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:01:24:541:541080  COM11]:10 chunks match 20 ack
+[2026-09-06 08:01:24:542:542090  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15073280, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:01:24:557:557003  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15073288" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:01:24:557:557003  COM11]:1 chunks match 2 ack
+[2026-09-06 08:01:24:558:558235  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\cust.img transferred successfully,elapse 00:00:27.7179306
+[2026-09-06 08:01:24:560:560708  COM11]:Write sparse file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\userdata.img to partition[userdata] sector 15204352
+[2026-09-06 08:02:06:918:918577  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15204352, num 1000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15205352" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15209336, num 257176" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15466512" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15467448, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15467456" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15471480, num 257168" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15728648" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15732672, num 258128" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15990800" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15991736, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 15991744" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 15995768, num 257168" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16252936" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16256960, num 258128" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16515088" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16516024, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16516032" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16520056, num 257168" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:02:06:940:940008  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16777224" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:02:06:941:941113  COM11]:10 chunks match 20 ack
+[2026-09-06 08:02:14:722:722586  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16781248, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 16781256" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 16846784, num 192592" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 17039376" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 17040312, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 17040320" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 17044344, num 90056" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 17134400" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 17563648, num 16" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 17563664" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data><?xml version="1.0" encoding="UTF-8" ?><data><log value="start 18874368, num 8" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:02:14:739:739265  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 18874376" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:02:14:740:740289  COM11]:6 chunks match 12 ack
+[2026-09-06 08:02:14:742:742353  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\userdata.img transferred successfully,elapse 00:00:50.1824456
+[2026-09-06 08:02:14:744:744997  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\gpt_main0.bin to partition[PrimaryGPT] sector 0
+[2026-09-06 08:02:14:748:748341  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 0, num 34" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:02:14:770:770198  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 34" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:02:14:771:771281  COM11]:1 chunks match 2 ack
+[2026-09-06 08:02:14:772:772862  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\gpt_main0.bin transferred successfully,elapse 00:00:00.0295001
+[2026-09-06 08:02:14:775:775766  COM11]:Write file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\gpt_backup0.bin to partition[BackupGPT] sector NUM_DISK_SECTORS-33.
+[2026-09-06 08:02:14:778:778785  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="start 122142687, num 33" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="true" /></data>
+
+
+[2026-09-06 08:02:14:800:800932  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Finished sector address 122142720" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" rawmode="false" /></data>
+
+
+[2026-09-06 08:02:14:802:802029  COM11]:1 chunks match 2 ack
+[2026-09-06 08:02:14:803:803068  COM11]:Image C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\gpt_backup0.bin transferred successfully,elapse 00:00:00.0288006
+[2026-09-06 08:02:14:806:806146  COM11]:open patch file C:\Users\PMK\Desktop\Redmi_8a_Instant_Global_Olivelite\patch0.xml
+[2026-09-06 08:02:14:808:808190  COM11]:ApplyPatch sector 17, offset 168, value NUM_DISK_SECTORS-34., size 8
+[2026-09-06 08:02:14:808:808190  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="168" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="17" value="NUM_DISK_SECTORS-34." what="Update" /></data>
+[2026-09-06 08:02:14:809:809073  COM11]:get response from target
+[2026-09-06 08:02:14:863:863966  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 17 with 0747BFDE" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:14:929:929600  COM11]:ApplyPatch sector NUM_DISK_SECTORS-18., offset 168, value NUM_DISK_SECTORS-34., size 8
+[2026-09-06 08:02:14:930:930682  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="168" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="NUM_DISK_SECTORS-18." value="NUM_DISK_SECTORS-34." what="Update" /></data>
+[2026-09-06 08:02:14:932:932530  COM11]:get response from target
+[2026-09-06 08:02:14:992:992271  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142702 with 0747BFDE" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:054:054305  COM11]:ApplyPatch sector 1, offset 48, value NUM_DISK_SECTORS-34., size 8
+[2026-09-06 08:02:15:055:055330  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="48" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="1" value="NUM_DISK_SECTORS-34." what="Update" /></data>
+[2026-09-06 08:02:15:057:057145  COM11]:get response from target
+[2026-09-06 08:02:15:119:119698  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 1 with 0747BFDE" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:184:184210  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1., offset 48, value NUM_DISK_SECTORS-34., size 8
+[2026-09-06 08:02:15:185:185252  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="48" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="NUM_DISK_SECTORS-1." value="NUM_DISK_SECTORS-34." what="Update" /></data>
+[2026-09-06 08:02:15:187:187144  COM11]:get response from target
+[2026-09-06 08:02:15:247:247432  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with 0747BFDE" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:312:312410  COM11]:ApplyPatch sector 1, offset 32, value NUM_DISK_SECTORS-1., size 8
+[2026-09-06 08:02:15:312:312410  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="32" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="1" value="NUM_DISK_SECTORS-1." what="Update" /></data>
+[2026-09-06 08:02:15:314:314190  COM11]:get response from target
+[2026-09-06 08:02:15:377:377639  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 1 with 0747BFFF" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:430:430178  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1., offset 24, value NUM_DISK_SECTORS-1., size 8
+[2026-09-06 08:02:15:431:431183  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="24" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="NUM_DISK_SECTORS-1." value="NUM_DISK_SECTORS-1." what="Update" /></data>
+[2026-09-06 08:02:15:432:432905  COM11]:get response from target
+[2026-09-06 08:02:15:492:492285  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with 0747BFFF" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:543:543966  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1, offset 72, value NUM_DISK_SECTORS-33., size 8
+[2026-09-06 08:02:15:544:544970  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="72" filename="DISK" physical_partition_number="0" size_in_bytes="8" start_sector="NUM_DISK_SECTORS-1" value="NUM_DISK_SECTORS-33." what="Update" /></data>
+[2026-09-06 08:02:15:546:546899  COM11]:get response from target
+[2026-09-06 08:02:15:612:612963  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with 0747BFDF" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:679:679626  COM11]:ApplyPatch sector 1, offset 88, value CRC32(2,8192), size 4
+[2026-09-06 08:02:15:680:680732  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="88" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="1" value="CRC32(2,8192)" what="Update" /></data>
+[2026-09-06 08:02:15:682:682475  COM11]:get response from target
+[2026-09-06 08:02:15:683:683850  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="crc start sector 2, over bytes 8192" /></data>
+
+
+[2026-09-06 08:02:15:735:735116  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 1 with 0A0F0C41" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:796:796509  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1., offset 88, value CRC32(NUM_DISK_SECTORS-33.,8192), size 4
+[2026-09-06 08:02:15:797:797690  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="88" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="NUM_DISK_SECTORS-1." value="CRC32(NUM_DISK_SECTORS-33.,8192)" what="Update" /></data>
+[2026-09-06 08:02:15:799:799549  COM11]:get response from target
+[2026-09-06 08:02:15:800:800553  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="crc start sector 122142687, over bytes 8192" /></data>
+
+
+[2026-09-06 08:02:15:852:852124  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with 0A0F0C41" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:15:912:912008  COM11]:ApplyPatch sector 1, offset 16, value 0, size 4
+[2026-09-06 08:02:15:913:913011  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="16" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="1" value="0" what="Update" /></data>
+[2026-09-06 08:02:15:914:914518  COM11]:get response from target
+[2026-09-06 08:02:15:965:965826  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 1 with 00000000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:16:017:017500  COM11]:ApplyPatch sector 1, offset 16, value CRC32(1,92), size 4
+[2026-09-06 08:02:16:018:018504  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="16" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="1" value="CRC32(1,92)" what="Update" /></data>
+[2026-09-06 08:02:16:019:019501  COM11]:get response from target
+[2026-09-06 08:02:16:020:020861  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="crc start sector 1, over bytes 92" /></data>
+
+
+[2026-09-06 08:02:16:080:080217  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 1 with 5E3C69AB" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:16:131:131830  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1., offset 16, value 0, size 4
+[2026-09-06 08:02:16:131:131830  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="16" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="NUM_DISK_SECTORS-1." value="0" what="Update" /></data>
+[2026-09-06 08:02:16:132:132693  COM11]:get response from target
+[2026-09-06 08:02:16:183:183096  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with 00000000" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:16:234:234596  COM11]:ApplyPatch sector NUM_DISK_SECTORS-1., offset 16, value CRC32(NUM_DISK_SECTORS-1.,92), size 4
+[2026-09-06 08:02:16:235:235696  COM11]:send command:<?xml version="1.0" ?><data><patch SECTOR_SIZE_IN_BYTES="512" byte_offset="16" filename="DISK" physical_partition_number="0" size_in_bytes="4" start_sector="NUM_DISK_SECTORS-1." value="CRC32(NUM_DISK_SECTORS-1.,92)" what="Update" /></data>
+[2026-09-06 08:02:16:237:237249  COM11]:get response from target
+[2026-09-06 08:02:16:238:238254  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="crc start sector 122142719, over bytes 92" /></data>
+
+
+[2026-09-06 08:02:16:289:289744  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><log value="Patched sector 122142719 with B7FEB26F" /></data><?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
+[2026-09-06 08:02:16:347:347608  COM11]:Reset target
+[2026-09-06 08:02:16:349:349675  COM11]:send command:<?xml version="1.0" ?><data><power verbose="0"  value="reset"/></data>
+[2026-09-06 08:02:16:350:350976  COM11]:get response from target
+[2026-09-06 08:02:16:393:393514  COM11]:resdump:<?xml version="1.0" encoding="UTF-8" ?><data><response value="ACK" /></data>
+
+
