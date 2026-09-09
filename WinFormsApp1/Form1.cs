@@ -3948,6 +3948,10 @@ namespace WinFormsApp1
                     {
                         string t = line.Trim();
                         if (t.Length == 0 || t.StartsWith("List of devices") || t.StartsWith("*")) continue;
+                        // adb server startup/version chatter — device row မဟုတ်လို့ ကျော်တယ်
+                        if (t.Contains("server version", StringComparison.OrdinalIgnoreCase) ||
+                            t.Contains("doesn't match", StringComparison.OrdinalIgnoreCase) ||
+                            t.Contains("daemon", StringComparison.OrdinalIgnoreCase)) continue;
                         string[] parts = t.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
                         if (parts.Length == 0) continue;
                         string serial = parts[0];
@@ -3982,6 +3986,7 @@ namespace WinFormsApp1
                         {
                             anyDevice = true;
                             string props = await RunProcessCommand(adbPath, $"-s {serial} shell getprop", "Reading device properties...", false);
+                            bool anyProp = false;
                             if (!string.IsNullOrWhiteSpace(props))
                             {
                                 string[] wantKeys =
@@ -3991,14 +3996,16 @@ namespace WinFormsApp1
                                     "ro.build.version.sdk", "ro.build.version.security_patch", "ro.build.display.id",
                                     "ro.build.fingerprint", "ro.product.cpu.abilist", "ro.serialno", "ro.boot.serialno"
                                 };
-                                LogInfo("── Properties ──");
                                 foreach (string pl in props.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
                                 {
                                     string pt = pl.Trim();
+                                    if (pt.Length == 0) continue;
                                     foreach (string k in wantKeys)
                                     {
                                         if (pt.StartsWith(k + "]", StringComparison.OrdinalIgnoreCase) || pt.StartsWith(k + "=", StringComparison.OrdinalIgnoreCase))
                                         {
+                                            if (!anyProp) LogInfo("── Properties ──");
+                                            anyProp = true;
                                             int eq = pt.IndexOf(']');
                                             if (eq > 0) LogADB($"• {k} = {pt.Substring(eq + 1).TrimStart(' ', '=')}");
                                             else if (pt.Contains('=')) LogADB($"• {pt}");
@@ -4006,10 +4013,14 @@ namespace WinFormsApp1
                                         }
                                     }
                                 }
+                                if (!anyProp && (props.Contains("error", StringComparison.OrdinalIgnoreCase) || props.Contains("closed", StringComparison.OrdinalIgnoreCase)))
+                                {
+                                    LogInfo("   (shell getprop မရဘူး — ဒီ recovery/sideload မှာ shell ပိတ်ထားတာ ပုံမှန်ပါ)");
+                                }
                             }
-                            else
+                            if (!anyProp)
                             {
-                                LogInfo("   (shell getprop က ပြန်မလာဘူး — ဒီ mode မှာ shell မရနိုင်တာ ပုံမှန်ပါ)");
+                                LogInfo("   (ဒီ mode မှာ ဖုန်း properties တွေ shell ကနေ ဖတ်လို့မရပါ — Samsung stock recovery/sideload မှာ ဒီလိုဖြစ်တတ်ပါတယ်။ Model က ADB tag ကနေ ရပြီးသားပါ)");
                             }
                         }
                     }
