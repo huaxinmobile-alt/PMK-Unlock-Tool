@@ -616,7 +616,7 @@ namespace WinFormsApp1
             // ===== Top Brand Banner — PMK MOBILE SERVICE TOOL (gradient header) =====
             var banner = new GradientBannerHeader();
             banner.Dock = DockStyle.Top;
-            banner.Height = 46;
+            banner.Height = 32;
 
             statusStrip.Dock = DockStyle.Bottom;
             statusStrip.BackColor = Color.FromArgb(12, 17, 23);
@@ -654,13 +654,13 @@ namespace WinFormsApp1
 
                 // အောက်ခြေ accent line
                 using (var line = new SolidBrush(Color.FromArgb(80, 210, 255, 255)))
-                    g.FillRectangle(line, 0, Height - 3, Width, 3);
+                    g.FillRectangle(line, 0, Height - 2, Width, 2);
 
                 // Main title + ဘေးမှာ version (နာမည်နဲ့ ကပ်ပြီး)
-                using (var titleFont = new Font("Segoe UI", 13.5F, FontStyle.Bold))
+                using (var titleFont = new Font("Segoe UI", 12.5F, FontStyle.Bold))
                 using (var titleBrush = new SolidBrush(Color.White))
                 using (var subBrush = new SolidBrush(Color.FromArgb(190, 225, 255)))
-                using (var verFont = new Font("Segoe UI", 12F, FontStyle.Bold))
+                using (var verFont = new Font("Segoe UI", 10.5F, FontStyle.Bold))
                 {
                     string title = "PMK MOBILE SERVICE TOOL";
                     var titleSize = g.MeasureString(title, titleFont);
