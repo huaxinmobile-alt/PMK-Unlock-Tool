@@ -412,6 +412,7 @@ namespace WinFormsApp1
         }
 
         // Brand display name → Loaders folder name ကို ရှာဖွေခြင်း (Qualcomm)
+        // Local folder မရှိသေးရင် remote index ထဲက brand segment နဲ့ ပါ ယှဉ်တယ် (slim install — brand အကုန် model ရအောင်)
         public string ResolveQualcommLoaderFolder(string brand)
         {
             if (string.IsNullOrEmpty(brand)) return "";
@@ -433,6 +434,12 @@ namespace WinFormsApp1
                         string folderName = Path.GetFileName(dir);
                         if (folderName.Equals(brand, StringComparison.OrdinalIgnoreCase)) return folderName;
                     }
+                }
+
+                // Remote index — Loaders မရှိသေးတဲ့ brand တွေ (Huawei/Honor/Oneplus/...) အတွက်
+                foreach (string idxBrand in IndexBrands())
+                {
+                    if (idxBrand.Equals(brand, StringComparison.OrdinalIgnoreCase)) return idxBrand;
                 }
             }
             catch (Exception ex) { _log($"⚠️ ResolveQualcommLoaderFolder error: {ex.Message}", WarningColor); }
