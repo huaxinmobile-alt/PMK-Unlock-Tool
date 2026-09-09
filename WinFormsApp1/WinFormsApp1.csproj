@@ -6,13 +6,30 @@
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
+		<Version>4.0.0</Version>
+		<Product>PMK Unlock Tool</Product>
+		<AssemblyTitle>PMK Unlock Tool</AssemblyTitle>
+		<Description>All-in-one Android flashing &amp; repair tool - Qualcomm EDL, MediaTek, Samsung, Spreadtrum, ADB, Fastboot</Description>
+		<Company>PMK</Company>
+		<Authors>PMK</Authors>
 	</PropertyGroup>
 
 	<ItemGroup>
-	  <PackageReference Include="Google.GenAI" Version="1.21.0" />
-	  <PackageReference Include="Microsoft.VisualBasic" Version="10.3.0" />
-	  <PackageReference Include="pythonnet" Version="3.1.0" />
 	  <PackageReference Include="System.IO.Ports" Version="10.0.11" />
+	</ItemGroup>
+
+	<!-- Loaders / edl / mtkclient ကို build ပြီးတိုင်း output folder ထဲ အလိုအလျောက် sync လုပ်ပေးခြင်း
+	     (အသစ် clone လုပ်ပြီး build ရင် runtime folder တွေ bin ထဲ ကိုယ်တိုင်ရောက်လာမယ်) -->
+	<ItemGroup>
+		<Content Include="Loaders\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="edl\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
+		<Content Include="mtkclient\**\*">
+			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
+		</Content>
 	</ItemGroup>
 
 	<!-- adb.exe ဲ့ fastboot.exe ကို Output folder ထဲ အလိုအလျောက် Copy ပေးမယ် -->
