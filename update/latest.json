@@ -1,7 +1,7 @@
 {
-  "version": "4.0.3",
-  "notes": "PMK Unlock Tool v4.0.3 \u2014 login session remember.\n\n- Log in once \u2192 closing/reopening the tool no longer asks for username/password\n- Settings \u2192 Logout \u2192 next start asks for login again\n- Existing licenses, user lists and update settings are untouched",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.3/PMK-Unlock-Tool-v4.0.3.zip",
-  "sha256": "cabc00f962abce593919620e884936507c8636555ee1fb51579f713622e1751d",
-  "size": 588121312
+  "version": "4.0.4",
+  "notes": "PMK Unlock Tool v4.0.4 \u2014 version display fix.\n\n- Startup log banner now shows the real version (was hardcoded v4.0)\n- Settings \u2192 PC INFO \u2192 Tool Version shows clean version",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.4/PMK-Unlock-Tool-v4.0.4.zip",
+  "sha256": "1e78389137ee9d269aa41ef9def7318b1239eaaed57364db36cfecd847e10f67",
+  "size": 588121294
 }
