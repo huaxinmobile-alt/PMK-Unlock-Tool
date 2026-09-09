@@ -9,3 +9,7 @@ obj/
 
 # Local logs/scratch
 *.log
+
+# Portable publish output (self-contained build) — folder ကြီးလို့ repo ထဲ မထည့်ဘူး
+Publish/
+publish/

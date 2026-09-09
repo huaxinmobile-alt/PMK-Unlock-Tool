@@ -360,7 +360,7 @@ namespace WinFormsApp1
             // ===== Left Panel =====
             Panel leftPanel = new Panel { Dock = DockStyle.Left, Width = 430, BackColor = Color.FromArgb(14, 20, 27), Padding = new Padding(6) };
 
-            Panel connectionPanel = new Panel { Dock = DockStyle.Top, Height = 95, BackColor = Color.FromArgb(27, 36, 48), BorderStyle = BorderStyle.FixedSingle };
+            BevelCardPanel connectionPanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 95, BackColor = Color.FromArgb(27, 36, 48) };
             Label connectionTitle = CreateSeaLabel("🔌  CONNECTION", new Point(10, 8), true);
             Label portLabel = CreateSeaLabel("Communications Port", new Point(10, 36), false);
 
@@ -372,9 +372,11 @@ namespace WinFormsApp1
             btnMobileGo = CreateSeaButton("🔄 Ref", new Point(230, 56), 55, 28, (s, e) => { RefreshPorts(); Log("🔄 Ports refreshed.", colorInfo); });
             Button btnDevMgr = CreateSeaButton("🛠️ DevMgr", new Point(290, 56), 65, 28, (s, e) => { try { Process.Start(new ProcessStartInfo("devmgmt.msc") { UseShellExecute = true }); } catch { } });
             btnDevMgr.BackColor = Color.FromArgb(40, 70, 90);
+            Ui3D.Restyle3D(btnDevMgr);
 
             Button btnDrivers = CreateSeaButton("📦 Driver", new Point(360, 56), 60, 28, (s, e) => InstallAllDrivers());
             btnDrivers.BackColor = Color.FromArgb(45, 75, 60);
+            Ui3D.Restyle3D(btnDrivers);
 
             connectionPanel.Controls.AddRange(new Control[] { connectionTitle, portLabel, mobilePortCombo, autoConnect, btnMobileGo, btnDevMgr, btnDrivers });
 
@@ -383,16 +385,19 @@ namespace WinFormsApp1
 
             Button btnStopOp = CreateSeaButton("🛑 STOP", new Point(160, 4), 90, 28, btnStop_Click);
             btnStopOp.BackColor = Color.FromArgb(220, 40, 40);
+            Ui3D.Restyle3D(btnStopOp);
             btnStopOp.ForeColor = Color.White;
             btnStopOp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             logHeader.Controls.Add(btnStopOp);
 
             Button btnSaveLog = CreateSeaButton("💾 Save", new Point(260, 4), 70, 28, (s, e) => ExportLogToFile());
             btnSaveLog.BackColor = Color.FromArgb(45, 75, 60);
+            Ui3D.Restyle3D(btnSaveLog);
             logHeader.Controls.Add(btnSaveLog);
 
             Button btnClear = CreateSeaButton("🗑️ Clear", new Point(338, 4), 70, 28, (s, e) => { rtbOutput.Clear(); Log("Log cleared", colorWarning); });
             btnClear.BackColor = Color.FromArgb(50, 60, 75);
+            Ui3D.Restyle3D(btnClear);
             logHeader.Controls.Add(btnClear);
 
             rtbOutput.Parent = leftPanel;
@@ -417,8 +422,16 @@ namespace WinFormsApp1
             categoryTabButtons.Clear();
             foreach (string category in categories)
             {
-                Button catBtn = CreateSeaButton(category, Point.Empty, 93, 36, (s, e) => SwitchCategory(((Button)s).Text));
-                catBtn.Margin = new Padding(0, 0, 5, 0);
+                var catBtn = new Tab3DButton
+                {
+                    Text = category,
+                    Size = new Size(93, 36),
+                    Margin = new Padding(0, 0, 5, 0),
+                    BackColor = Color.FromArgb(47, 72, 101),
+                    ForeColor = Color.White,
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold)
+                };
+                catBtn.Click += (s, e) => SwitchCategory(catBtn.Text);
                 categoryTabButtons.Add(catBtn);
                 categoryBar.Controls.Add(catBtn);
             }
@@ -427,7 +440,7 @@ namespace WinFormsApp1
             BuildSettingsPanel(rightPanel);
 
             // ===== Profile Panel with TP Pinout Button =====
-            profilePanel = new Panel { Dock = DockStyle.Top, Height = 75, BackColor = Color.FromArgb(27, 36, 48), BorderStyle = BorderStyle.FixedSingle };
+            profilePanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 75, BackColor = Color.FromArgb(27, 36, 48) };
             profilePanel.Controls.Add(CreateSeaLabel("PROFILE", new Point(10, 10), true));
             profilePanel.Controls.Add(CreateSeaLabel("Brand", new Point(75, 10), false));
 
@@ -463,6 +476,7 @@ namespace WinFormsApp1
                 ShowTestPointViewer(brand, model);
             });
             btnShowTp.BackColor = Color.FromArgb(255, 152, 0);
+            Ui3D.Restyle3D(btnShowTp);
             profilePanel.Controls.Add(btnShowTp);
 
             lblLoaderTitle = CreateSeaLabel("📁 Firehose Loader:", new Point(10, 42), false);
@@ -471,7 +485,7 @@ namespace WinFormsApp1
 
             profilePanel.Controls.AddRange(new Control[] { lblLoaderTitle, txtFirmwarePath, btnBrowseLoader });
 
-            dynamicActionPanel = new Panel { Dock = DockStyle.Top, Height = 135, BackColor = Color.FromArgb(25, 33, 44), BorderStyle = BorderStyle.FixedSingle, Padding = new Padding(6), AutoScroll = true };
+            dynamicActionPanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 135, BackColor = Color.FromArgb(25, 33, 44), Padding = new Padding(6), AutoScroll = true };
 
             // ===== Partition Grid Context Menu =====
             partitionContextMenu = new ContextMenuStrip();
@@ -528,12 +542,11 @@ namespace WinFormsApp1
             InitializeUniversalFlasherHub(rightPanel);
 
             // ===== Sideload Package Row (Sideload tab မှာသာ ပေါ်မယ်) =====
-            sideloadPanel = new Panel
+            sideloadPanel = new BevelCardPanel
             {
                 Dock = DockStyle.Top,
                 Height = 46,
                 BackColor = Color.FromArgb(27, 36, 48),
-                BorderStyle = BorderStyle.FixedSingle,
                 Visible = false
             };
             sideloadPanel.Controls.Add(CreateSeaLabel("📦 Package (.zip):", new Point(10, 12), false));
@@ -546,6 +559,7 @@ namespace WinFormsApp1
                 if (dlg.ShowDialog() == DialogResult.OK) txtSideloadPath.Text = dlg.FileName;
             });
             btnSlBrowse.BackColor = Color.FromArgb(33, 150, 243);
+            Ui3D.Restyle3D(btnSlBrowse);
             sideloadPanel.Controls.Add(btnSlBrowse);
 
             // Footer Bar with Progress Bar
@@ -630,6 +644,138 @@ namespace WinFormsApp1
             this.Text = "PMK MOBILE SERVICE TOOL";
         }
 
+        // ================= 3D UI: tabs / cards / buttons =================
+        // Screen ငယ်ရင် (1366×768 လို laptop) အလိုအလျောက် maximize — အောက်ခြေ မပါသွားအောင်
+        protected override void OnShown(EventArgs e)
+        {
+            base.OnShown(e);
+            var wa = Screen.FromControl(this).WorkingArea;
+            if (wa.Height < 780 || wa.Width < 1340) WindowState = FormWindowState.Maximized;
+        }
+
+        // အရောင်တွက်နည်းတွေ + Flat button တွေကို interactive 3D ဖြစ်အောင်
+        private static class Ui3D
+        {
+            public static Color Lighten(Color c, float f)
+            {
+                f = Math.Clamp(f, 0f, 1f);
+                return Color.FromArgb(c.A, (int)(c.R + (255 - c.R) * f), (int)(c.G + (255 - c.G) * f), (int)(c.B + (255 - c.B) * f));
+            }
+
+            public static Color Darken(Color c, float f)
+            {
+                f = Math.Clamp(f, 0f, 1f);
+                return Color.FromArgb(c.A, (int)(c.R * (1 - f)), (int)(c.G * (1 - f)), (int)(c.B * (1 - f)));
+            }
+
+            // hover ဆို ပေါ့လာ / နှိပ်ရင် နက်သွား / 1px နက်တဲ့ border — "နှိပ်လို့ရတယ်" ဆိုတဲ့ 3D feel
+            public static void Restyle3D(Button b)
+            {
+                if (b is Tab3DButton) return;
+                Color bc = b.BackColor;
+                b.FlatAppearance.BorderSize = 1;
+                b.FlatAppearance.BorderColor = Darken(bc, 0.55f);
+                b.FlatAppearance.MouseOverBackColor = Lighten(bc, 0.20f);
+                b.FlatAppearance.MouseDownBackColor = Darken(bc, 0.25f);
+            }
+        }
+
+        // Category tab — gradient (အပေါ်ပေါ့/အောက်နက်) + gloss + active ဆို အပြာ "raised" look
+        private sealed class Tab3DButton : Button
+        {
+            [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
+            public bool Selected { get; set; }
+            private bool _hover;
+            private bool _down;
+
+            public Tab3DButton()
+            {
+                FlatStyle = FlatStyle.Flat;
+                FlatAppearance.BorderSize = 0;
+                SetStyle(ControlStyles.UserPaint | ControlStyles.AllPaintingInWmPaint | ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw, true);
+            }
+
+            protected override void OnMouseEnter(EventArgs e) { _hover = true; Invalidate(); base.OnMouseEnter(e); }
+            protected override void OnMouseLeave(EventArgs e) { _hover = false; _down = false; Invalidate(); base.OnMouseLeave(e); }
+            protected override void OnMouseDown(MouseEventArgs mevent) { _down = true; Invalidate(); base.OnMouseDown(mevent); }
+            protected override void OnMouseUp(MouseEventArgs mevent) { _down = false; Invalidate(); base.OnMouseUp(mevent); }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                var g = e.Graphics;
+                Rectangle rc = ClientRectangle;
+                Color baseC = Selected ? Color.FromArgb(0, 110, 200) : BackColor;
+                if (baseC.A == 0) baseC = Color.FromArgb(47, 72, 101);
+
+                // vertical gradient: အပေါ် ပေါ့တယ် → အောက် နက်တယ် (နှိပ်ထားရင် ပြောင်းပြန်)
+                Color top, bot;
+                if (_down)
+                {
+                    top = Ui3D.Darken(baseC, 0.28f);
+                    bot = Ui3D.Lighten(baseC, 0.10f);
+                }
+                else
+                {
+                    top = Selected ? Ui3D.Lighten(baseC, 0.38f) : Ui3D.Lighten(baseC, _hover ? 0.24f : 0.12f);
+                    bot = Selected ? Ui3D.Darken(baseC, 0.32f) : Ui3D.Darken(baseC, 0.16f);
+                }
+
+                using (var grad = new System.Drawing.Drawing2D.LinearGradientBrush(rc, top, bot, System.Drawing.Drawing2D.LinearGradientMode.Vertical))
+                    g.FillRectangle(grad, rc);
+
+                // gloss line — ထိပ်ဆုံး ၁px တောက်ပ
+                using (var gloss = new SolidBrush(Selected ? Color.FromArgb(140, 205, 255) : Ui3D.Lighten(top, 0.30f)))
+                    g.FillRectangle(gloss, 0, 0, Width, 1);
+
+                // အောက်ခြေ seat line — tab တွေ bar ထဲ မြုပ်/ထိုင်ထားသလို depth ရစေတယ်
+                using (var seat = new SolidBrush(Ui3D.Darken(baseC, 0.50f)))
+                    g.FillRectangle(seat, 0, Height - 2, Width, 2);
+
+                // active tab — ပေါ့ပါးတဲ့ အပြာရောင် ring
+                if (Selected)
+                {
+                    using var ring = new Pen(Color.FromArgb(120, 205, 255));
+                    g.DrawRectangle(ring, 0, 0, Width - 1, Height - 1);
+                }
+
+                Color textC = Selected ? Color.White
+                    : _hover ? Color.FromArgb(240, 246, 252) : Color.FromArgb(203, 218, 234);
+                TextRenderer.DrawText(g, Text, Font, rc, textC,
+                    TextFormatFlags.HorizontalCenter | TextFormatFlags.VerticalCenter | TextFormatFlags.SingleLine | TextFormatFlags.NoPrefix);
+            }
+        }
+
+        // Card panel — bevel border: dark outline + အပေါ် 1px highlight + အောက် 1px shade → ပတ်ဝန်းကျင်ထက် ထူးနေတယ်
+        private sealed class BevelCardPanel : Panel
+        {
+            public BevelCardPanel()
+            {
+                BorderStyle = BorderStyle.None;
+                DoubleBuffered = true;
+                SetStyle(ControlStyles.OptimizedDoubleBuffer | ControlStyles.ResizeRedraw | ControlStyles.AllPaintingInWmPaint, true);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                if (Width < 4 || Height < 4 || BackColor.A == 0) return;
+                var g = e.Graphics;
+                Color c = BackColor;
+
+                using (var dark = new Pen(Ui3D.Darken(c, 0.45f)))
+                {
+                    g.DrawLine(dark, 0, 0, Width - 1, 0);
+                    g.DrawLine(dark, 0, Height - 1, Width - 1, Height - 1);
+                    g.DrawLine(dark, 0, 0, 0, Height - 1);
+                    g.DrawLine(dark, Width - 1, 0, Width - 1, Height - 1);
+                }
+                using (var hi = new Pen(Ui3D.Lighten(c, 0.16f)))
+                    g.DrawLine(hi, 1, 1, Width - 2, 1);
+                using (var sh = new Pen(Ui3D.Darken(c, 0.30f)))
+                    g.DrawLine(sh, 1, Height - 2, Width - 2, Height - 2);
+            }
+        }
+
         // ထိပ်ဆုံး brand header — gradient နဲ့ လှပတဲ့ title
         private sealed class GradientBannerHeader : Panel
         {
@@ -679,7 +825,7 @@ namespace WinFormsApp1
         // ================= Universal Multi-Brand Flasher Hub UI =================
         private void InitializeUniversalFlasherHub(Panel parentPanel)
         {
-            flasherHubPanel = new Panel
+            flasherHubPanel = new BevelCardPanel
             {
                 Dock = DockStyle.Fill,
                 BackColor = Color.FromArgb(18, 24, 32),
@@ -712,6 +858,7 @@ namespace WinFormsApp1
 
                 btn = CreateSeaButton("📂 Browse", new Point(580, yPos - 1), 90, 27, (s, e) => BrowseFlasherSlot(slotIndex));
                 btn.BackColor = Color.FromArgb(40, 60, 85);
+                Ui3D.Restyle3D(btn);
 
                 flasherHubPanel.Controls.AddRange(new Control[] { chk, txt, btn });
             }
@@ -731,10 +878,12 @@ namespace WinFormsApp1
             // Action Buttons
             btnMasterFlash = CreateSeaButton("⚡ START (FLASH FIRMWARE)", new Point(15, startY + (gapY * 6) + 10), 240, 40, (s, e) => ExecuteMasterFlash());
             btnMasterFlash.BackColor = Color.FromArgb(230, 60, 60);
+            Ui3D.Restyle3D(btnMasterFlash);
             btnMasterFlash.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
 
             btnResetFlasher = CreateSeaButton("🗑️ Reset Slots", new Point(265, startY + (gapY * 6) + 10), 120, 40, (s, e) => ResetFlasherSlots());
             btnResetFlasher.BackColor = Color.FromArgb(60, 70, 85);
+            Ui3D.Restyle3D(btnResetFlasher);
 
             flasherHubPanel.Controls.AddRange(new Control[] { btnMasterFlash, btnResetFlasher });
             parentPanel.Controls.Add(flasherHubPanel);
@@ -2275,8 +2424,12 @@ namespace WinFormsApp1
 
             foreach (Button btn in categoryTabButtons)
             {
-                if (btn.Text == category) { btn.BackColor = Color.FromArgb(0, 122, 204); btn.FlatAppearance.BorderColor = Color.White; btn.FlatAppearance.BorderSize = 1; }
-                else { btn.BackColor = Color.FromArgb(47, 72, 101); btn.FlatAppearance.BorderSize = 0; }
+                if (btn is Tab3DButton t3)
+                {
+                    t3.Selected = (t3.Text == category);
+                    t3.BackColor = t3.Selected ? Color.FromArgb(0, 122, 204) : Color.FromArgb(47, 72, 101);
+                    t3.Invalidate();
+                }
             }
 
             // ===== Settings tab — theme + PC info (action buttons / hub / profile မလို) =====
@@ -2371,6 +2524,7 @@ namespace WinFormsApp1
                 if (x + btnWidth > dynamicActionPanel.Width - 20) { x = 8; y += btnHeight + gapY; }
                 Button btn = CreateSeaButton(text, new Point(x, y), btnWidth, btnHeight, handler);
                 btn.BackColor = bg;
+                Ui3D.Restyle3D(btn);
                 dynamicActionPanel.Controls.Add(btn);
                 dynamicButtons.Add(btn);
                 x += btnWidth + gapX;
@@ -5200,8 +5354,7 @@ namespace WinFormsApp1
         private Button CreateSeaButton(string text, Point location, int width, int height, EventHandler handler)
         {
             Button b = new Button { Text = text, Location = location, Size = new Size(width, height), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(47, 72, 101), ForeColor = Color.White, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), Margin = new Padding(3) };
-            b.FlatAppearance.BorderColor = Color.FromArgb(72, 99, 130);
-            b.FlatAppearance.MouseOverBackColor = Color.FromArgb(65, 100, 140);
+            Ui3D.Restyle3D(b);
             b.Click += handler;
             return b;
         }
@@ -5314,6 +5467,17 @@ namespace WinFormsApp1
 
             RestyleGrid();
 
+            // Buttons တွေရဲ့ hover/press အရောင်ကို theme ပြောင်းပြီးတဲ့ BackColor နဲ့ ပြန်တွက်ပေးတယ်
+            void ReThemeButtons(Control parent)
+            {
+                foreach (Control c in parent.Controls)
+                {
+                    if (c is Button b && b is not Tab3DButton) Ui3D.Restyle3D(b);
+                    ReThemeButtons(c);
+                }
+            }
+            ReThemeButtons(this);
+
             // Layout တည်ငြိမ်ပြီးမှ action buttons တွေကို ပြန်စီပေးတယ် (constructor မှာ စောစောစီးစီး ဖြစ်ရင် gap ကျန်နိုင်လို့)
             ReflowActionButtons();
         }
@@ -5342,6 +5506,7 @@ namespace WinFormsApp1
                 SetStatus("PC info refreshed");
             });
             btnRefreshInfo.BackColor = Color.FromArgb(33, 150, 243);
+            Ui3D.Restyle3D(btnRefreshInfo);
             settingsPanel.Controls.Add(btnRefreshInfo);
 
             // --- PC Info section ---
