@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>4.0.4</Version>
+		<Version>4.0.5</Version>
 		<Product>PMK Unlock Tool</Product>
 		<AssemblyTitle>PMK Unlock Tool</AssemblyTitle>
 		<Description>All-in-one Android flashing &amp; repair tool - Qualcomm EDL, MediaTek, Samsung, Spreadtrum, ADB, Fastboot</Description>

@@ -295,6 +295,9 @@ namespace WinFormsApp1
             var wa = Screen.FromControl(this).WorkingArea;
             if (wa.Height < 780 || wa.Width < 1340) WindowState = FormWindowState.Maximized;
 
+            // Window ကို ရှေ့ဆုံး ရောက်အောင် (နောက်မှာ ပိတ်မနေအောင်)
+            BeginInvoke(new Action(() => UiFocus.BringToFront(this)));
+
             // Online update — တစ်နေ့တစ်ခါ နောက်ခံမှာ တိတ်တိတ်ဆိတ် စစ်ပေးတယ် (UI ကို မနှောင့်ဘူး)
             AutoCheckUpdateSilently();
         }

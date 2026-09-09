@@ -1,8 +1,32 @@
 using System;
+using System.Runtime.InteropServices;
 using System.Windows.Forms;
 
 namespace WinFormsApp1
 {
+    // Window ကို ရှေ့ဆုံး ဆွဲတင်ပေးတဲ့ အကူ — တစ်ခြား app နောက်မှာ ပိတ်နေမနေအောင်
+    internal static class UiFocus
+    {
+        [DllImport("user32.dll")]
+        private static extern bool SetForegroundWindow(IntPtr hWnd);
+
+        [DllImport("user32.dll")]
+        private static extern bool ShowWindow(IntPtr hWnd, int nCmdShow);
+
+        public static void BringToFront(Form f)
+        {
+            if (f == null || f.IsDisposed) return;
+            try
+            {
+                ShowWindow(f.Handle, 9); // SW_RESTORE
+                f.Activate();
+                f.BringToFront();
+                SetForegroundWindow(f.Handle);
+            }
+            catch { }
+        }
+    }
+
     internal static class Program
     {
         [STAThread]

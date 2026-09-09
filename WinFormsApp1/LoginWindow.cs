@@ -216,7 +216,11 @@ namespace WinFormsApp1
             {
                 if (e.KeyCode == Keys.Enter && e.Control) DoActivate();
             };
-            Shown += (s, e) => { if (pnlActivate.Visible) txtInstall.SelectAll(); else txtUser.Focus(); };
+            Shown += (s, e) =>
+            {
+                UiFocus.BringToFront(this);
+                if (pnlActivate.Visible) txtInstall.SelectAll(); else txtUser.Focus();
+            };
         }
 
         // ================= Panel switch =================
