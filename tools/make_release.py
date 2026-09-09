@@ -29,7 +29,7 @@ PUBLISH = os.path.join(ROOT, "Publish", "win-x64")
 RELEASES = os.path.join(ROOT, "Releases")
 UPDATE_DIR = os.path.join(ROOT, "update")
 EXCLUDE_DIRS = {"updates", "device_database", "Publish"}
-EXCLUDE_FILES = {"users.dat", "users.dat.corrupt", "users.dat.tmp"}  # shop-local login list — update မှာ မပျက်အောင် zip ထဲ မထည့်ဘူး
+EXCLUDE_FILES = {"users.dat", "users.dat.corrupt", "users.dat.tmp", "session.dat"}  # shop-local runtime files — update မှာ မပျက်အောင် zip ထဲ မထည့်ဘူး
 REPO = "huaxinmobile-alt/PMK-Unlock-Tool"
 EXE = "WinFormsApp1.exe"
 

@@ -28,3 +28,6 @@ users.dat*
 
 # License private key (PMK ရဲ့ PC မှာပဲ — repo ထဲ ဘယ်တော့မှ မထည့်နဲ့)
 tools/private/
+
+# Login session (per-PC runtime — logout လုပ်ရင် ဖျက်တယ်)
+session.dat

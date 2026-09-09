@@ -318,6 +318,13 @@ namespace WinFormsApp1
             if (failCount >= 5) { failCount = 0; lblError.Text = ""; }
         }
 
+        // Login အောင်ပြီ — session မှတ်ပြီး ပိတ်တယ် (နောက်တစ်ခါ ဖွင့်ရင် ပြန်မမေးတော့ဘူး)
+        private void CompleteLogin(UserEntry entry)
+        {
+            if (entry != null) LoginSession.Save(entry.Username);
+            DialogResult = DialogResult.OK;
+        }
+
         // ================= Login =================
         private void DoLogin()
         {
@@ -349,7 +356,7 @@ namespace WinFormsApp1
                 return;
             }
 
-            DialogResult = DialogResult.OK;
+            CompleteLogin(entry);
         }
 
         // ================= Gmail register (တစ်ခါပဲ — client id ရှိမှ) =================
@@ -427,15 +434,14 @@ namespace WinFormsApp1
             {
                 string err = UserManager.AddUser(_pendingEmail, p1, "admin");
                 if (err != null) { ChgErr(err); return; }
-                UserManager.TryLogin(_pendingEmail, p1, out _); // session set
-                DialogResult = DialogResult.OK;
+                CompleteLogin(UserManager.TryLogin(_pendingEmail, p1, out _)); // session set
                 return;
             }
             if (_pendingEntry != null)
             {
                 string err = UserManager.SetPassword(_pendingEntry.Username, p1);
                 if (err != null) { ChgErr(err); return; }
-                DialogResult = DialogResult.OK;
+                CompleteLogin(_pendingEntry);
             }
         }
 

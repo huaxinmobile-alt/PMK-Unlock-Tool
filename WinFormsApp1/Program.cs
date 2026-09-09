@@ -32,9 +32,14 @@ namespace WinFormsApp1
             };
 
             // Login gate — ဝင်ပြီးမှသာ main UI ပွင့်တယ် (ပိတ်/cancel ဆို app ထွက်တယ်)
-            using (var login = new LoginWindow())
+            // Session ရှိပြီး (logout မထွက်ရသေးဘဲ) license valid ဆိုရင် login ကို ကျော်တယ်
+            string remembered = LoginSession.RememberedUser;
+            if (remembered == null || !License.IsActivated || !UserManager.RestoreSession(remembered))
             {
-                if (login.ShowDialog() != DialogResult.OK) return;
+                using (var login = new LoginWindow())
+                {
+                    if (login.ShowDialog() != DialogResult.OK) return;
+                }
             }
 
             Application.Run(new Form1());

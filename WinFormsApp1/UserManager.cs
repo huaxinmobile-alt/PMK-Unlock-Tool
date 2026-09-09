@@ -133,6 +133,16 @@ namespace WinFormsApp1
         }
 
         // ================= User management (admin/master) =================
+        // Session remember — password မရိုက်ဘဲ နောက်ဆုံး login user ကို ပြန်တင် (Program.cs က သုံး)
+        public static bool RestoreSession(string username)
+        {
+            EnsureLoaded();
+            var entry = Find(username);
+            if (entry == null) return false;
+            CurrentUser = entry;
+            return true;
+        }
+
         public static List<UserEntry> ListUsers()
         {
             EnsureLoaded();

@@ -3358,8 +3358,9 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
 
         private void DoLogout()
         {
-            if (MessageBox.Show("Logout လုပ်မလား?\nTool ပိတ်ပြီး login screen ပြန်ပြပါမယ် — အလုပ်လုပ်နေတာရှိရင် အရင်ရပ်ပါ။",
+            if (MessageBox.Show("Logout လုပ်မလား?\nTool ပိတ်ပြီး login screen ပြန်ပြပါမယ် — နောက်တစ်ခါ ဖွင့်ရင် username/password ပြန်ထည့်ရပါမယ်။",
                 "Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            LoginSession.Clear(); // logout = session ဖျက် → နောက်တစ်ခါ login ပြန်မေး
             Application.Restart();
         }
 
