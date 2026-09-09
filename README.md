@@ -34,6 +34,28 @@ internet needed.
 - Shop-specific user lists are never shipped in the release zip, so self-updates keep your users intact
 - Lost/corrupt `users.dat` (e.g. deleting the file) resets the list back to defaults — keep a copy if you customized it
 
+### 📧 Gmail register (ဆိုင်သစ် account ဖွင့်ခြင်း)
+
+Login screen မှာ **"Gmail နဲ့ register"** button — ဝယ်ယူသူက သူ့ Gmail နဲ့ Google ဝင်ရုံပဲ
+(password ကို tool က မမြင်ရဘူး — official Google OAuth, PKCE)။ သူ့ Gmail က ခွင့်ပြုစာရင်းထဲ
+ပါမှ password ထည့်ပြီး account ဖွင့်ရတယ် — **တစ်ခါပဲ**၊ နောက်ပိုင်း login တွေက offline ပုံမှန်။
+
+- **PMK ဘက်က**: `python tools/add_buyer.py buyer@gmail.com --git` → ဝယ်သူ register လုပ်လို့ရပြီ
+  (စာရင်းက hash နဲ့ပဲ သိမ်း — email အရှင် public မဖြစ်ဘူး)
+- **Google setup (တစ်ခါပဲ)**: console.cloud.google.com → project အသစ် → "APIs & Services" →
+  OAuth consent screen (External, app name = PMK Unlock Tool, support email ထည့်) →
+  Credentials → **Create OAuth client ID** → Application type = **Desktop app** →
+  Client ID ကို ကော်ပီပြီး tool folder ထဲ `google_client.json` ဖန်တီး:
+  ```json
+  { "client_id": "xxxx.apps.googleusercontent.com" }
+  ```
+  (Client secret မလို — PKCE သုံးလို့)။ ဖိုင်ကို `Publish\win-x64\` ထဲ ထည့်ပြီးမှ
+  `release.bat` run ရင် zip ထဲ ပါသွားမယ်။ Client ID မထည့်ရသေးရင် register button က
+  အကြောင်းကြားစာပဲ ပြမယ်။
+- မှတ်ချက်: consent screen က Testing mode ဆို user 100 ကန့်သတ်တယ် — အဆင်သင့်ဖြစ်ရင်
+  console ထဲ "Publish app" လုပ်ပြီး Production ပြောင်းပါ (unverified warning ပေါ်နေဦးမှာ —
+  openid/email scope မို့ ပုံမှန်အလုပ်ဖြစ်တယ်)
+
 ### 🔄 Built-in update
 
 Once installed, the tool checks for new versions itself: **Settings → 🌐 ONLINE UPDATE → Check for Updates**
