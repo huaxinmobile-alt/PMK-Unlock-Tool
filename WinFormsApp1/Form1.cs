@@ -51,6 +51,7 @@ namespace WinFormsApp1
         private SamsungSpdService _samSpdService;
         private MasterFlashCoordinator _flashCoordinator;
         private UpdateManager _updateManager;
+        private LoaderDownloaderService _loaderDownloader;
         private DataGridView usersGrid;
         private Label lblLoggedIn;
         private Label lblUsersStatus;
@@ -209,6 +210,7 @@ namespace WinFormsApp1
                 SetOperationState,
                 _processRunner,
                 () => adbPath);
+            _loaderDownloader = new LoaderDownloaderService(Log, UpdateGlobalProgress);
             _flashCoordinator = new MasterFlashCoordinator(
                 Log,
                 UpdateGlobalProgress,
@@ -219,7 +221,8 @@ namespace WinFormsApp1
                 _samSpdService,
                 _processRunner,
                 _firmwareService,
-                _loaderService);
+                _loaderService,
+                _loaderDownloader);
             _updateManager = new UpdateManager(
                 Log,
                 UpdateGlobalProgress,
@@ -1451,6 +1454,28 @@ namespace WinFormsApp1
             // loader ရှိပြီးသားဆို တစ်ခါတည်း စမ်း
             if (CurrentLoaderPath().Length > 0)
             {
+                string loader = CurrentLoaderPath();
+
+                // On-demand: loader path သိပေမဲ့ ဖိုင် မရှိတော့ (slim install — Loaders zip ထဲ မပါတော့)
+                // → GitHub ကနေ အဲဒီ loader တစ်ခုကို download လုပ်ပြီးမှ ဆက်လုပ်တယ်
+                if (!IOFile.Exists(loader))
+                {
+                    string rel = LoaderDownloaderService.TryToRelative(loader);
+                    if (rel.Length > 0)
+                    {
+                        Log("⏳ Loader missing locally. Initiating auto-download...", colorWarning);
+                        string dl = await _loaderDownloader.DownloadLoaderIfNeededAsync(rel);
+                        if (dl == null)
+                        {
+                            LogError("❌ Cannot proceed without the programmer file — internet စစ်ပြီး ပြန်စမ်းပါ သို့မဟုတ် Browse နဲ့ loader ရွေးပါ");
+                            return false; // Abort the operation
+                        }
+                        loader = dl;
+                        txtFirmwarePath.Text = dl;
+                        txtSlot1.Text = dl;
+                    }
+                }
+
                 string r = await _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" {_qcService.GetEdlLoaderArg()}printgpt", "Reading GPT (USB)...", true);
                 return TryParseGptResult(r);
             }

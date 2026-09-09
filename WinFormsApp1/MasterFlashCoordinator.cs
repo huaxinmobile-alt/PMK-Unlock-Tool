@@ -40,6 +40,7 @@ namespace WinFormsApp1
         private readonly ProcessRunnerService _processRunner;
         private readonly FirmwareService _firmwareService;
         private readonly LoaderService _loaderService;
+        private readonly LoaderDownloaderService _loaderDownloader;
 
         public MasterFlashCoordinator(
             LogHandler log,
@@ -51,7 +52,8 @@ namespace WinFormsApp1
             SamsungSpdService samSpdService,
             ProcessRunnerService processRunner,
             FirmwareService firmwareService,
-            LoaderService loaderService)
+            LoaderService loaderService,
+            LoaderDownloaderService loaderDownloader)
         {
             _log = log ?? delegate { };
             _updateProgress = updateProgress ?? delegate { };
@@ -63,6 +65,7 @@ namespace WinFormsApp1
             _processRunner = processRunner;
             _firmwareService = firmwareService;
             _loaderService = loaderService;
+            _loaderDownloader = loaderDownloader;
         }
 
         // ================= Master routing (5-slot hub) =================
@@ -195,6 +198,25 @@ namespace WinFormsApp1
                 {
                     loader = autoLdr;
                     _log($"🎯 Auto-Detect: using remembered loader for this phone ({Path.GetFileName(autoLdr)})", QualcommColor);
+                }
+            }
+
+            // On-demand: loader path သိပေမဲ့ ဖိုင် မရှိတော့ (slim install — Loaders zip ထဲ မပါတော့)
+            // → GitHub ကနေ အဲဒီ loader ကို download လုပ်ပြီးမှ ဆက်လုပ်တယ်။ မရရင် abort (ဖုန်း မထိခိုက်)
+            if (!string.IsNullOrEmpty(loader) && !IOFile.Exists(loader))
+            {
+                string rel = LoaderDownloaderService.TryToRelative(loader);
+                if (rel.Length > 0)
+                {
+                    _log("⏳ Loader missing locally. Initiating auto-download...", WarningColor);
+                    string dl = await _loaderDownloader.DownloadLoaderIfNeededAsync(rel);
+                    if (dl == null)
+                    {
+                        _log("❌ Cannot proceed without the programmer file — internet စစ်ပြီး ပြန်စမ်းပါ သို့မဟုတ် Browse နဲ့ loader ရွေးပါ", ErrorColor);
+                        return false; // Abort the operation
+                    }
+                    loader = dl;
+                    _log($"✅ Loader ready: {Path.GetFileName(dl)}", SuccessColor);
                 }
             }
 

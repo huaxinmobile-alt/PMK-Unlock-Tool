@@ -13,6 +13,10 @@ Portable package (self-contained — no .NET runtime needed) is published on the
 `PMK-Unlock-Tool-v4.0.0.zip` — extract to any writable folder (Desktop / `D:\` — **not** `C:\Program Files`, because
 the built-in updater needs write access to its own folder) and run `WinFormsApp1.exe`.
 
+> ☁️ **Loaders က zip ထဲ မပါတော့ပါ** (download သေးအောင် ~130MB) — tool က ဖုန်းတစ်လုံးလုပ်တဲ့အခါ လိုအပ်တဲ့
+> loader ကို GitHub ကနေ အလိုအလျောက် download ပြီး သိမ်းတယ် (ပထမဆုံးအကြိမ်ပဲ internet လို — နောက်ပိုင်း offline)။
+> ဒါမှမဟုတ် Browse နဲ့ programmer ကို ကိုယ်တိုင်ရွေးလည်း ရတယ်။
+
 First-run requirements on each PC:
 
 | Need | How |
