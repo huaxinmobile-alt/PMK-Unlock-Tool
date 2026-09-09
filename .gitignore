@@ -19,3 +19,6 @@ publish/
 
 # Release publish intermediate (dotnet publish build tree) — folder ကြီးလို့ exclude
 WinFormsApp1/bin/Release/
+
+# Release zip (local only — upload က GitHub Releases ကနေ)
+Releases/

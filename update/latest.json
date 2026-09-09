@@ -1,0 +1,7 @@
+{
+  "version": "4.0.0",
+  "notes": "PMK Unlock Tool v4.0.0 \u2014 first public portable release. Portable zip (self-contained, no .NET runtime needed). Install: Python + pip install pyserial pyusb + USB drivers. Update check: Settings \u2192 ONLINE UPDATE.",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.0/PMK-Unlock-Tool-v4.0.0.zip",
+  "sha256": "b695169471640f6aa34bb48228795eeee87869af4b247647e0ab0a2efbfa1205",
+  "size": 588091737
+}

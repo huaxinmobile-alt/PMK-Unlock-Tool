@@ -1,23 +1,46 @@
 # PMK Unlock Tool v4.0
 
-Phone repair / flashing tool (Qualcomm EDL 9008 · MediaTek SP Flash · Samsung · Spreadtrum · Fastboot · ADB).
+Phone repair / flashing tool — Qualcomm EDL 9008 · MediaTek SP Flash · Samsung · Spreadtrum · Fastboot · ADB.
+Windows 10/11 (64-bit) desktop app. **Offline tool** — flashing itself never needs internet; internet is only used
+for the optional update check.
 
-> **Private full backup repository** — contains source code AND runtime assets
-> (Loader DB, edl client, mtkclient, build output under `WinFormsApp1/bin`).
-> The runtime copy under `bin/Debug/net9.0-windows` is the working folder the
-> app actually uses; the project-level folders (`Loaders/`, `edl/`, `mtkclient/`)
-> are the maintained sources that get copied in.
+## 📥 Download (for shops / technicians)
+
+Portable package (self-contained — no .NET runtime needed) is published on the **Releases** page:
+
+**https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases**
+
+`PMK-Unlock-Tool-v4.0.0.zip` — extract to any writable folder (Desktop / `D:\` — **not** `C:\Program Files`, because
+the built-in updater needs write access to its own folder) and run `WinFormsApp1.exe`.
+
+First-run requirements on each PC:
+
+| Need | How |
+|---|---|
+| Python 3.8+ | python.org → installer → tick **Add python.exe to PATH** |
+| Python modules | `pip install pyserial pyusb` |
+| USB drivers | Qualcomm EDL 9008 (Zadig → WinUSB or QDLoader driver) · MediaTek VCOM · Samsung/ADB (Windows Update auto) |
+| Windows SmartScreen | "More info → Run anyway" (unsigned app) |
+| Run as Administrator | for driver / COM-port operations |
+
+### 🔄 Built-in update
+
+Once installed, the tool checks for new versions itself: **Settings → 🌐 ONLINE UPDATE → Check for Updates**
+(startup auto-check, max once per day). New version = one click download + SHA-256 verification + self-restart —
+no manual zip re-downloading on every PC.
 
 ## Folder map
 
 | Path | Purpose |
 |---|---|
-| `WinFormsApp1/Form1.cs` | Entire UI + logic (code-built WinForms, no designer) |
+| `WinFormsApp1/Form1.cs` | UI + handlers (code-built WinForms, no designer) |
+| `WinFormsApp1/UpdateManager.cs` | Online update engine (manifest fetch / download / verify / self-update) |
 | `WinFormsApp1/Loaders/` | Qualcomm firehose loader DB by brand/model |
 | `WinFormsApp1/edl/` | Python EDL client (bkerler-based) used for QC operations |
 | `WinFormsApp1/mtkclient/` | MTK (MediaTek) client source |
-| `WinFormsApp1/bin/Debug/net9.0-windows/` | Working runtime (edl + Loaders copy + QFL/MiFlash tools) |
-| `WinFormsApp1/bin/.../device_database/auto_loader_map.txt` | Learned HWID→loader map |
+| `update/latest.json` | Version manifest served to the in-app update checker |
+| `release.bat` + `tools/make_release.py` | One-command release packager (zip → manifest → GitHub release) |
+| `WinFormsApp1/bin/.../device_database/auto_loader_map.txt` | Learned HWID→loader map (runtime) |
 
 ## Build
 
@@ -26,6 +49,7 @@ dotnet build WinFormsApp1/WinFormsApp1.csproj -c Debug
 ```
 
 Requires .NET 9 SDK (`net9.0-windows`) and Python on PATH at runtime.
+Portable publish: `publish_portable.bat` (→ `Publish\win-x64`). Public release: `release.bat --release`.
 
 ## Features (v4.0)
 

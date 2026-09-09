@@ -50,6 +50,7 @@ namespace WinFormsApp1
         private AdbFastbootService _adbFbService;
         private SamsungSpdService _samSpdService;
         private MasterFlashCoordinator _flashCoordinator;
+        private UpdateManager _updateManager;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -214,6 +215,11 @@ namespace WinFormsApp1
                 _processRunner,
                 _firmwareService,
                 _loaderService);
+            _updateManager = new UpdateManager(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                () => Application.ProductVersion);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -281,6 +287,24 @@ namespace WinFormsApp1
             base.OnShown(e);
             var wa = Screen.FromControl(this).WorkingArea;
             if (wa.Height < 780 || wa.Width < 1340) WindowState = FormWindowState.Maximized;
+
+            // Online update — တစ်နေ့တစ်ခါ နောက်ခံမှာ တိတ်တိတ်ဆိတ် စစ်ပေးတယ် (UI ကို မနှောင့်ဘူး)
+            AutoCheckUpdateSilently();
+        }
+
+        // Startup auto-check — version သစ်ရှိမှပဲ log မှာ အသိပေးတယ်
+        private async void AutoCheckUpdateSilently()
+        {
+            try
+            {
+                await Task.Delay(3000);
+                if (!_updateManager.AutoCheckDue()) return;
+                var m = await _updateManager.FetchManifestAsync();
+                if (m == null) return; // offline / server မရောက် — silent
+                if (_updateManager.IsNewer(m))
+                    LogWarning($"🆕 Version {m.version} ရှိပါတယ် — Settings → 🌐 ONLINE UPDATE → Check for Updates နှိပ်ပါ");
+            }
+            catch (Exception) { /* update check က flash/repair အလုပ်ကို ဘယ်တော့မှ မနှောင့်ရဘူး */ }
         }
 
         // အရောင်တွက်နည်းတွေ + Flat button တွေကို interactive 3D ဖြစ်အောင်
@@ -3027,6 +3051,28 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
                 y += step;
             }
 
+            // --- Online Update section (GitHub Releases ကနေ self-update) ---
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("🌐 ONLINE UPDATE", new Point(12, 556), true));
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("Version သစ်ရှိရင် download လုပ်ပြီး ကိုယ်တိုင် update ပေးပါတယ် — စစ်တာပဲ internet လိုတယ်", new Point(12, 588), false));
+
+            Label lblUpdStatus = new Label
+            {
+                Location = new Point(215, 620),
+                AutoSize = false,
+                Size = new Size(520, 36),
+                Font = new Font("Segoe UI", 9F),
+                ForeColor = Color.FromArgb(180, 195, 215),
+                Text = ""
+            };
+            settingsPanel.Controls.Add(lblUpdStatus);
+
+            Button btnCheckUpdate = null;
+            btnCheckUpdate = UIBuilder.CreateSeaButton("🔄 Check for Updates", new Point(12, 618), 190, 30,
+                async (s, e) => await CheckForUpdateAsync(btnCheckUpdate, lblUpdStatus));
+            btnCheckUpdate.BackColor = Color.FromArgb(21, 101, 192);
+            Ui3D.Restyle3D(btnCheckUpdate);
+            settingsPanel.Controls.Add(btnCheckUpdate);
+
             // Section headers (⚙️ SETTINGS / 🖥️ PC INFO) — ပိုကြီးပြီး ထင်ရှားအောင်
             foreach (Control c in settingsPanel.Controls)
             {
@@ -3035,6 +3081,65 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
             }
 
             PopulatePcInfo(); // ပထမဆုံးဝင်ကြည့်ကတည်းက info တွေ ပြပြီးသားဖြစ်အောင်
+        }
+
+        // ================= Online Update (Settings tab) =================
+        // Check button handler — fetch/compare/download/restart; MessageBox တွေက Form1 မှာပဲ
+        private async Task CheckForUpdateAsync(Button btn, Label status)
+        {
+            if (_updateManager == null) return;
+            void Show(string text, Color color)
+            {
+                if (status != null && !status.IsDisposed) { status.Text = text; status.ForeColor = color; }
+            }
+            try
+            {
+                btn.Enabled = false;
+                Show("စစ်နေပါတယ်…", Color.FromArgb(200, 200, 220));
+                SetStatus("Checking for updates…");
+
+                var m = await _updateManager.FetchManifestAsync();
+                if (m == null)
+                {
+                    Show("❌ Update server ကို မရောက်ဘူး — internet ရှိမရှိ စစ်ပြီး ပြန်စမ်းပါ", Color.FromArgb(229, 115, 115));
+                    LogError("❌ Update check failed — server unreachable.");
+                    return;
+                }
+                if (!_updateManager.IsNewer(m))
+                {
+                    Show($"✅ v{_updateManager.CurrentVersionText} — နောက်ဆုံး version ပါပြီ", Color.FromArgb(129, 199, 132));
+                    LogSuccess($"✅ Update check: v{_updateManager.CurrentVersionText} is the latest.");
+                    return;
+                }
+
+                string notes = string.IsNullOrWhiteSpace(m.notes) ? "" : $"\n\n📝 {m.notes}";
+                if (MessageBox.Show($"🆕 Version {m.version} ရှိပါတယ်!{notes}\n\nDownload လုပ်ပြီး update လုပ်မလား?",
+                    "PMK Unlock Tool — Update", MessageBoxButtons.YesNo, MessageBoxIcon.Information) != DialogResult.Yes)
+                    return;
+
+                bool ok = await _updateManager.DownloadAndStageAsync(m);
+                if (!ok)
+                {
+                    Show("❌ Download မအောင်ဘူး — log ကြည့်ပါ", Color.FromArgb(229, 115, 115));
+                    return;
+                }
+
+                MessageBox.Show($"v{m.version} အဆင်သင့်ပါပြီ။\nTool က ပိတ်ပြီး ကိုယ်တိုင် update လုပ်ပြီး ပြန်ဖွင့်ပါမယ် — ဒီအတောအတွင်း မပိတ်လိုက်ပါနဲ့။",
+                    "PMK Unlock Tool — Update", MessageBoxButtons.OK, MessageBoxIcon.Information);
+                Log($"♻️ Restarting to apply update v{m.version}…", colorInfo);
+                if (_updateManager.LaunchUpdater()) Application.Exit();
+                else Show("❌ Updater မစနိုင်ဘူး — ပြန်စမ်းပါ", Color.FromArgb(229, 115, 115));
+            }
+            catch (Exception ex)
+            {
+                Show("❌ Update error: " + ex.Message, Color.FromArgb(229, 115, 115));
+                LogError("❌ Update error: " + ex.Message);
+            }
+            finally
+            {
+                btn.Enabled = true;
+                SetStatus("Ready");
+            }
         }
 
         private string _FmtGB(ulong bytes) => bytes >= 1073741824UL ? $"{bytes / 1073741824.0:0.0} GB" : $"{bytes / 1048576.0:0.0} MB";
