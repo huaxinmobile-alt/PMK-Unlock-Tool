@@ -3025,28 +3025,107 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         }
 
         // CARDAPP → PMKDAPP patch core — patched ဖိုင် ထုတ်ပေးပြီး path ပြန်တယ် (မအောင်ရင် null)
+        // ================= CARDAPP → PMKDAPP streaming patch (memory-safe) =================
+        // NON-HLOS modem ဖိုင်က 100-300MB+ ဖြစ်နိုင်လို့ file တစ်ခုလုံး RAM ထဲ တင်ပြီး Latin1 string
+        // ပြောင်းတာကို ရှောင်ပြီး 4MB chunk နဲ့ byte-level ရှာ/ပြင်တယ်။
+        private static readonly byte[] CardAppFind = { 0x43, 0x41, 0x52, 0x44, 0x41, 0x50, 0x50 }; // "CARDAPP"
+        private static readonly byte[] PmkdAppRepl = { 0x50, 0x4D, 0x4B, 0x44, 0x41, 0x50, 0x50 }; // "PMKDAPP"
+        private const int PatchChunkSize = 4 * 1024 * 1024;
+
+        // ဖတ်ရမဲ့ bytes တွေ အကုန် ရအောင် ဖတ်တယ် (stream က နည်းနည်းချင်း ပြန်ပေးရင်လည်း)
+        private static void ReadExact(Stream s, byte[] buffer, int count)
+        {
+            int offset = 0;
+            while (offset < count)
+            {
+                int n = s.Read(buffer, offset, count - offset);
+                if (n <= 0) break;
+                offset += n;
+            }
+        }
+
+        // CARDAPP နေရာတွေ + PMKDAPP ရှိပြီးသားလားဆိုတာ streaming ရှာတယ်။
+        // Chunk စပ်မှာ 7-byte pattern ပြတ်နေရင် မလွတ်အောင် chunk ရဲ့ နောက်ဆုံး (pattern-1) bytes
+        // ကို overlap ပြန်ထည့်ဖတ်ပြီး (pattern က tail ထဲမှာ စလို့ မရတဲ့အတွက်) hit တိုင်းကို တစ်ခါတည်း တွေ့တယ်။
+        private static (List<long> Offsets, bool AlreadyPmkd) ScanCardAppOffsets(string src)
+        {
+            var offsets = new List<long>();
+            bool alreadyPmkd = false;
+            using var fs = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.Read, PatchChunkSize, FileOptions.SequentialScan);
+            long len = fs.Length;
+            if (len < CardAppFind.Length) return (offsets, false);
+
+            int tail = CardAppFind.Length - 1;
+            byte[] buf = new byte[PatchChunkSize + tail];
+            long abs = 0;
+            long remaining = len;
+            while (remaining > 0)
+            {
+                int want = (int)Math.Min(buf.Length, remaining);
+                fs.Position = abs;
+                ReadExact(fs, buf, want);
+
+                var span = buf.AsSpan(0, want);
+                if (!alreadyPmkd && span.IndexOf(PmkdAppRepl) >= 0) alreadyPmkd = true;
+                int consumed = 0;
+                int j = span.IndexOf(CardAppFind);
+                while (j >= 0)
+                {
+                    offsets.Add(abs + consumed + j);
+                    consumed += j + CardAppFind.Length;
+                    span = span.Slice(j + CardAppFind.Length);
+                    j = span.IndexOf(CardAppFind);
+                }
+
+                abs += PatchChunkSize;
+                remaining -= PatchChunkSize;
+            }
+            return (offsets, alreadyPmkd);
+        }
+
+        // Scan ရလာတဲ့ offsets တွေအတိုင်း src → dst streaming ပုံတူဖိုင် ရေးတယ်။
+        // Hit တစ်ခုရောက်တိုင်း အဲ့ဒီ 7 bytes ကို မူရင်းကနေ မဖတ်ဘဲ REPL နဲ့ ချရေးပြီး ရှေ့ဆက်တယ်
+        // → chunk စပ်မှာ ပြတ်နေတဲ့ hit တွေပါ မပျက်၊ memory က constant ပဲ။
+        private static void WritePatchedFile(string src, string dst, List<long> offsets)
+        {
+            using var inFs = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.Read, PatchChunkSize, FileOptions.SequentialScan);
+            using var outFs = new FileStream(dst, FileMode.Create, FileAccess.Write, FileShare.None, PatchChunkSize, FileOptions.SequentialScan);
+            byte[] buf = new byte[PatchChunkSize];
+            long fileLen = inFs.Length;
+            long pos = 0; // output/input stream မှာ ရောက်နေတဲ့ absolute position
+            int oi = 0;
+            while (pos < fileLen)
+            {
+                long nextHit = oi < offsets.Count ? offsets[oi] : long.MaxValue;
+                long segEnd = Math.Min(nextHit, fileLen);
+
+                // hit မရောက်ခင် segment တွေကို ပုံမှန် copy
+                while (pos < segEnd)
+                {
+                    int want = (int)Math.Min(buf.Length, segEnd - pos);
+                    ReadExact(inFs, buf, want);
+                    outFs.Write(buf, 0, want);
+                    pos += want;
+                }
+                if (pos >= fileLen) break;
+
+                // offset ကျတဲ့ 7 bytes နေရာမှာ PMKDAPP ရေးတယ် (input ထဲက မူရင်း 7 bytes ကို skip)
+                if (inFs.Position != pos + CardAppFind.Length) inFs.Position = pos + CardAppFind.Length;
+                outFs.Write(PmkdAppRepl, 0, PmkdAppRepl.Length);
+                pos += PmkdAppRepl.Length;
+                oi++;
+            }
+        }
+
         private string PatchModemFileCore(string src)
         {
             try
             {
-                byte[] data = IOFile.ReadAllBytes(src);
-                string latin = System.Text.Encoding.Latin1.GetString(data);
-                const string FIND = "CARDAPP";
-                const string REPL = "PMKDAPP";
-
-                var offsets = new List<int>();
-                int idx = 0;
-                while (true)
-                {
-                    int hit = latin.IndexOf(FIND, idx, StringComparison.Ordinal);
-                    if (hit < 0) break;
-                    offsets.Add(hit);
-                    idx = hit + FIND.Length;
-                }
+                var (offsets, alreadyPmkd) = ScanCardAppOffsets(src);
 
                 if (offsets.Count == 0)
                 {
-                    if (latin.IndexOf(REPL, StringComparison.Ordinal) >= 0)
+                    if (alreadyPmkd)
                         LogInfo("ℹ️ 'PMKDAPP' ရှိနေပြီးသား — patch လုပ်ပြီးသားပါ။");
                     else
                         LogError("❌ 'CARDAPP' မတွေ့ပါ — ဒီ device/build အတွက် ဒီနည်း မသက်ဆိုင်တာ ဖြစ်နိုင်တယ်။");
@@ -3060,13 +3139,9 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
                 try { if (!IOFile.Exists(backupPath)) IOFile.Copy(src, backupPath); } catch (Exception ex) { LogWarning($"⚠️ Original backup (.bak) ကူးရာမှာ မအောင်မြင်ပါ: {ex.Message}"); }
 
-                byte[] repBytes = System.Text.Encoding.ASCII.GetBytes(REPL);
-                foreach (int off in offsets)
-                {
-                    for (int k = 0; k < REPL.Length; k++) data[off + k] = repBytes[k];
+                WritePatchedFile(src, outPath, offsets);
+                foreach (long off in offsets)
                     LogSuccess($"  ✏️ Offset 0x{off:X8}: CARDAPP → PMKDAPP");
-                }
-                IOFile.WriteAllBytes(outPath, data);
                 LogSuccess($"✅ Patch ပြီးပါပြီ — {offsets.Count} နေရာ အစားထိုးပြီး။");
                 LogSuccess($"📁 Patched file : {outPath}");
                 return outPath;
@@ -3156,29 +3231,16 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (openFileDlg.ShowDialog() != DialogResult.OK) return;
             string src = openFileDlg.FileName;
 
-            byte[] data;
-            try { data = IOFile.ReadAllBytes(src); }
+            List<long> offsets;
+            bool alreadyPmkd;
+            try { (offsets, alreadyPmkd) = ScanCardAppOffsets(src); }
             catch (Exception ex) { LogError("❌ Cannot read file: " + ex.Message); return; }
-
-            string latin = System.Text.Encoding.Latin1.GetString(data);
-            const string FIND = "CARDAPP";
-            const string REPL = "PMKDAPP";
-
-            var offsets = new List<int>();
-            int idx = 0;
-            while (true)
-            {
-                int hit = latin.IndexOf(FIND, idx, StringComparison.Ordinal);
-                if (hit < 0) break;
-                offsets.Add(hit);
-                idx = hit + FIND.Length;
-            }
 
             LogQualcomm("\n☁️ [Mi Account Bypass] Patching modem file: " + Path.GetFileName(src));
 
             if (offsets.Count == 0)
             {
-                if (latin.IndexOf(REPL, StringComparison.Ordinal) >= 0)
+                if (alreadyPmkd)
                     LogInfo("ℹ️ 'PMKDAPP' ရှိနေပြီးသား — ဒီ modem ဖိုင်ကို patch လုပ်ပြီးသားပါ။");
                 else
                     LogError("❌ 'CARDAPP' ကို မတွေ့ပါ — ဒီ device/build အတွက် ဒီနည်း မသက်ဆိုင်တာ ဖြစ်နိုင်တယ်။");
@@ -3197,13 +3259,14 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
             catch (Exception ex) { LogError($"❌ btnQcMiBypass_Click failed: {ex.Message}"); }
 
-            byte[] repBytes = System.Text.Encoding.ASCII.GetBytes(REPL);
-            foreach (int off in offsets)
+            try
             {
-                for (int k = 0; k < REPL.Length; k++) data[off + k] = repBytes[k];
-                LogSuccess($"  ✏️ Offset 0x{off:X8}: CARDAPP → PMKDAPP");
+                WritePatchedFile(src, outPath, offsets);
             }
-            IOFile.WriteAllBytes(outPath, data);
+            catch (Exception ex) { LogError($"❌ Patch write failed: {ex.Message}"); return; }
+
+            foreach (long off in offsets)
+                LogSuccess($"  ✏️ Offset 0x{off:X8}: CARDAPP → PMKDAPP");
             LogSuccess($"✅ Patch ပြီးပါပြီ — {offsets.Count} နေရာ အစားထိုးပြီး။");
             LogSuccess($"📁 Patched file : {outPath}");
             LogInfo($"💾 Backup (မူရင်း) : {backupPath}");
