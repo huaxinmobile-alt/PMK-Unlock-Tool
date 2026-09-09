@@ -663,7 +663,6 @@ namespace WinFormsApp1
                 using (var verFont = new Font("Segoe UI", 8.5F))
                 {
                     g.DrawString("PMK MOBILE SERVICE TOOL", titleFont, titleBrush, 16, (Height - g.MeasureString("PMK MOBILE SERVICE TOOL", titleFont).Height) / 2);
-                    g.DrawString("Advanced Edition", verFont, subBrush, 16, Height - 17);
 
                     string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "4.0");
                     var verSize = g.MeasureString(ver, verFont);
