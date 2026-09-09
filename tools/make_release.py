@@ -29,6 +29,7 @@ PUBLISH = os.path.join(ROOT, "Publish", "win-x64")
 RELEASES = os.path.join(ROOT, "Releases")
 UPDATE_DIR = os.path.join(ROOT, "update")
 EXCLUDE_DIRS = {"updates", "device_database", "Publish"}
+EXCLUDE_FILES = {"users.dat", "users.dat.corrupt", "users.dat.tmp"}  # shop-local login list — update မှာ မပျက်အောင် zip ထဲ မထည့်ဘူး
 REPO = "huaxinmobile-alt/PMK-Unlock-Tool"
 EXE = "WinFormsApp1.exe"
 
@@ -62,7 +63,7 @@ def build_zip(version):
         for dirpath, dirnames, filenames in os.walk(PUBLISH):
             dirnames[:] = [d for d in dirnames if d not in EXCLUDE_DIRS and not d.startswith(".")]
             for f in sorted(filenames):
-                if f.endswith(".log"):
+                if f.endswith(".log") or f in EXCLUDE_FILES:
                     continue
                 full = os.path.join(dirpath, f)
                 z.write(full, os.path.relpath(full, PUBLISH))

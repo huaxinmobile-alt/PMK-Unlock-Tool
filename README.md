@@ -23,6 +23,17 @@ First-run requirements on each PC:
 | Windows SmartScreen | "More info → Run anyway" (unsigned app) |
 | Run as Administrator | for driver / COM-port operations |
 
+### 🔐 Login & Users
+
+The tool is protected by a login gate — accounts live in a local **`users.dat`** (encrypted) next to the exe, no
+internet needed.
+
+- First run: the `admin` account exists with a temporary password (ask PMK) and **must be changed on first login**
+- After login: **Settings → 👥 USERS & ACCESS** — add staff accounts, remove users, reset passwords, change your own
+- **Settings → 🔒 Logout** returns to the login screen
+- Shop-specific user lists are never shipped in the release zip, so self-updates keep your users intact
+- Lost/corrupt `users.dat` (e.g. deleting the file) resets the list back to defaults — keep a copy if you customized it
+
 ### 🔄 Built-in update
 
 Once installed, the tool checks for new versions itself: **Settings → 🌐 ONLINE UPDATE → Check for Updates**

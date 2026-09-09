@@ -51,6 +51,11 @@ namespace WinFormsApp1
         private SamsungSpdService _samSpdService;
         private MasterFlashCoordinator _flashCoordinator;
         private UpdateManager _updateManager;
+        private DataGridView usersGrid;
+        private Label lblLoggedIn;
+        private Label lblUsersStatus;
+        private TextBox txtNewUser;
+        private TextBox txtNewPass;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -261,6 +266,7 @@ namespace WinFormsApp1
             Log("║   PMK Unlock Tool v4.0 - Advanced Edition    ║", colorInfo);
             Log("╚══════════════════════════════════════════════╝", colorInfo);
             Log("📱 Connect your device and select a command.", colorInfo);
+            Log($"👤 Logged in: {UserManager.CurrentUsername} ({UserManager.CurrentRole})", colorInfo);
 
             if (IOFile.Exists(qflEnginePath))
             {
@@ -3016,6 +3022,11 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
             Ui3D.Restyle3D(btnRefreshInfo);
             settingsPanel.Controls.Add(btnRefreshInfo);
 
+            Button btnLogout = UIBuilder.CreateSeaButton("🔒 Logout", new Point(462, 52), 100, 26, (s, e) => DoLogout());
+            btnLogout.BackColor = Color.FromArgb(183, 28, 28);
+            Ui3D.Restyle3D(btnLogout);
+            settingsPanel.Controls.Add(btnLogout);
+
             // --- PC Info section ---
             settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("🖥️ PC INFO", new Point(12, 104), true));
 
@@ -3072,6 +3083,118 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
             btnCheckUpdate.BackColor = Color.FromArgb(21, 101, 192);
             Ui3D.Restyle3D(btnCheckUpdate);
             settingsPanel.Controls.Add(btnCheckUpdate);
+
+            // --- Users & Access section (login gate ရဲ့ account စီမံခန့်ခွဲမှု) ---
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("👥 USERS & ACCESS", new Point(12, 700), true));
+
+            lblLoggedIn = new Label
+            {
+                Location = new Point(12, 732),
+                AutoSize = false,
+                Size = new Size(640, 22),
+                Font = new Font("Segoe UI", 9.5F, FontStyle.Bold),
+                ForeColor = Color.FromArgb(129, 199, 132),
+                Text = "👤 Logged in: …"
+            };
+            settingsPanel.Controls.Add(lblLoggedIn);
+
+            Label lblNewHint = UIBuilder.CreateSeaLabel("User အသစ်:", new Point(12, 760), false);
+            settingsPanel.Controls.Add(lblNewHint);
+
+            txtNewUser = new TextBox
+            {
+                Location = new Point(90, 758),
+                Size = new Size(150, 26),
+                BackColor = Color.FromArgb(30, 39, 52),
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle
+            };
+            settingsPanel.Controls.Add(txtNewUser);
+
+            txtNewPass = new TextBox
+            {
+                Location = new Point(250, 758),
+                Size = new Size(150, 26),
+                BackColor = Color.FromArgb(30, 39, 52),
+                ForeColor = Color.White,
+                BorderStyle = BorderStyle.FixedSingle,
+                UseSystemPasswordChar = true
+            };
+            settingsPanel.Controls.Add(txtNewPass);
+
+            Button btnAddUser = UIBuilder.CreateSeaButton("➕ Add", new Point(410, 756), 80, 28, (s, e) => DoAddUser());
+            btnAddUser.BackColor = Color.FromArgb(40, 130, 80);
+            Ui3D.Restyle3D(btnAddUser);
+            settingsPanel.Controls.Add(btnAddUser);
+
+            Button btnRemoveUser = UIBuilder.CreateSeaButton("🗑 Remove Selected", new Point(12, 796), 160, 30, (s, e) => DoRemoveUser());
+            btnRemoveUser.BackColor = Color.FromArgb(183, 28, 28);
+            Ui3D.Restyle3D(btnRemoveUser);
+            settingsPanel.Controls.Add(btnRemoveUser);
+
+            Button btnResetPw = UIBuilder.CreateSeaButton("🔑 Reset Password", new Point(182, 796), 170, 30, (s, e) => DoResetPassword());
+            btnResetPw.BackColor = Color.FromArgb(230, 140, 30);
+            Ui3D.Restyle3D(btnResetPw);
+            settingsPanel.Controls.Add(btnResetPw);
+
+            Button btnChangeOwn = UIBuilder.CreateSeaButton("✏️ My Password", new Point(362, 796), 160, 30, (s, e) => DoChangeOwnPassword());
+            btnChangeOwn.BackColor = Color.FromArgb(47, 72, 101);
+            Ui3D.Restyle3D(btnChangeOwn);
+            settingsPanel.Controls.Add(btnChangeOwn);
+
+            lblUsersStatus = new Label
+            {
+                Location = new Point(12, 832),
+                AutoSize = false,
+                Size = new Size(640, 20),
+                Font = new Font("Segoe UI", 8.5F),
+                ForeColor = Color.FromArgb(180, 195, 215),
+                Text = ""
+            };
+            settingsPanel.Controls.Add(lblUsersStatus);
+
+            usersGrid = new DataGridView
+            {
+                Location = new Point(12, 856),
+                Size = new Size(640, 140),
+                BackgroundColor = Color.FromArgb(18, 24, 32),
+                BorderStyle = BorderStyle.FixedSingle,
+                AllowUserToAddRows = false,
+                AllowUserToDeleteRows = false,
+                ReadOnly = true,
+                RowHeadersVisible = false,
+                MultiSelect = false,
+                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
+                GridColor = Color.FromArgb(50, 65, 85),
+                EnableHeadersVisualStyles = false,
+                ColumnHeadersDefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(30, 39, 52),
+                    ForeColor = Color.FromArgb(200, 214, 230),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
+                    Alignment = DataGridViewContentAlignment.MiddleLeft
+                },
+                DefaultCellStyle = new DataGridViewCellStyle
+                {
+                    BackColor = Color.FromArgb(22, 29, 39),
+                    ForeColor = Color.FromArgb(220, 230, 245),
+                    SelectionBackColor = Color.FromArgb(21, 101, 192),
+                    SelectionForeColor = Color.White
+                }
+            };
+            usersGrid.Columns.Add("cUser", "Username");
+            usersGrid.Columns.Add("cRole", "Role");
+            usersGrid.Columns.Add("cCreated", "Created");
+            usersGrid.Columns[0].Width = 220;
+            usersGrid.Columns[1].Width = 100;
+            usersGrid.Columns[2].Width = 140;
+            settingsPanel.Controls.Add(usersGrid);
+
+            Label lblUsersHint = UIBuilder.CreateSeaLabel("User တွေက ဒီ folder ထဲက users.dat (encrypted) မှာ သိမ်းတယ် — update လုပ်ရင် မပျက်ဘူး။ Master account ကို ဖျက်လို့မရပါ။", new Point(12, 1002), false);
+            lblUsersHint.ForeColor = Color.FromArgb(120, 140, 160);
+            settingsPanel.Controls.Add(lblUsersHint);
+
+            RefreshUsersUi();
 
             // Section headers (⚙️ SETTINGS / 🖥️ PC INFO) — ပိုကြီးပြီး ထင်ရှားအောင်
             foreach (Control c in settingsPanel.Controls)
@@ -3140,6 +3263,104 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
                 btn.Enabled = true;
                 SetStatus("Ready");
             }
+        }
+
+        // ================= Users & Access (Settings tab) =================
+        private void SetUsersStatus(string text, bool isError)
+        {
+            if (lblUsersStatus == null || lblUsersStatus.IsDisposed) return;
+            lblUsersStatus.Text = text;
+            lblUsersStatus.ForeColor = isError ? Color.FromArgb(229, 115, 115) : Color.FromArgb(129, 199, 132);
+        }
+
+        private void RefreshUsersUi()
+        {
+            if (usersGrid == null) return;
+            usersGrid.Rows.Clear();
+            foreach (var u in UserManager.ListUsers())
+            {
+                usersGrid.Rows.Add(u.Username, u.Role,
+                    new DateTime(u.CreatedUtc, DateTimeKind.Utc).ToLocalTime().ToString("yyyy-MM-dd"));
+            }
+            if (lblLoggedIn != null)
+                lblLoggedIn.Text = $"👤 Logged in: {UserManager.CurrentUsername} ({UserManager.CurrentRole})";
+        }
+
+        private string SelectedGridUser()
+        {
+            if (usersGrid == null || usersGrid.SelectedRows.Count == 0) return null;
+            return usersGrid.SelectedRows[0].Cells[0].Value?.ToString();
+        }
+
+        private void DoAddUser()
+        {
+            string user = txtNewUser?.Text.Trim() ?? "";
+            string pass = txtNewPass?.Text ?? "";
+            if (user.Length == 0 || pass.Length == 0) { SetUsersStatus("Username နဲ့ password နှစ်ခုလုံး ထည့်ပါ", true); return; }
+            string err = UserManager.AddUser(user, pass, "admin");
+            if (err != null) { SetUsersStatus(err, true); LogWarning("⚠️ " + err); return; }
+            txtNewUser.Clear();
+            txtNewPass.Clear();
+            SetUsersStatus($"✅ '{user}' ကို user စာရင်းထဲ ထည့်ပြီးပါပြီ", false);
+            LogSuccess($"✅ User '{user}' added.");
+            RefreshUsersUi();
+        }
+
+        private void DoRemoveUser()
+        {
+            string user = SelectedGridUser();
+            if (user == null) { SetUsersStatus("ဖျက်မယ့် user ကို list ထဲ အရင်ရွေးပါ", true); return; }
+            if (MessageBox.Show($"'{user}' ကို ဖျက်မလား?\n(ဒီ user နဲ့ နောက်ထပ် login ဝင်လို့ မရတော့ဘူး)",
+                "Remove User", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes) return;
+            string err = UserManager.RemoveUser(user);
+            if (err != null) { SetUsersStatus(err, true); LogWarning("⚠️ " + err); return; }
+            SetUsersStatus($"🗑 '{user}' ကို ဖျက်ပြီးပါပြီ", false);
+            LogSuccess($"🗑 User '{user}' removed.");
+            RefreshUsersUi();
+        }
+
+        private void DoResetPassword()
+        {
+            string user = SelectedGridUser();
+            if (user == null) { SetUsersStatus("Password ပြောင်းမယ့် user ကို အရင်ရွေးပါ", true); return; }
+            if (UserManager.IsMasterSession == false && user.Equals(UserManager.MasterName, StringComparison.OrdinalIgnoreCase))
+            {
+                SetUsersStatus("Master account ရဲ့ password ကို master ကိုယ်တိုင်ပဲ ပြောင်းလို့ရတယ်", true);
+                return;
+            }
+            string pw = InputDialog.Show("Reset Password", $"{user} အတွက် password အသစ် (min 6 လုံး):", secret: true);
+            if (pw == null) return;
+            if (pw.Length < 6) { SetUsersStatus("Password က အနည်းဆုံး ၆ လုံး ရှိရမယ်", true); return; }
+            string pw2 = InputDialog.Show("Reset Password", "Password ကို ထပ်ရိုက်ပါ:", secret: true);
+            if (pw2 == null) return;
+            if (pw != pw2) { SetUsersStatus("Password နှစ်ခု မတူပါ", true); return; }
+            string err = UserManager.SetPassword(user, pw);
+            if (err != null) { SetUsersStatus(err, true); LogWarning("⚠️ " + err); return; }
+            SetUsersStatus($"🔑 '{user}' ရဲ့ password ကို ပြောင်းပြီးပါပြီ", false);
+            LogSuccess($"🔑 Password reset for '{user}'.");
+        }
+
+        private void DoChangeOwnPassword()
+        {
+            string user = UserManager.CurrentUsername;
+            string pw = InputDialog.Show("My Password", "Password အသစ် (min 6 လုံး):", secret: true);
+            if (pw == null) return;
+            if (pw.Length < 6) { SetUsersStatus("Password က အနည်းဆုံး ၆ လုံး ရှိရမယ်", true); return; }
+            if (pw == UserManager.DefaultAdminPassword) { SetUsersStatus("Default password ကိုပဲ ပြန်မသုံးပါနဲ့", true); return; }
+            string pw2 = InputDialog.Show("My Password", "Password ကို ထပ်ရိုက်ပါ:", secret: true);
+            if (pw2 == null) return;
+            if (pw != pw2) { SetUsersStatus("Password နှစ်ခု မတူပါ", true); return; }
+            string err = UserManager.SetPassword(user, pw);
+            if (err != null) { SetUsersStatus(err, true); LogWarning("⚠️ " + err); return; }
+            SetUsersStatus($"✅ ကိုယ့် password ကို ပြောင်းပြီးပါပြီ", false);
+            LogSuccess("✅ Own password changed.");
+        }
+
+        private void DoLogout()
+        {
+            if (MessageBox.Show("Logout လုပ်မလား?\nTool ပိတ်ပြီး login screen ပြန်ပြပါမယ် — အလုပ်လုပ်နေတာရှိရင် အရင်ရပ်ပါ။",
+                "Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
+            Application.Restart();
         }
 
         private string _FmtGB(ulong bytes) => bytes >= 1073741824UL ? $"{bytes / 1073741824.0:0.0} GB" : $"{bytes / 1048576.0:0.0} MB";
