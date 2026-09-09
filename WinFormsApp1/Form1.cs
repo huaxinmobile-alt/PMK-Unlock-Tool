@@ -49,6 +49,7 @@ namespace WinFormsApp1
         private MediaTekService _mtkService;
         private AdbFastbootService _adbFbService;
         private SamsungSpdService _samSpdService;
+        private MasterFlashCoordinator _flashCoordinator;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -202,6 +203,17 @@ namespace WinFormsApp1
                 SetOperationState,
                 _processRunner,
                 () => adbPath);
+            _flashCoordinator = new MasterFlashCoordinator(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                SetOperationState,
+                _qcService,
+                _mtkService,
+                _samSpdService,
+                _processRunner,
+                _firmwareService,
+                _loaderService);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -619,93 +631,6 @@ namespace WinFormsApp1
         //   1) Native QSaharaServer နဲ့ loader upload (fast, stable)
         //   2) Python EDL qfil နဲ့ flash — Xiaomi auth ကို module က auto ကိုင်တွယ်ပြီး
         //      per-file marker ([PMK-FLASH]/[PMK-DONE]) တွေကနေ log မှာ အရောင်စုံ ပြပါတယ်
-        private async Task<bool> ExecuteQualcommHybridFlash(string port, string loader, string rawXml, string patchXml, string romDir, List<string> seqFiles = null)
-        {
-            bool isSuccess = false;
-
-            // Auto-Detect: loader မပါဘဲ flash စမ်းရင် — ဒီဖုန်းအတွက် မှတ်ထားတဲ့ loader ရှိရင် အလိုအလျောက် ယူမယ်
-            if (string.IsNullOrEmpty(loader) || !IOFile.Exists(loader))
-            {
-                string autoLdr = _loaderService.TryResolveAutoLoader(_processRunner.DetectedHwid, _processRunner.DetectedPkhash);
-                if (autoLdr.Length > 0)
-                {
-                    loader = autoLdr;
-                    LogQualcomm($"🎯 Auto-Detect: using remembered loader for this phone ({Path.GetFileName(autoLdr)})");
-                }
-            }
-
-            bool usbMode = _qcService.UseUsbTransport(); // USB (WinUSB) mode - serial ထက် ~3.5x မြန်ပါတယ်
-
-            if (usbMode)
-            {
-                LogQualcomm("\n⚡ [USB Mode] Fast transport detected — Python EDL က loader/auth/flash အကုန်လုပ်ပါမယ်.");
-            }
-            else
-            {
-                // STEP 1 (serial): Native loader upload (device က Sahara state မှာဆို firehose ပြောင်းပေးတယ်)
-                if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && !string.IsNullOrEmpty(loader) && IOFile.Exists(loader))
-                {
-                    LogQualcomm("\n🚀 [1/2] Uploading Firehose Loader (QSaharaServer)...");
-                    bool loaderUp = await _processRunner.RunNativeSaharaLoader(port, loader);
-                    if (loaderUp)
-                    {
-                        LogQualcomm("🔄 Waiting for Firehose mode switch...");
-                        await Task.Delay(3000);
-                    }
-                    else
-                    {
-                        LogWarning("⚠️ Native loader upload failed — Python EDL will try to handle the loader itself.");
-                    }
-                }
-                else if (string.IsNullOrEmpty(loader) || !IOFile.Exists(loader))
-                {
-                    LogWarning("⚠️ No Firehose Loader selected — device must already have a loader running (Firehose mode).");
-                }
-            }
-
-            // STEP 2: Python EDL qfil (auth auto + eMMC/UFS support + per-file colored progress)
-            string edlScript = AppConfig.EdlScript;
-            if (IOFile.Exists(edlScript))
-            {
-                string loaderArg = (!string.IsNullOrEmpty(loader) && IOFile.Exists(loader)) ? $"--loader=\"{loader}\" " : "";
-                string patchName = _qcService.EnsureQcPatchFile(romDir, patchXml);
-                string transportArgs = usbMode
-                    ? $"--memory={currentMemoryType} "
-                    : $"--serial --memory={currentMemoryType} --portname={port} ";
-                // patch arg က filename ပဲ ပို့ရတယ် — python က imagedir နဲ့ ကိုယ်တိုင် join လုပ်ပါတယ် (full path ပို့ရင် မတွေ့ဘူး)
-                string edlCmd = $"\"{edlScript}\" {transportArgs}{loaderArg}qfil \"{rawXml}\" \"{patchName}\" \"{romDir}\"";
-
-                LogQualcomm("\n🚀 [2/2] Flashing Firmware (Python EDL qfil)...");
-
-                string edlRes = await _processRunner.RunQfilFlash(edlCmd, seqFiles, "Flashing Firmware...");
-
-                // Success စစ်ဆေးချက်: [PMK-DONE] marker တွေ အကုန်ရောက်ရင် အောင် (python ရဲ့ "ok" စာသား တစ်ခါတစ်လေ မပါတတ်လို့)
-                int doneCount = edlRes == null ? 0 : System.Text.RegularExpressions.Regex.Matches(edlRes, @"\[PMK-DONE\]").Count;
-                bool noTrace = edlRes == null ? false : !edlRes.Contains("Traceback");
-                bool allDone = seqFiles != null && seqFiles.Count > 0
-                    ? doneCount >= seqFiles.Count
-                    : doneCount > 0;
-
-                if (noTrace && (allDone || (edlRes != null && (edlRes.Contains("raw programming ok") || edlRes.Contains("[qfil] patching ok")))))
-                {
-                    isSuccess = true;
-                }
-                else if (edlRes != null && edlRes.Contains("Traceback"))
-                {
-                    LogError("❌ Python EDL crashed — see log above.");
-                }
-                else
-                {
-                    LogWarning("⚠️ Flash result unclear — check log above for details.");
-                }
-            }
-            else
-            {
-                LogError("❌ edl.py not found at: " + edlScript);
-            }
-
-            return isSuccess;
-        }
 
         // ================= Colored per-file qfil flash runner =================
         // python qfil output ကို marker ([PMK-FLASH]/[PMK-DONE]) နဲ့ အရောင်စုံ log ပြောင်းပေးပါတယ်
@@ -813,220 +738,73 @@ namespace WinFormsApp1
         {
             if (!qcFirmwarePreviewMode || string.IsNullOrEmpty(qcFirmwareSourceXml)) return;
 
-            var checkedRows = new List<int>();
+            var checkedPartitions = new List<FlashSlotInfo>();
             for (int i = 0; i < mobilePartitionGrid.Rows.Count; i++)
             {
                 if (Convert.ToBoolean(mobilePartitionGrid.Rows[i].Cells[0].Value ?? false))
-                    checkedRows.Add(i);
+                {
+                    string pName = mobilePartitionGrid.Rows[i].Cells[1].Value?.ToString() ?? "";
+                    string pFile = mobilePartitionGrid.Rows[i].Cells[2].Value?.ToString() ?? "";
+                    checkedPartitions.Add(new FlashSlotInfo { SlotIndex = i + 1, Label = pName, FilePath = pFile, IsChecked = true });
+                }
             }
 
-            if (checkedRows.Count == 0)
+            if (checkedPartitions.Count == 0)
             {
                 MessageBox.Show("Partition တစ်ခုခုကို အရင် tick လုပ်ပေးပါ။", "No Selection", MessageBoxButtons.OK, MessageBoxIcon.Warning);
                 return;
             }
 
-            string filteredXml = Path.Combine(qcFirmwareDir, "_pmk_selected_rawprogram.xml");
-            var sb = new System.Text.StringBuilder("<?xml version=\"1.0\" ?>\n<data>\n");
-            var seqFiles = new List<string>();
-            foreach (int i in checkedRows)
-            {
-                if (i >= qcFirmwareProgramLines.Count) continue;
-                sb.AppendLine("  " + qcFirmwareProgramLines[i]);
-                if (i < qcFirmwareOrderedFiles.Count) seqFiles.Add(qcFirmwareOrderedFiles[i]);
-            }
-            sb.AppendLine("</data>");
-            IOFile.WriteAllText(filteredXml, sb.ToString());
-
-            LogQualcomm($"\n📦 Firmware Queue: {checkedRows.Count} partition(s) selected.");
-            foreach (var f in seqFiles) Log($"  • {f}", Color.FromArgb(178, 235, 242));
-
-            string port = GetActiveComPort();
             string loader = txtFirmwarePath.Text.Trim();
             if (string.IsNullOrEmpty(loader) && txtSlot1 != null) loader = txtSlot1.Text.Trim();
 
-            SetOperationState(true);
-            SetStatus("Flashing Qualcomm Firmware...");
-            UpdateGlobalProgress(5, "Starting Flash...");
-
-            bool ok = await ExecuteQualcommHybridFlash(port, loader, filteredXml, Path.GetFileName(qcFirmwarePatchXml), qcFirmwareDir, seqFiles);
-
-            if (ok)
-            {
-                UpdateGlobalProgress(100, "Completed");
-                LogSuccess("\n🎉 Selected Firmware Partitions Flashed Successfully!");
-
-                if (chkAutoRebootMaster != null && chkAutoRebootMaster.Checked)
-                {
-                    LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
-                    string edlScript = AppConfig.EdlScript;
-                    await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
-                    LogSuccess("📱 Phone is rebooting!\n");
-                }
-            }
-            else
-            {
-                LogError("\n❌ Flashing Failed! Please check Loader / Firmware / USB Connection.");
-            }
-
-            SetOperationState(false);
-            SetStatus("Ready");
+            await _flashCoordinator.FlashSelectedPartitionsAsync(
+                qcFirmwareSourceXml,
+                Path.GetFileName(qcFirmwarePatchXml),
+                qcFirmwareDir,
+                checkedPartitions,
+                GetActiveComPort(),
+                currentMemoryType,
+                chkAutoRebootMaster != null && chkAutoRebootMaster.Checked,
+                loader);
         }
 
         // ================= Master Flashing Execution Engine =================
         internal async void ExecuteMasterFlash()
         {
-            if (currentCategory == "Samsung")
+            // Hub slot data တွေကို UI ကနေ DTO ထဲ စုပြီး coordinator ကို ပို့တယ် (validation က Form1 မှာ)
+            var slots = new List<FlashSlotInfo>
             {
-                var flashFiles = new List<KeyValuePair<string, string>>();
-                if (chkSlot1.Checked && !string.IsNullOrWhiteSpace(txtSlot1.Text) && IOFile.Exists(txtSlot1.Text)) flashFiles.Add(new KeyValuePair<string, string>("BL", txtSlot1.Text));
-                if (chkSlot2.Checked && !string.IsNullOrWhiteSpace(txtSlot2.Text) && IOFile.Exists(txtSlot2.Text)) flashFiles.Add(new KeyValuePair<string, string>("AP", txtSlot2.Text));
-                if (chkSlot3.Checked && !string.IsNullOrWhiteSpace(txtSlot3.Text) && IOFile.Exists(txtSlot3.Text)) flashFiles.Add(new KeyValuePair<string, string>("CP", txtSlot3.Text));
-                if (chkSlot4.Checked && !string.IsNullOrWhiteSpace(txtSlot4.Text) && IOFile.Exists(txtSlot4.Text)) flashFiles.Add(new KeyValuePair<string, string>("CSC", txtSlot4.Text));
-                if (chkSlot5.Checked && !string.IsNullOrWhiteSpace(txtSlot5.Text) && IOFile.Exists(txtSlot5.Text)) flashFiles.Add(new KeyValuePair<string, string>("USERDATA", txtSlot5.Text));
+                new FlashSlotInfo { SlotIndex = 1, Label = chkSlot1.Text, FilePath = txtSlot1.Text ?? "", IsChecked = chkSlot1.Checked },
+                new FlashSlotInfo { SlotIndex = 2, Label = chkSlot2.Text, FilePath = txtSlot2.Text ?? "", IsChecked = chkSlot2.Checked },
+                new FlashSlotInfo { SlotIndex = 3, Label = chkSlot3.Text, FilePath = txtSlot3.Text ?? "", IsChecked = chkSlot3.Checked },
+                new FlashSlotInfo { SlotIndex = 4, Label = chkSlot4.Text, FilePath = txtSlot4.Text ?? "", IsChecked = chkSlot4.Checked },
+                new FlashSlotInfo { SlotIndex = 5, Label = chkSlot5.Text, FilePath = txtSlot5.Text ?? "", IsChecked = chkSlot5.Checked },
+            };
 
-                if (flashFiles.Count == 0)
-                {
-                    MessageBox.Show("Please select at least one Samsung firmware slot (BL/AP/CP/CSC) to flash.", "No Files Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                LogSamsung("\n╔══════════════════════════════════════════════════════════╗");
-                LogSamsung("║            ⚡ INITIALIZING SAMSUNG ODIN FLASH            ║");
-                LogSamsung("╚══════════════════════════════════════════════════════════╝");
-                LogSamsung("📱 Connect phone in Download Mode (Vol Down + Vol Up + USB Cable).");
-
-                SetOperationState(true);
-                SetStatus("Starting Samsung Odin Flashing...");
-                UpdateGlobalProgress(10, "Connecting Download Port...");
-
-                await Task.Run(async () =>
-                {
-                    int total = flashFiles.Count;
-                    int cur = 1;
-
-                    foreach (var slot in flashFiles)
-                    {
-                        int pVal = (int)((cur / (double)total) * 100);
-                        this.Invoke(new Action(() =>
-                        {
-                            Log($"\n🔥 [{cur}/{total}] Flashing Samsung [{slot.Key}] Binary: {Path.GetFileName(slot.Value)}...", Color.FromArgb(255, 215, 0));
-                            UpdateGlobalProgress(pVal, $"Writing {slot.Key}...");
-                            SetStatus($"Flashing Samsung [{slot.Key}] ({cur}/{total})...");
-                        }));
-
-                        await Task.Delay(2000);
-                        this.Invoke(new Action(() => LogSuccess($"  ✅ [{slot.Key}] Verified & Flashed Successfully!")));
-                        cur++;
-                    }
-
-                    this.Invoke(new Action(async () =>
-                    {
-                        UpdateGlobalProgress(100, "Done");
-                        Log("\n╔══════════════════════════════════════════════════════════╗", colorSuccess);
-                        Log("║         🎉 ODIN FLASHING COMPLETED SUCCESSFULLY !        ║", colorSuccess);
-                        Log("╚══════════════════════════════════════════════════════════╝", colorSuccess);
-                        LogSuccess("✅ All Samsung Binaries written safely.");
-
-                        if (chkAutoRebootMaster.Checked)
-                        {
-                            LogSamsung("🔄 [Auto Reboot] Rebooting phone to System...");
-                            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
-                            LogSuccess("📱 Phone is restarting to Welcome Setup. Enjoy!\n");
-                        }
-
-                        SetOperationState(false);
-                        SetStatus("Ready");
-                    }));
-                });
-            }
-            else if (currentCategory == "Qualcomm")
+            // per-category minimum validation (MessageBox က Form1 မှာပဲ)
+            if (currentCategory == "Samsung" && !slots.Any(x => x.IsChecked && !string.IsNullOrWhiteSpace(x.FilePath) && IOFile.Exists(x.FilePath)))
             {
-                if (string.IsNullOrWhiteSpace(txtSlot2.Text) || !IOFile.Exists(txtSlot2.Text))
-                {
-                    MessageBox.Show("Please select rawprogram0.xml in Slot 2.", "Missing XML", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                string rawXml = txtSlot2.Text.Trim();
-                string romDir = Path.GetDirectoryName(rawXml);
-                string port = GetActiveComPort();
-                string loader = !string.IsNullOrWhiteSpace(txtSlot1.Text) && IOFile.Exists(txtSlot1.Text) ? txtSlot1.Text.Trim() : txtFirmwarePath.Text.Trim();
-                string patchXml = !string.IsNullOrWhiteSpace(txtSlot3.Text) && IOFile.Exists(txtSlot3.Text) ? Path.GetFileName(txtSlot3.Text) : "patch0.xml";
-
-                LogQualcomm("\n╔══════════════════════════════════════════════════════════╗");
-                LogQualcomm("║        🔥 HYBRID QUALCOMM EDL FLASHING ENGINE            ║");
-                LogQualcomm("╚══════════════════════════════════════════════════════════╝");
-
-                SetOperationState(true);
-                SetStatus("Flashing Qualcomm Device...");
-                UpdateGlobalProgress(15, "Starting Flash...");
-
-                bool flashSuccess = await ExecuteQualcommHybridFlash(port, loader, rawXml, patchXml, romDir,
-                    qcFirmwareSourceXml == rawXml ? qcFirmwareOrderedFiles : null);
-
-                if (flashSuccess)
-                {
-                    UpdateGlobalProgress(100, "Completed");
-                    LogSuccess("\n🎉 Qualcomm Firmware Flashed Successfully inside Tool!");
-
-                    if (chkAutoRebootMaster.Checked)
-                    {
-                        LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
-                        string edlScript2 = AppConfig.EdlScript;
-                        await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript2}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
-                        LogSuccess("📱 Phone is rebooting!\n");
-                    }
-                }
-                else
-                {
-                    LogError("\n❌ Flashing Failed! Please check your Loader file or USB Connection.");
-                }
-
-                SetOperationState(false);
-                SetStatus("Ready");
+                MessageBox.Show("Please select at least one Samsung firmware slot (BL/AP/CP/CSC) to flash.", "No Files Selected", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
-            else if (currentCategory == "MediaTek")
+            if (currentCategory == "Qualcomm" && (string.IsNullOrWhiteSpace(slots[1].FilePath) || !IOFile.Exists(slots[1].FilePath)))
             {
-                if (string.IsNullOrWhiteSpace(txtSlot1.Text) || !IOFile.Exists(txtSlot1.Text))
-                {
-                    MessageBox.Show("Please select Scatter.txt in Slot 1.", "Missing Scatter", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                string script = AppConfig.MtkScript;
-                string daArg = !string.IsNullOrWhiteSpace(txtSlot2.Text) ? $"--loader \"{txtSlot2.Text.Trim()}\" " : "";
-                string scatterFile = txtSlot1.Text.Trim();
-                string firmwareFolder = Path.GetDirectoryName(scatterFile);
-
-                LogMTK($"\n🔥 [MTK SP Flash] Flashing Scatter Directory: {firmwareFolder}...");
-                LogMTK("📱 Power OFF device -> Hold (Vol+ & Vol-) -> Connect USB Cable");
-
-                string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}--loglevel INFO wl \"{firmwareFolder}\"", "Flashing MediaTek Scatter...");
-                if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-                {
-                    LogSuccess("✅ MediaTek Scatter Flashing Completed Successfully!");
-                    if (chkAutoRebootMaster.Checked)
-                    {
-                        LogMTK("🔄 [Auto Reboot] Restarting phone to System...");
-                        await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                        LogSuccess("📱 Phone is rebooting!\n");
-                    }
-                }
+                MessageBox.Show("Please select rawprogram0.xml in Slot 2.", "Missing XML", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
-            else if (currentCategory == "Spreadtrum")
+            if (currentCategory == "MediaTek" && (string.IsNullOrWhiteSpace(slots[0].FilePath) || !IOFile.Exists(slots[0].FilePath)))
             {
-                if (string.IsNullOrWhiteSpace(txtSlot1.Text) || !IOFile.Exists(txtSlot1.Text))
-                {
-                    MessageBox.Show("Please select PAC Firmware in Slot 1.", "Missing PAC File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
-                    return;
-                }
-
-                LogSPD($"\n🔥 [SPD Research] Initializing PAC Flash: {Path.GetFileName(txtSlot1.Text)}...");
-                LogSPD("📱 Connect phone in BROM mode (Hold Vol- -> Insert USB)");
-                await Task.Delay(2000);
-                LogSuccess("✅ Spreadtrum PAC Flash executed successfully!");
+                MessageBox.Show("Please select Scatter.txt in Slot 1.", "Missing Scatter", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
             }
+            if (currentCategory == "Spreadtrum" && (string.IsNullOrWhiteSpace(slots[0].FilePath) || !IOFile.Exists(slots[0].FilePath)))
+            {
+                MessageBox.Show("Please select PAC Firmware in Slot 1.", "Missing PAC File", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+                return;
+            }
+
+            await _flashCoordinator.ExecuteMasterFlashAsync(currentCategory, slots, GetActiveComPort(), currentMemoryType, chkAutoRebootMaster != null && chkAutoRebootMaster.Checked);
         }
 
         // ================= Dynamic Brand & Model Selection Event =================

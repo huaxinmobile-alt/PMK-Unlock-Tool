@@ -56,6 +56,9 @@ namespace WinFormsApp1
         /// <summary>ပေါင်းစပ်လမ်းကြောင်း (ဥပမာ: AppConfig.Combine(AppConfig.LoadersDir, "Xiaomi", "SIG's", "sig.bin"))</summary>
         public static string Combine(params string[] parts) => Path.Combine(parts);
 
+        /// <summary>Python interpreter command (PATH ကနေ) — ပုံမှန် "python"</summary>
+        public static string PythonCmd() => "python";
+
         /// <summary>အဓိက folder တွေ မရှိသေးရင် ဖန်တီးပေးတယ် (app စတင်တုန်း ခေါ်ဖို့)</summary>
         public static void EnsureCoreDirectories()
         {
