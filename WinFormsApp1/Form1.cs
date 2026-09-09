@@ -4336,8 +4336,45 @@ namespace WinFormsApp1
                 }
                 if (string.IsNullOrEmpty(chipModel) && !string.IsNullOrEmpty(mmcName))
                     chipModel = mmcName + (string.IsNullOrEmpty(mmcManf) ? "" : $" (manfid {mmcManf})");
-                Row("Storage Chip", string.IsNullOrEmpty(chipModel) ? P("ro.boot.bootdevice") : chipModel);
-                Row("Boot Device", P("ro.boot.bootdevice"));
+
+                // Chip vendor က root လိုတတ်လို့ (Permission denied) — size ကိုတော့ /proc/partitions ကနေ ရတယ်
+                string chipSize = "";
+                if (string.IsNullOrEmpty(chipModel))
+                {
+                    string parts = await Sh("cat /proc/partitions 2>/dev/null");
+                    if (!string.IsNullOrWhiteSpace(parts))
+                    {
+                        foreach (string pl in parts.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            string pt = pl.Trim();
+                            var m = Regex.Match(pt, @"^\d+\s+\d+\s+(\d+)\s+(sda|mmcblk0)\s*$");
+                            if (m.Success)
+                            {
+                                ulong blocks = 0;
+                                if (ulong.TryParse(m.Groups[1].Value, out blocks))
+                                {
+                                    ulong gb = (blocks * 512UL) / (1024UL * 1024UL * 1024UL);
+                                    chipSize = $"~{gb} GB";
+                                }
+                                break;
+                            }
+                        }
+                    }
+                }
+                // Result: chip model ရရင် ပြ၊ မရရင် controller name + root လိုကြောင်း ရှင်းပြ
+                string chipText = chipModel;
+                if (string.IsNullOrEmpty(chipText))
+                {
+                    string bd = P("ro.boot.bootdevice");
+                    chipText = string.IsNullOrEmpty(chipSize)
+                        ? $"{bd} (chip name/size need root)"
+                        : $"{bd}  ({chipSize})";
+                }
+                else if (!string.IsNullOrEmpty(chipSize))
+                {
+                    chipText += $"  ({chipSize})";
+                }
+                Row("Storage Chip", chipText);
 
                 LogSuccess("✅ Full info ဖတ်ပြီးပါပြီ။");
             }
