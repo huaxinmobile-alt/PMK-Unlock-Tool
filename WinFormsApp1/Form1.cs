@@ -45,6 +45,7 @@ namespace WinFormsApp1
 
         // ================= Data =================
         private List<PartitionInfo> partitions = new List<PartitionInfo>();
+        private FirmwareService _firmwareService;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         private string currentMemoryType = "emmc";
@@ -219,13 +220,6 @@ namespace WinFormsApp1
         private List<Button> categoryTabButtons = new List<Button>();
         private Button btnMobileGo = null;
 
-        private class PartitionInfo
-        {
-            public string Name { get; set; }
-            public string Offset { get; set; }
-            public string Length { get; set; }
-            public string Type { get; set; }
-        }
 
         // ================= Qualcomm Firmware (QFIL) Preview State =================
         private bool qcFirmwarePreviewMode = false;          // grid မှာ firmware partitions ပြနေလား (device GPT မဟုတ်)
@@ -285,6 +279,7 @@ namespace WinFormsApp1
         public Form1()
         {
             InitializeComponent();
+            _firmwareService = new FirmwareService(Log);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -979,7 +974,7 @@ namespace WinFormsApp1
                 }
                 catch (Exception ex) { LogWarning($"⚠️ Slot {slotIndex} firmware ဖိုင်ဖတ်ရာမှာ မအောင်မြင်ပါ: {ex.Message}"); }
 
-                InspectTarFirmware(filePath, $"SLOT {slotIndex}");
+                _firmwareService.InspectTarFirmware(filePath, $"SLOT {slotIndex}");
             }
             else if (currentCategory == "Qualcomm")
             {
@@ -1004,7 +999,7 @@ namespace WinFormsApp1
                         }
                         else if (slotIndex == 3) txtSlot3.Text = path;
 
-                        InspectXmlFirmware(path);
+                        _firmwareService.InspectXmlFirmware(path);
                         if (slotIndex == 2) LoadFirmwarePreview(path); // firmware partitions ကို grid ထဲ checkbox နဲ့ ပြမယ်
                     }
                 }
@@ -1017,7 +1012,7 @@ namespace WinFormsApp1
                     if (ofd.ShowDialog() == DialogResult.OK)
                     {
                         txtSlot1.Text = ofd.FileName;
-                        InspectScatterFirmware(ofd.FileName);
+                        _firmwareService.InspectScatterFirmware(ofd.FileName);
                     }
                 }
                 else
@@ -1036,130 +1031,11 @@ namespace WinFormsApp1
                 if (ofd.ShowDialog() == DialogResult.OK)
                 {
                     txtSlot1.Text = ofd.FileName;
-                    InspectPacFirmware(ofd.FileName);
+                    _firmwareService.InspectPacFirmware(ofd.FileName);
                 }
             }
         }
 
-        // ================= Inspect Firmwares =================
-        private void InspectTarFirmware(string filePath, string slotName)
-        {
-            try
-            {
-                FileInfo fi = new FileInfo(filePath);
-                double sizeMB = fi.Length / (1024.0 * 1024.0);
-                string szStr = sizeMB >= 1024 ? $"{sizeMB / 1024.0:F2} GB" : $"{sizeMB:F2} MB";
-
-                Log($"\n╔══════════════════════════════════════════════════════════╗", colorSamsung);
-                Log($"║         📦 SAMSUNG BINARY LOADED [{slotName.PadRight(8)}]            ║", colorSamsung);
-                Log($"╚══════════════════════════════════════════════════════════╝", colorSamsung);
-                Log($"  • File Name  : {fi.Name}", colorSuccess);
-                Log($"  • Total Size : {szStr}", colorInfo);
-
-                var insideImages = new List<string>();
-                using (FileStream fs = IOFile.OpenRead(filePath))
-                {
-                    byte[] buffer = new byte[512];
-                    while (fs.Read(buffer, 0, 512) == 512 && insideImages.Count < 20)
-                    {
-                        string entryName = System.Text.Encoding.ASCII.GetString(buffer, 0, 100).Trim('\0', ' ');
-                        if (!string.IsNullOrEmpty(entryName) && (entryName.EndsWith(".img") || entryName.EndsWith(".lz4") || entryName.EndsWith(".bin") || entryName.EndsWith(".pit")))
-                        {
-                            insideImages.Add(entryName);
-                            string sizeOctal = System.Text.Encoding.ASCII.GetString(buffer, 124, 11).Trim('\0', ' ');
-                            long entryBytes = 0;
-try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogError($"❌ InspectTarFirmware entry parse failed: {ex.Message}"); }
-                            long blocks = (entryBytes + 511) / 512;
-                            fs.Seek(blocks * 512, SeekOrigin.Current);
-                        }
-                    }
-                }
-
-                if (insideImages.Count > 0)
-                {
-                    Log("  • Partitions Inside Binary Archive:", colorFastboot);
-                    foreach (var img in insideImages)
-                    {
-                        Log($"    ➔ 📄 {img}", Color.FromArgb(178, 235, 242));
-                    }
-                }
-                Log("────────────────────────────────────────────────────────────\n", colorSamsung);
-            }
-            catch (Exception ex) { LogError($"❌ InspectTarFirmware failed: {ex.Message}"); }
-        }
-
-        private void InspectXmlFirmware(string xmlPath)
-        {
-            try
-            {
-                string text = IOFile.ReadAllText(xmlPath);
-                var matches = Regex.Matches(text, @"filename=""(.*?)""\s+label=""(.*?)""", RegexOptions.IgnoreCase);
-
-                Log($"\n╔══════════════════════════════════════════════════════════╗", colorQualcomm);
-                Log("║          📦 QUALCOMM RAWPROGRAM XML LOADED               ║", colorQualcomm);
-                Log("╚══════════════════════════════════════════════════════════╝", colorQualcomm);
-                Log($"  • XML Name     : {Path.GetFileName(xmlPath)}", colorSuccess);
-                Log($"  • Total Images : {matches.Count} partition images parsed", colorInfo);
-                Log("────────────────────────────────────────────────────────────", colorQualcomm);
-                Log("📋 [Partitions Queue to Flash]:", colorADB);
-
-                int idx = 1;
-                foreach (Match m in matches)
-                {
-                    if (idx <= 15)
-                    {
-                        Log($"  [{idx++:D2}] 🎯 {m.Groups[2].Value.PadRight(16)} ➔ 📁 {m.Groups[1].Value}", Color.FromArgb(179, 229, 252));
-                    }
-                }
-                if (matches.Count > 15) Log($"  ... and {matches.Count - 15} more partitions", colorInfo);
-                Log("────────────────────────────────────────────────────────────\n", colorQualcomm);
-            }
-            catch (Exception ex) { LogError($"❌ InspectXmlFirmware failed: {ex.Message}"); }
-        }
-
-        private void InspectScatterFirmware(string scatterPath)
-        {
-            try
-            {
-                string[] lines = IOFile.ReadAllLines(scatterPath);
-                string platform = "MTK Universal";
-                string storageType = "EMMC";
-                int partCount = 0;
-
-                foreach (string line in lines)
-                {
-                    if (line.StartsWith("platform:", StringComparison.OrdinalIgnoreCase)) platform = line.Substring(line.IndexOf(":") + 1).Trim();
-                    else if (line.StartsWith("storage:", StringComparison.OrdinalIgnoreCase)) storageType = line.Substring(line.IndexOf(":") + 1).Trim();
-                    else if (line.StartsWith("partition_name:", StringComparison.OrdinalIgnoreCase)) partCount++;
-                }
-
-                Log($"\n╔══════════════════════════════════════════════════════════╗", colorMTK);
-                Log("║             📦 MEDIATEK SCATTER LOADED                   ║", colorMTK);
-                Log("╚══════════════════════════════════════════════════════════╝", colorMTK);
-                Log($"  • Scatter File : {Path.GetFileName(scatterPath)}", colorSuccess);
-                Log($"  • Target SoC   : {platform} [{storageType}]", colorInfo);
-                Log($"  • Partitions   : {partCount} defined in partition layout", colorSuccess);
-                Log("────────────────────────────────────────────────────────────\n", colorMTK);
-            }
-            catch (Exception ex) { LogError($"❌ InspectScatterFirmware failed: {ex.Message}"); }
-        }
-
-        private void InspectPacFirmware(string pacPath)
-        {
-            try
-            {
-                FileInfo fi = new FileInfo(pacPath);
-                double sizeMB = fi.Length / (1024.0 * 1024.0);
-
-                Log($"\n╔══════════════════════════════════════════════════════════╗", colorSPD);
-                Log("║             📦 SPREADTRUM PAC FIRMWARE LOADED            ║", colorSPD);
-                Log("╚══════════════════════════════════════════════════════════╝", colorSPD);
-                Log($"  • PAC Name     : {fi.Name}", colorSuccess);
-                Log($"  • Package Size : {sizeMB:F2} MB", colorInfo);
-                Log("────────────────────────────────────────────────────────────\n", colorSPD);
-            }
-            catch (Exception ex) { LogError($"❌ InspectPacFirmware failed: {ex.Message}"); }
-        }
 
         // ================= QUALCOMM NATIVE (C++) & HYBRID EXECUTION =================
         private string GetActiveComPort()
@@ -1519,18 +1395,6 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         }
 
         // ================= Qualcomm Firmware Preview (QFIL / unlock-tool style) =================
-        private string FormatKbSize(string kbStr)
-        {
-            try
-            {
-                double kb = Convert.ToDouble(kbStr, System.Globalization.CultureInfo.InvariantCulture);
-                double bytes = kb * 1024.0;
-                if (bytes >= 1024.0 * 1024.0 * 1024.0) return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
-                if (bytes >= 1024.0 * 1024.0) return $"{bytes / (1024.0 * 1024.0):F2} MB";
-                return $"{kb:F0} KB";
-            }
-            catch (Exception ex) { LogWarning($"⚠️ FormatKbSize fallback: {ex.Message}"); return kbStr; }
-        }
 
         // rawprogram0.xml ရွေးလိုက်တာနဲ့ firmware partitions တွေကို grid ထဲ checkbox နဲ့ ပြပေးခြင်း
         private void LoadFirmwarePreview(string xmlPath)
@@ -1572,7 +1436,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                         string.IsNullOrEmpty(label) ? fn : label,
                         fn,
                         string.IsNullOrEmpty(off) ? "auto" : off,
-                        FormatKbSize(string.IsNullOrEmpty(kb) ? "0" : kb),
+                        _firmwareService.FormatKbSize(string.IsNullOrEmpty(kb) ? "0" : kb),
                         sparse ? "Sparse" : "Firmware");
                 }
 
@@ -2224,7 +2088,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
                     if (seen.Add(name)) models.Add(name);
                 }
-                models.Sort(CompareNatural); // G9 → G10 စဉ်မှန်အောင် natural order
+                models.Sort(FirmwareService.CompareNatural); // G9 → G10 စဉ်မှန်အောင် natural order
             }
             catch (Exception ex) { LogWarning($"⚠️ GetQualcommFolderModels error: {ex.Message}"); }
             return models;
@@ -2248,39 +2112,13 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                                   f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
                     if (hasLoaders) brands.Add(folderName);
                 }
-                brands.Sort(CompareNatural);
+                brands.Sort(FirmwareService.CompareNatural);
             }
             catch (Exception ex) { LogWarning($"⚠️ EnumerateLoaderBrands error: {ex.Message}"); }
             return brands;
         }
 
         // Natural sort (G9 → G10 စဉ်မှန်အောင်): ဂဏန်းတွေကို numeric အဖြစ် နှိုင်းယှဉ်တယ်
-        private static int CompareNatural(string a, string b)
-        {
-            int ia = 0, ib = 0;
-            while (ia < a.Length && ib < b.Length)
-            {
-                char ca = a[ia], cb = b[ib];
-                if (char.IsDigit(ca) && char.IsDigit(cb))
-                {
-                    int sa = ia, sb = ib;
-                    while (ia < a.Length && char.IsDigit(a[ia])) ia++;
-                    while (ib < b.Length && char.IsDigit(b[ib])) ib++;
-                    string na = a.Substring(sa, ia - sa).TrimStart('0');
-                    string nb = b.Substring(sb, ib - sb).TrimStart('0');
-                    if (na.Length != nb.Length) return na.Length - nb.Length;
-                    int cmp = string.CompareOrdinal(na, nb);
-                    if (cmp != 0) return cmp;
-                }
-                else
-                {
-                    int cmp = char.ToUpperInvariant(ca).CompareTo(char.ToUpperInvariant(cb));
-                    if (cmp != 0) return cmp;
-                    ia++; ib++;
-                }
-            }
-            return (a.Length - ia) - (b.Length - ib);
-        }
 
         // Transport ရွေးချယ်ခြင်း — USB (WinUSB) ကို ဦးစားပေးပြီး python က device ချိတ်တာကို စောင့်ပေးနိုင်တယ်
         // (Read GPT ကို ဖုန်းမချိတ်ခင် နှိပ်ထားရင်တောင် USB mode ကျန်နေအောင်: COM port မရှိရင် USB mode)
@@ -2656,7 +2494,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\" --skip=userdata,cache,cust", "Dumping Normal ROM...");
             if (PythonOpSucceeded(res))
             {
-                GenerateQualcommRawprogram(backupDir);
+                _firmwareService.GenerateQualcommRawprogram(partitions, backupDir);
                 LogSuccess($"✅ Qualcomm Normal Firmware backed up successfully! (Small & Fast Size)");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
@@ -2693,7 +2531,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 var allParts = partitions.Where(p => !p.Name.Equals("userdata", StringComparison.OrdinalIgnoreCase) && !p.Name.Equals("cache", StringComparison.OrdinalIgnoreCase)).Select(p => p.Name).ToArray();
-                GeneratePmkScatterFile(backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
+                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
                 LogSuccess("✅ Normal MediaTek Firmware backed up successfully! (Small & Fast)");
                 LogSuccess("📄 Generated MTK Scatter file successfully!");
 
@@ -2781,7 +2619,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 LogError("❌ GPT read failed. Check log above.");
                 return false;
             }
-            if (hasGpt) { ParseGptOutput(outp); return true; }
+            if (hasGpt) { ShowGptPartitions(outp); return true; }
             return false;
         }
 
@@ -2884,7 +2722,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                         }
                         else
                         {
-                            ParseGptOutput(gptRes);
+                            ShowGptPartitions(gptRes);
                             return;
                         }
                     }
@@ -2910,7 +2748,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 }
                 else
                 {
-                    ParseGptOutput(output);
+                    ShowGptPartitions(output);
                 }
             }
         }
@@ -3465,7 +3303,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\"", "Dumping Full ROM...");
             if (PythonOpSucceeded(res))
             {
-                GenerateQualcommRawprogram(backupDir);
+                _firmwareService.GenerateQualcommRawprogram(partitions, backupDir);
                 LogSuccess($"✅ Qualcomm Full Firmware dumped successfully!");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
@@ -3478,27 +3316,6 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
         }
 
-        private void GenerateQualcommRawprogram(string backupDir)
-        {
-            try
-            {
-                string xmlPath = Path.Combine(backupDir, "rawprogram0.xml");
-                var sb = new System.Text.StringBuilder();
-                sb.AppendLine("<?xml version=\"1.0\" ?>");
-                sb.AppendLine("<data>");
-
-                foreach (var p in partitions)
-                {
-                    sb.AppendLine($"  <program SECTOR_SIZE_IN_BYTES=\"512\" file_sector_offset=\"0\" filename=\"{p.Name}.bin\" label=\"{p.Name}\" num_partition_sectors=\"0\" physical_partition_number=\"0\" size_in_KB=\"0\" sparse=\"false\" start_byte_hex=\"{p.Offset}\" start_sector=\"0\"/>");
-                }
-                sb.AppendLine("</data>");
-                IOFile.WriteAllText(xmlPath, sb.ToString());
-
-                string patchPath = Path.Combine(backupDir, "patch0.xml");
-                IOFile.WriteAllText(patchPath, "<?xml version=\"1.0\" ?>\n<patches>\n</patches>");
-            }
-            catch (Exception ex) { LogError($"❌ rawprogram/patch0 xml ဖိုင်တွေ ရေးရာမှာ မအောင်မြင်ပါ: {ex.Message}"); }
-        }
 
         // ================= MTK Operations =================
         private async void btnMtkDetect_Click(object sender, EventArgs e)
@@ -3516,7 +3333,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string output = await RunMtkSleekCommand($"\"{script}\" {customDaArg}printgpt", "Connecting MTK Device...");
             if (!string.IsNullOrWhiteSpace(output))
             {
-                ParseGptOutput(output);
+                ShowGptPartitions(output);
             }
         }
 
@@ -3546,7 +3363,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
-                GeneratePmkScatterFile(backupDir, nvPartitions);
+                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, nvPartitions);
                 UpdateGlobalProgress(100, "Done");
                 LogSuccess($"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
                 LogSuccess($"✅ All NV Partitions backed up successfully in ONE shot!");
@@ -3641,7 +3458,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 var allParts = partitions.Select(p => p.Name).ToArray();
-                GeneratePmkScatterFile(backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
+                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
                 LogSuccess("✅ Full MediaTek Firmware backed up successfully!");
                 LogSuccess("📄 Generated MTK Scatter file successfully!");
 
@@ -3651,52 +3468,6 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
         }
 
-        private void GeneratePmkScatterFile(string backupDir, string[] nvPartList)
-        {
-            try
-            {
-                string scatterFilePath = Path.Combine(backupDir, "PMK_Android_scatter.txt");
-                var sb = new System.Text.StringBuilder();
-
-                sb.AppendLine("############################################################################################################");
-                sb.AppendLine("#  PMK Android Scatter Configuration");
-                sb.AppendLine("############################################################################################################");
-                sb.AppendLine("- general: MTK_PLATFORM_CFG");
-                sb.AppendLine("  info:");
-                sb.AppendLine("    - config_version: V1.1.2");
-                sb.AppendLine("      platform: MT6765");
-                sb.AppendLine("      project: PMK_Unlock_Tool");
-                sb.AppendLine("      storage: EMMC");
-                sb.AppendLine("      boot_channel: MSDC_0");
-                sb.AppendLine("      block_size: 0x20000\n");
-
-                int index = 0;
-                foreach (var pName in nvPartList)
-                {
-                    var pInfo = partitions.FirstOrDefault(p => p.Name.Equals(pName, StringComparison.OrdinalIgnoreCase));
-                    string offset = pInfo != null && !string.IsNullOrEmpty(pInfo.Offset) ? pInfo.Offset : "0x0";
-                    string length = pInfo != null && !string.IsNullOrEmpty(pInfo.Length) ? pInfo.Length : "0x4000000";
-
-                    sb.AppendLine($"- partition_index: SYS{index++}");
-                    sb.AppendLine($"  partition_name: {pName}");
-                    sb.AppendLine($"  file_name: {pName}.img");
-                    sb.AppendLine("  is_download: true");
-                    sb.AppendLine("  type: NORMAL_ROM");
-                    sb.AppendLine($"  linear_start_addr: {offset}");
-                    sb.AppendLine($"  physical_start_addr: {offset}");
-                    sb.AppendLine($"  partition_size: {length}");
-                    sb.AppendLine("  region: EMMC_USER");
-                    sb.AppendLine("  storage: HW_STORAGE_EMMC");
-                    sb.AppendLine("  boundary_check: true");
-                    sb.AppendLine("  is_reserved: false");
-                    sb.AppendLine("  operation_type: UPDATE");
-                    sb.AppendLine("  reserve: 0x00\n");
-                }
-
-                IOFile.WriteAllText(scatterFilePath, sb.ToString());
-            }
-            catch (Exception ex) { LogError($"❌ Scatter file ရေးရာမှာ မအောင်မြင်ပါ: {ex.Message}"); }
-        }
 
         // ================= MTK Extended Features =================
         private async void btnMtkUnlockBL_Click(object sender, EventArgs e)
@@ -4104,62 +3875,15 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         }
 
         // ================= GPT Parser =================
-        private void ParseGptOutput(string gptOutput)
+        // ParseGptOutput (FirmwareService) ရလာတဲ့ partition list ကို grid ထဲ ထည့်ပြီး summary log ထုတ်ပေးခြင်း
+        private void ShowGptPartitions(string gptOutput)
         {
-            partitions.Clear();
-            if (mobilePartitionGrid != null) mobilePartitionGrid.Rows.Clear();
-            if (string.IsNullOrWhiteSpace(gptOutput)) return;
-
-            string[] lines = gptOutput.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-
-            string FormatHexSize(string hexStr)
+            partitions = _firmwareService.ParseGptOutput(gptOutput);
+            if (mobilePartitionGrid != null)
             {
-                try
-                {
-                    if (hexStr.StartsWith("0x", StringComparison.OrdinalIgnoreCase)) hexStr = hexStr.Substring(2);
-                    ulong bytes = Convert.ToUInt64(hexStr, 16);
-                    if (bytes >= 1024UL * 1024UL * 1024UL) return $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
-                    if (bytes >= 1024UL * 1024UL) return $"{bytes / (1024.0 * 1024.0):F2} MB";
-                    if (bytes >= 1024UL) return $"{bytes / (1024.0 * 1024.0):F2} KB";
-                    return $"{bytes} B";
-                }
-                catch (Exception ex) { LogWarning($"⚠️ FormatHexSize fallback: {ex.Message}"); return "N/A"; }
-            }
-
-            foreach (string rawLine in lines)
-            {
-                string line = Regex.Replace(rawLine, @"\x1B\[[^@-~]*[=@-~]", "").Trim();
-                if (string.IsNullOrWhiteSpace(line) || line.StartsWith("=") || line.StartsWith("-") || line.Contains("DAXFlash") || line.Contains("[LIB]")) continue;
-
-                Match mGPT = Regex.Match(line, @"^([a-zA-Z0-9_\-\.]+):\s*Offset\s+(0x[0-9A-Fa-f]+),\s*Length\s+(0x[0-9A-Fa-f]+)", RegexOptions.IgnoreCase);
-                Match mBracket = Regex.Match(line, @"\[\s*\d+\s*\]\s+([a-zA-Z0-9_\-\.]+)\s*:\s*(0x[0-9A-Fa-f]+)\s*-\s*(0x[0-9A-Fa-f]+)(?:\s*\((.*?)\))?");
-
-                string name = "";
-                string offset = "0x0";
-                string length = "0x0";
-                string sizeDisplay = "Raw";
-
-                if (mGPT.Success)
-                {
-                    name = mGPT.Groups[1].Value.Trim();
-                    offset = mGPT.Groups[2].Value.Trim();
-                    length = mGPT.Groups[3].Value.Trim();
-                    sizeDisplay = FormatHexSize(length);
-                }
-                else if (mBracket.Success)
-                {
-                    name = mBracket.Groups[1].Value.Trim();
-                    offset = mBracket.Groups[2].Value.Trim();
-                    length = mBracket.Groups[3].Value.Trim();
-                    sizeDisplay = FormatHexSize(length);
-                }
-
-                if (!string.IsNullOrEmpty(name) && !name.Equals("Total", StringComparison.OrdinalIgnoreCase))
-                {
-                    partitions.Add(new PartitionInfo { Name = name, Offset = offset, Length = length, Type = sizeDisplay });
-                    if (mobilePartitionGrid != null)
-                        mobilePartitionGrid.Rows.Add(false, name, $"{name}.img", offset, length, sizeDisplay);
-                }
+                mobilePartitionGrid.Rows.Clear();
+                foreach (var p in partitions)
+                    mobilePartitionGrid.Rows.Add(false, p.Name, $"{p.Name}.img", p.Offset, p.Length, p.Type);
             }
             if (partitions.Count > 0)
             {
