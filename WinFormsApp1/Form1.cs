@@ -613,11 +613,63 @@ namespace WinFormsApp1
             mobileSeaShell.Controls.Add(rightPanel);
             mobileSeaShell.Controls.Add(leftPanel);
 
+            // ===== Top Brand Banner — PMK MOBILE SERVICE TOOL (gradient header) =====
+            var banner = new GradientBannerHeader();
+            banner.Dock = DockStyle.Top;
+            banner.Height = 46;
+
             statusStrip.Dock = DockStyle.Bottom;
             statusStrip.BackColor = Color.FromArgb(12, 17, 23);
             statusStrip.ForeColor = Color.White;
             Controls.Add(mobileSeaShell);
             Controls.Add(statusStrip);
+            Controls.Add(banner);
+            this.Text = "PMK MOBILE SERVICE TOOL";
+        }
+
+        // ထိပ်ဆုံး brand header — gradient နဲ့ လှပတဲ့ title
+        private sealed class GradientBannerHeader : Panel
+        {
+            public GradientBannerHeader()
+            {
+                DoubleBuffered = true;
+                BackColor = Color.FromArgb(13, 27, 47);
+            }
+
+            protected override void OnPaint(PaintEventArgs e)
+            {
+                base.OnPaint(e);
+                var g = e.Graphics;
+                g.SmoothingMode = System.Drawing.Drawing2D.SmoothingMode.AntiAlias;
+
+                // gradient: နက်ပြာ → တောက်ပြာတဲ့ အဆင့်
+                using (var brush = new System.Drawing.Drawing2D.LinearGradientBrush(
+                    new Rectangle(0, 0, Width, Height),
+                    Color.FromArgb(10, 24, 46),
+                    Color.FromArgb(0, 110, 200),
+                    System.Drawing.Drawing2D.LinearGradientMode.Horizontal))
+                {
+                    g.FillRectangle(brush, 0, 0, Width, Height);
+                }
+
+                // အောက်ခြေ accent line
+                using (var line = new SolidBrush(Color.FromArgb(80, 210, 255, 255)))
+                    g.FillRectangle(line, 0, Height - 3, Width, 3);
+
+                // Main title
+                using (var titleFont = new Font("Segoe UI", 13.5F, FontStyle.Bold))
+                using (var titleBrush = new SolidBrush(Color.White))
+                using (var subBrush = new SolidBrush(Color.FromArgb(190, 225, 255)))
+                using (var verFont = new Font("Segoe UI", 8.5F))
+                {
+                    g.DrawString("PMK MOBILE SERVICE TOOL", titleFont, titleBrush, 16, (Height - g.MeasureString("PMK MOBILE SERVICE TOOL", titleFont).Height) / 2);
+                    g.DrawString("Advanced Edition", verFont, subBrush, 16, Height - 17);
+
+                    string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "4.0");
+                    var verSize = g.MeasureString(ver, verFont);
+                    g.DrawString(ver, verFont, subBrush, Width - verSize.Width - 16, (Height - verSize.Height) / 2);
+                }
+            }
         }
 
         // ================= Universal Multi-Brand Flasher Hub UI =================
