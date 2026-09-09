@@ -409,13 +409,16 @@ namespace WinFormsApp1
 
             // ===== Right Panel =====
             Panel rightPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(22, 29, 39), Padding = new Padding(8) };
-            FlowLayoutPanel categoryBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(31, 41, 55), Padding = new Padding(4), WrapContents = false, AutoScroll = true };
+            // AutoScroll မလိုအောင်: 8 tabs (93px + 5px gap = 787px) က bar အတွင်း အကုန်အဆင်ပြေဝင်တယ် —
+            // scrollbar ပေါ်ရင် tab အောက်ခြေတွေ ဖုံးခံရလို့ AutoScroll ပိတ်ထားတယ်
+            FlowLayoutPanel categoryBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(31, 41, 55), Padding = new Padding(4, 6, 4, 6), WrapContents = false, AutoScroll = false };
 
             string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Sideload", "Spreadtrum", "Samsung", "Settings" };
             categoryTabButtons.Clear();
             foreach (string category in categories)
             {
-                Button catBtn = CreateSeaButton(category, Point.Empty, 95, 36, (s, e) => SwitchCategory(((Button)s).Text));
+                Button catBtn = CreateSeaButton(category, Point.Empty, 93, 36, (s, e) => SwitchCategory(((Button)s).Text));
+                catBtn.Margin = new Padding(0, 0, 5, 0);
                 categoryTabButtons.Add(catBtn);
                 categoryBar.Controls.Add(catBtn);
             }
