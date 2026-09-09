@@ -25,8 +25,8 @@ namespace WinFormsApp1
         private string adbPath = "";
 
         // Sideload tab — package (zip) picker row
-        private Panel sideloadPanel = null;
-        private TextBox txtSideloadPath = null;
+        internal Panel sideloadPanel = null;
+        internal TextBox txtSideloadPath = null;
         private string fastbootPath = "";
         private string pythonPath = "python";
         private string mtkScriptPath = "";
@@ -47,71 +47,71 @@ namespace WinFormsApp1
         private ProcessRunnerService _processRunner;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
-        private string currentMemoryType = "emmc";
+        internal string currentMemoryType = "emmc";
         private bool usb9008Available = false;   // WinUSB (QHSUSB__BULK) transport ရှိမရှိ — USB mode က serial ထက် 3x မြန်ပါတယ်
         private DateTime usbProbeTime = DateTime.MinValue;
 
 
 
         // ================= UI Controls =================
-        private Panel mobileSeaShell = null;
-        private ProgressBar globalProgressBar = null;
-        private Label lblProgressPercent = null;
-        private ComboBox cboMemoryType = null;
-        private Label lblMemType = null;
-        private DataGridView mobilePartitionGrid = null;
-        private ContextMenuStrip partitionContextMenu = null;
-        private ComboBox mobileBrandCombo = null;
-        private ComboBox mobileModelCombo = null;
-        private ComboBox mobilePortCombo = null;
-        private TextBox txtFirmwarePath = null;
-        private Label lblLoaderTitle = null;
-        private Button btnBrowseLoader = null;
-        private Button btnShowTp = null;
-        private Panel profilePanel = null;
-        private Panel dynamicActionPanel = null;
+        internal Panel mobileSeaShell = null;
+        internal ProgressBar globalProgressBar = null;
+        internal Label lblProgressPercent = null;
+        internal ComboBox cboMemoryType = null;
+        internal Label lblMemType = null;
+        internal DataGridView mobilePartitionGrid = null;
+        internal ContextMenuStrip partitionContextMenu = null;
+        internal ComboBox mobileBrandCombo = null;
+        internal ComboBox mobileModelCombo = null;
+        internal ComboBox mobilePortCombo = null;
+        internal TextBox txtFirmwarePath = null;
+        internal Label lblLoaderTitle = null;
+        internal Button btnBrowseLoader = null;
+        internal Button btnShowTp = null;
+        internal Panel profilePanel = null;
+        internal Panel dynamicActionPanel = null;
 
         // Dedicated Multi-Flashing Hub Panel
-        private Panel flasherHubPanel = null;
-        private Label lblFlasherTitle = null;
+        internal Panel flasherHubPanel = null;
+        internal Label lblFlasherTitle = null;
 
         // Slot Controls
-        private TextBox txtSlot1 = null, txtSlot2 = null, txtSlot3 = null, txtSlot4 = null, txtSlot5 = null;
-        private CheckBox chkSlot1 = null, chkSlot2 = null, chkSlot3 = null, chkSlot4 = null, chkSlot5 = null;
-        private Button btnBrowseSlot1 = null, btnBrowseSlot2 = null, btnBrowseSlot3 = null, btnBrowseSlot4 = null, btnBrowseSlot5 = null;
-        private Button btnMasterFlash = null;
-        private Button btnResetFlasher = null;
-        private CheckBox chkAutoRebootMaster = null;
+        internal TextBox txtSlot1 = null, txtSlot2 = null, txtSlot3 = null, txtSlot4 = null, txtSlot5 = null;
+        internal CheckBox chkSlot1 = null, chkSlot2 = null, chkSlot3 = null, chkSlot4 = null, chkSlot5 = null;
+        internal Button btnBrowseSlot1 = null, btnBrowseSlot2 = null, btnBrowseSlot3 = null, btnBrowseSlot4 = null, btnBrowseSlot5 = null;
+        internal Button btnMasterFlash = null;
+        internal Button btnResetFlasher = null;
+        internal CheckBox chkAutoRebootMaster = null;
 
-        private RichTextBox rtbOutput = null;
-        private StatusStrip statusStrip = null;
-        private ToolStripStatusLabel lblStatus = null;
-        private OpenFileDialog openFileDlg = null;
-        private SaveFileDialog saveFileDlg = null;
-        private ComboBox cboUSB = null;
-        private ComboBox cboCOM = null;
-        private TabControl tabControl = null;
-        private Panel devicePanel = null;
-        private Panel topPanel = null;
+        internal RichTextBox rtbOutput = null;
+        internal StatusStrip statusStrip = null;
+        internal ToolStripStatusLabel lblStatus = null;
+        internal OpenFileDialog openFileDlg = null;
+        internal SaveFileDialog saveFileDlg = null;
+        internal ComboBox cboUSB = null;
+        internal ComboBox cboCOM = null;
+        internal TabControl tabControl = null;
+        internal Panel devicePanel = null;
+        internal Panel topPanel = null;
 
-        private List<Button> dynamicButtons = new List<Button>();
-        private List<Button> categoryTabButtons = new List<Button>();
-        private Button btnMobileGo = null;
+        internal List<Button> dynamicButtons = new List<Button>();
+        internal List<Button> categoryTabButtons = new List<Button>();
+        internal Button btnMobileGo = null;
 
 
         // ================= Qualcomm Firmware (QFIL) Preview State =================
-        private bool qcFirmwarePreviewMode = false;          // grid မှာ firmware partitions ပြနေလား (device GPT မဟုတ်)
+        internal bool qcFirmwarePreviewMode = false;          // grid မှာ firmware partitions ပြနေလား (device GPT မဟုတ်)
         private string qcFirmwareDir = "";                    // images folder
         private string qcFirmwareSourceXml = "";              // မူရင်း rawprogram0.xml
         private string qcFirmwarePatchXml = "";               // patch0.xml (မရှိရင် "")
         private List<string> qcFirmwareOrderedFiles = new List<string>(); // flash sequence (filename)
         private List<string> qcFirmwareProgramLines = new List<string>();  // original <program .../> lines (row order)
-        private Button btnQcFlashSelected = null;
-        private Button btnQcMiBypassBtn = null;     // Xiaomi brand ရွေးမှသာ ပြတဲ့ Mi Account bypass
-        private Button btnQcHexEditBtn = null;      // Xiaomi-specific helpers (Hex Edit / Persist)
-        private Button btnQcPersistBuBtn = null;
-        private Button btnQcPersistResBtn = null;
-        private Button btnMtkMiAccountBtn = null;   // MediaTek Xiaomi Mi Account reset
+        internal Button btnQcFlashSelected = null;
+        internal Button btnQcMiBypassBtn = null;     // Xiaomi brand ရွေးမှသာ ပြတဲ့ Mi Account bypass
+        internal Button btnQcHexEditBtn = null;      // Xiaomi-specific helpers (Hex Edit / Persist)
+        internal Button btnQcPersistBuBtn = null;
+        internal Button btnQcPersistResBtn = null;
+        internal Button btnMtkMiAccountBtn = null;   // MediaTek Xiaomi Mi Account reset
 
         // ================= Theme Colors =================
         private readonly Color colorADB = Color.FromArgb(100, 181, 246);
@@ -122,8 +122,8 @@ namespace WinFormsApp1
         private readonly Color colorSPD = Color.FromArgb(0, 188, 212);
         private readonly Color colorSuccess = Color.FromArgb(129, 199, 132);
         private readonly Color colorError = Color.FromArgb(229, 115, 115);
-        private readonly Color colorWarning = Color.FromArgb(255, 213, 79);
-        private readonly Color colorInfo = Color.FromArgb(200, 200, 220);
+        internal readonly Color colorWarning = Color.FromArgb(255, 213, 79);
+        internal readonly Color colorInfo = Color.FromArgb(200, 200, 220);
 
         // ================= Theme Engine state =================
         private readonly Dictionary<Control, int> themeSlotMap = new Dictionary<Control, int>();
@@ -132,7 +132,7 @@ namespace WinFormsApp1
         private string ThemeFilePath => AppConfig.ThemeFile;
 
         // Settings tab — PC info value labels (title → value label)
-        private Panel settingsPanel = null;
+        internal Panel settingsPanel = null;
         private readonly List<(string title, Label valLbl)> pcInfoRows = new List<(string, Label)>();
 
         // RAM info (GlobalMemoryStatusEx)
@@ -197,7 +197,7 @@ namespace WinFormsApp1
             qualcommCorePath = AppConfig.QualcommCoreDir;
             AppConfig.EnsureCoreDirectories();
 
-            InitializeMobileSeaLayout();
+            UIBuilder.BuildMainLayout(this);
             SwitchCategory("Qualcomm");
             InitializePortTimer();
             RefreshPorts();
@@ -227,300 +227,6 @@ namespace WinFormsApp1
         }
 
         // ================= UI Layout =================
-        private void InitializeMobileSeaLayout()
-        {
-            tabControl.Visible = false;
-            devicePanel.Visible = false;
-            topPanel.Visible = false;
-
-            mobileSeaShell = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(18, 24, 32), Padding = new Padding(6), AllowDrop = true };
-
-            // ===== Left Panel =====
-            Panel leftPanel = new Panel { Dock = DockStyle.Left, Width = 430, BackColor = Color.FromArgb(14, 20, 27), Padding = new Padding(6) };
-
-            BevelCardPanel connectionPanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 95, BackColor = Color.FromArgb(27, 36, 48) };
-            Label connectionTitle = CreateSeaLabel("🔌  CONNECTION", new Point(10, 8), true);
-            Label portLabel = CreateSeaLabel("Communications Port", new Point(10, 36), false);
-
-            mobilePortCombo = new ComboBox { Location = new Point(10, 58), Size = new Size(160, 25), DropDownStyle = ComboBoxStyle.DropDownList, BackColor = Color.FromArgb(35, 45, 58), ForeColor = Color.White };
-            mobilePortCombo.Items.Add("Auto Detect / USB");
-            mobilePortCombo.SelectedIndex = 0;
-
-            CheckBox autoConnect = new CheckBox { Text = "Auto", Location = new Point(175, 60), AutoSize = true, Checked = true, ForeColor = Color.White };
-            btnMobileGo = CreateSeaButton("🔄 Ref", new Point(230, 56), 55, 28, (s, e) => { RefreshPorts(); Log("🔄 Ports refreshed.", colorInfo); });
-            Button btnDevMgr = CreateSeaButton("🛠️ DevMgr", new Point(290, 56), 65, 28, (s, e) => { try { Process.Start(new ProcessStartInfo("devmgmt.msc") { UseShellExecute = true }); } catch (Exception ex) { LogWarning($"⚠️ btnDevMgr_Click warning: {ex.Message}"); } });
-            btnDevMgr.BackColor = Color.FromArgb(40, 70, 90);
-            Ui3D.Restyle3D(btnDevMgr);
-
-            Button btnDrivers = CreateSeaButton("📦 Driver", new Point(360, 56), 60, 28, (s, e) => InstallAllDrivers());
-            btnDrivers.BackColor = Color.FromArgb(45, 75, 60);
-            Ui3D.Restyle3D(btnDrivers);
-
-            connectionPanel.Controls.AddRange(new Control[] { connectionTitle, portLabel, mobilePortCombo, autoConnect, btnMobileGo, btnDevMgr, btnDrivers });
-
-            Panel logHeader = new Panel { Dock = DockStyle.Top, Height = 36, BackColor = Color.FromArgb(35, 47, 61), Padding = new Padding(4) };
-            logHeader.Controls.Add(CreateSeaLabel("📋  LOG", new Point(8, 9), true));
-
-            Button btnStopOp = CreateSeaButton("🛑 STOP", new Point(160, 4), 90, 28, btnStop_Click);
-            btnStopOp.BackColor = Color.FromArgb(220, 40, 40);
-            Ui3D.Restyle3D(btnStopOp);
-            btnStopOp.ForeColor = Color.White;
-            btnStopOp.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            logHeader.Controls.Add(btnStopOp);
-
-            Button btnSaveLog = CreateSeaButton("💾 Save", new Point(260, 4), 70, 28, (s, e) => ExportLogToFile());
-            btnSaveLog.BackColor = Color.FromArgb(45, 75, 60);
-            Ui3D.Restyle3D(btnSaveLog);
-            logHeader.Controls.Add(btnSaveLog);
-
-            Button btnClear = CreateSeaButton("🗑️ Clear", new Point(338, 4), 70, 28, (s, e) => { rtbOutput.Clear(); Log("Log cleared", colorWarning); });
-            btnClear.BackColor = Color.FromArgb(50, 60, 75);
-            Ui3D.Restyle3D(btnClear);
-            logHeader.Controls.Add(btnClear);
-
-            rtbOutput.Parent = leftPanel;
-            rtbOutput.Dock = DockStyle.Fill;
-            rtbOutput.Margin = new Padding(0);
-            rtbOutput.BackColor = Color.FromArgb(10, 16, 22);
-            rtbOutput.ForeColor = Color.FromArgb(210, 220, 230);
-            rtbOutput.BorderStyle = BorderStyle.FixedSingle;
-            rtbOutput.WordWrap = false;
-
-            leftPanel.Controls.Add(rtbOutput);
-            leftPanel.Controls.Add(logHeader);
-            leftPanel.Controls.Add(connectionPanel);
-
-            // ===== Right Panel =====
-            Panel rightPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(22, 29, 39), Padding = new Padding(8) };
-            // AutoScroll မလိုအောင်: 8 tabs (93px + 5px gap = 787px) က bar အတွင်း အကုန်အဆင်ပြေဝင်တယ် —
-            // scrollbar ပေါ်ရင် tab အောက်ခြေတွေ ဖုံးခံရလို့ AutoScroll ပိတ်ထားတယ်
-            FlowLayoutPanel categoryBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(31, 41, 55), Padding = new Padding(4, 6, 4, 6), WrapContents = false, AutoScroll = false };
-
-            string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Sideload", "Spreadtrum", "Samsung", "Settings" };
-            categoryTabButtons.Clear();
-            foreach (string category in categories)
-            {
-                var catBtn = new Tab3DButton
-                {
-                    Text = category,
-                    Size = new Size(93, 36),
-                    Margin = new Padding(0, 0, 5, 0),
-                    BackColor = Color.FromArgb(47, 72, 101),
-                    ForeColor = Color.White,
-                    Font = new Font("Segoe UI", 9F, FontStyle.Bold)
-                };
-                catBtn.Click += (s, e) => SwitchCategory(catBtn.Text);
-                categoryTabButtons.Add(catBtn);
-                categoryBar.Controls.Add(catBtn);
-            }
-
-            // 🎨 Settings tab panel (theme + PC info) — theme selector က အခု Settings ထဲမှာပဲ
-            BuildSettingsPanel(rightPanel);
-
-            // ===== Profile Panel with TP Pinout Button =====
-            profilePanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 75, BackColor = Color.FromArgb(27, 36, 48) };
-            profilePanel.Controls.Add(CreateSeaLabel("PROFILE", new Point(10, 10), true));
-            profilePanel.Controls.Add(CreateSeaLabel("Brand", new Point(75, 10), false));
-
-            mobileBrandCombo = new ComboBox
-            {
-                Location = new Point(120, 7),
-                Size = new Size(160, 25),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(35, 45, 58),
-                ForeColor = Color.White
-            };
-            mobileBrandCombo.SelectedIndexChanged += MobileBrandCombo_SelectedIndexChanged;
-            profilePanel.Controls.Add(mobileBrandCombo);
-
-            profilePanel.Controls.Add(CreateSeaLabel("Model", new Point(290, 10), false));
-            mobileModelCombo = new ComboBox
-            {
-                Location = new Point(335, 7),
-                Size = new Size(200, 25),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(35, 45, 58),
-                ForeColor = Color.White
-            };
-            mobileModelCombo.Items.Add("# Auto Detect");
-            mobileModelCombo.SelectedIndex = 0;
-            mobileModelCombo.SelectedIndexChanged += MobileModelCombo_SelectedIndexChanged;
-            profilePanel.Controls.Add(mobileModelCombo);
-
-            btnShowTp = CreateSeaButton("📌 Pinout", new Point(545, 6), 85, 27, (s, e) =>
-            {
-                string brand = mobileBrandCombo.SelectedItem?.ToString() ?? "";
-                string model = mobileModelCombo.SelectedItem?.ToString() ?? "";
-                ShowTestPointViewer(brand, model);
-            });
-            btnShowTp.BackColor = Color.FromArgb(255, 152, 0);
-            Ui3D.Restyle3D(btnShowTp);
-            profilePanel.Controls.Add(btnShowTp);
-
-            lblLoaderTitle = CreateSeaLabel("📁 Firehose Loader:", new Point(10, 42), false);
-            txtFirmwarePath = CreateServiceTextBox(new Point(140, 40), 395);
-            btnBrowseLoader = CreateSeaButton("📂 Browse", new Point(545, 38), 85, 26, BrowseFirmware_Click);
-
-            profilePanel.Controls.AddRange(new Control[] { lblLoaderTitle, txtFirmwarePath, btnBrowseLoader });
-
-            dynamicActionPanel = new BevelCardPanel { Dock = DockStyle.Top, Height = 135, BackColor = Color.FromArgb(25, 33, 44), Padding = new Padding(6), AutoScroll = true };
-
-            // ===== Partition Grid Context Menu =====
-            partitionContextMenu = new ContextMenuStrip();
-            ToolStripMenuItem menuRead = new ToolStripMenuItem("📖 Read Partition (Dump)", null, (s, e) => ExecutePartitionAction("Read"));
-            ToolStripMenuItem menuWrite = new ToolStripMenuItem("✏️ Write Partition (Flash)", null, (s, e) => ExecutePartitionAction("Write"));
-            ToolStripMenuItem menuErase = new ToolStripMenuItem("🗑️ Erase Partition", null, (s, e) => ExecutePartitionAction("Erase"));
-            ToolStripMenuItem menuFormat = new ToolStripMenuItem("🔄 Format Partition", null, (s, e) => ExecutePartitionAction("Format"));
-            partitionContextMenu.Items.AddRange(new ToolStripItem[] { menuRead, menuWrite, menuErase, menuFormat });
-
-            // ===== Partition Grid =====
-            mobilePartitionGrid = new DataGridView
-            {
-                Dock = DockStyle.Fill,
-                BackgroundColor = Color.FromArgb(13, 20, 28),
-                GridColor = Color.FromArgb(45, 60, 80),
-                BorderStyle = BorderStyle.None,
-                AllowUserToAddRows = false,
-                AllowUserToDeleteRows = false,
-                ReadOnly = false,
-                AutoGenerateColumns = false,
-                RowHeadersVisible = false,
-                EnableHeadersVisualStyles = false,
-                SelectionMode = DataGridViewSelectionMode.FullRowSelect,
-                MultiSelect = false,
-                ContextMenuStrip = partitionContextMenu,
-                ColumnHeadersHeight = 28
-            };
-            mobilePartitionGrid.RowTemplate.Height = 24;
-
-            mobilePartitionGrid.ColumnHeadersDefaultCellStyle.BackColor = Color.FromArgb(30, 44, 60);
-            mobilePartitionGrid.ColumnHeadersDefaultCellStyle.ForeColor = Color.FromArgb(220, 235, 250);
-            mobilePartitionGrid.ColumnHeadersDefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
-            mobilePartitionGrid.DefaultCellStyle.BackColor = Color.FromArgb(18, 26, 36);
-            mobilePartitionGrid.DefaultCellStyle.ForeColor = Color.FromArgb(220, 230, 245);
-            mobilePartitionGrid.DefaultCellStyle.SelectionBackColor = Color.FromArgb(33, 150, 243);
-            mobilePartitionGrid.DefaultCellStyle.SelectionForeColor = Color.White;
-            mobilePartitionGrid.DefaultCellStyle.Font = new Font("Segoe UI", 9F, FontStyle.Regular);
-            mobilePartitionGrid.AlternatingRowsDefaultCellStyle.BackColor = Color.FromArgb(23, 33, 46);
-            mobilePartitionGrid.Columns.Add(new DataGridViewCheckBoxColumn { HeaderText = "✓", Width = 30, ReadOnly = false });
-            mobilePartitionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Partition Name", Width = 150, ReadOnly = true });
-            mobilePartitionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "File Name", Width = 160, ReadOnly = true });
-            mobilePartitionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Offset", Width = 140, ReadOnly = true });
-            mobilePartitionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Length / Size", Width = 120, ReadOnly = true });
-            mobilePartitionGrid.Columns.Add(new DataGridViewTextBoxColumn { HeaderText = "Type", AutoSizeMode = DataGridViewAutoSizeColumnMode.Fill, ReadOnly = true });
-
-            mobilePartitionGrid.SelectionChanged += MobilePartitionGrid_SelectionChanged;
-            mobilePartitionGrid.CellDoubleClick += MobilePartitionGrid_CellDoubleClick;
-
-            // Checkbox tick ပြောင်းတာနဲ့ Flash Selected ခလုတ်ရဲ့ count ကို update လုပ်ဖို့
-            mobilePartitionGrid.CellValueChanged += (s, e) => { if (qcFirmwarePreviewMode && e.RowIndex >= 0 && e.ColumnIndex == 0) UpdateFlashSelButtonText(); };
-            mobilePartitionGrid.CurrentCellDirtyStateChanged += (s, e) => { if (mobilePartitionGrid.IsCurrentCellDirty) mobilePartitionGrid.CommitEdit(DataGridViewDataErrorContexts.Commit); };
-
-            // Universal Multi-Brand Flasher Panel
-            InitializeUniversalFlasherHub(rightPanel);
-
-            // ===== Sideload Package Row (Sideload tab မှာသာ ပေါ်မယ်) =====
-            sideloadPanel = new BevelCardPanel
-            {
-                Dock = DockStyle.Top,
-                Height = 46,
-                BackColor = Color.FromArgb(27, 36, 48),
-                Visible = false
-            };
-            sideloadPanel.Controls.Add(CreateSeaLabel("📦 Package (.zip):", new Point(10, 12), false));
-            txtSideloadPath = CreateServiceTextBox(new Point(150, 9), 500);
-            txtSideloadPath.ReadOnly = true;
-            sideloadPanel.Controls.Add(txtSideloadPath);
-            Button btnSlBrowse = CreateSeaButton("📂 Browse", new Point(665, 8), 85, 26, (s, e) =>
-            {
-                using var dlg = new OpenFileDialog { Title = "Select ZIP package to sideload (ROM/OTA/patch)", Filter = "ZIP Package (*.zip)|*.zip|All files (*.*)|*.*" };
-                if (dlg.ShowDialog() == DialogResult.OK) txtSideloadPath.Text = dlg.FileName;
-            });
-            btnSlBrowse.BackColor = Color.FromArgb(33, 150, 243);
-            Ui3D.Restyle3D(btnSlBrowse);
-            sideloadPanel.Controls.Add(btnSlBrowse);
-
-            // Footer Bar with Progress Bar
-            Panel footerBar = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(20, 28, 38) };
-
-            globalProgressBar = new ProgressBar
-            {
-                Location = new Point(8, 6),
-                Size = new Size(300, 18),
-                Style = ProgressBarStyle.Continuous,
-                Minimum = 0,
-                Maximum = 100,
-                Value = 0
-            };
-
-            lblProgressPercent = new Label
-            {
-                Text = "0%",
-                Location = new Point(315, 6),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 230, 118)
-            };
-
-            footerBar.Controls.Add(globalProgressBar);
-            footerBar.Controls.Add(lblProgressPercent);
-
-            // ===== Memory Type Selector (Qualcomm EDL: eMMC / UFS) =====
-            lblMemType = CreateSeaLabel("Mem:", new Point(660, 8), false);
-            lblMemType.ForeColor = Color.FromArgb(0, 230, 118);
-            lblMemType.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
-
-            cboMemoryType = new ComboBox
-            {
-                Location = new Point(695, 4),
-                Size = new Size(85, 23),
-                DropDownStyle = ComboBoxStyle.DropDownList,
-                BackColor = Color.FromArgb(35, 45, 58),
-                ForeColor = Color.White,
-                Font = new Font("Segoe UI", 8.5F)
-            };
-            cboMemoryType.Items.AddRange(new object[] { "eMMC", "UFS" });
-            cboMemoryType.SelectedIndex = 0;
-            cboMemoryType.SelectedIndexChanged += (s, e) =>
-            {
-                currentMemoryType = cboMemoryType.SelectedItem?.ToString() ?? "emmc";
-            };
-
-            footerBar.Controls.Add(lblMemType);
-            footerBar.Controls.Add(cboMemoryType);
-
-            rightPanel.Controls.Add(mobilePartitionGrid);
-            rightPanel.Controls.Add(flasherHubPanel);
-            if (settingsPanel != null) rightPanel.Controls.Add(settingsPanel);
-            rightPanel.Controls.Add(footerBar);
-            rightPanel.Controls.Add(dynamicActionPanel);
-            if (sideloadPanel != null) rightPanel.Controls.Add(sideloadPanel);
-            rightPanel.Controls.Add(profilePanel);
-            rightPanel.Controls.Add(categoryBar);
-
-            // PROFILE စာတန်းတွေ ဖတ်ရလွယ်အောင် ဖောင့် ပိုကြီး/ထူပေးတယ်
-            foreach (Control c in profilePanel.Controls)
-            {
-                if (c is Label l)
-                    l.Font = new Font("Segoe UI", l.Font.Bold ? 9.5F : 9.25F, FontStyle.Bold);
-            }
-
-            mobileSeaShell.Controls.Add(rightPanel);
-            mobileSeaShell.Controls.Add(leftPanel);
-
-            // ===== Top Brand Banner — PMK MOBILE SERVICE TOOL (gradient header) =====
-            var banner = new GradientBannerHeader();
-            banner.Dock = DockStyle.Top;
-            banner.Height = 32;
-
-            statusStrip.Dock = DockStyle.Bottom;
-            statusStrip.BackColor = Color.FromArgb(12, 17, 23);
-            statusStrip.ForeColor = Color.White;
-            Controls.Add(mobileSeaShell);
-            Controls.Add(statusStrip);
-            Controls.Add(banner);
-            this.Text = "PMK MOBILE SERVICE TOOL";
-        }
 
         // ================= 3D UI: tabs / cards / buttons =================
         // Screen ငယ်ရင် (1366×768 လို laptop) အလိုအလျောက် maximize — အောက်ခြေ မပါသွားအောင်
@@ -532,7 +238,7 @@ namespace WinFormsApp1
         }
 
         // အရောင်တွက်နည်းတွေ + Flat button တွေကို interactive 3D ဖြစ်အောင်
-        private static class Ui3D
+        internal static class Ui3D
         {
             public static Color Lighten(Color c, float f)
             {
@@ -559,7 +265,7 @@ namespace WinFormsApp1
         }
 
         // Category tab — gradient (အပေါ်ပေါ့/အောက်နက်) + gloss + active ဆို အပြာ "raised" look
-        private sealed class Tab3DButton : Button
+        internal sealed class Tab3DButton : Button
         {
             [System.ComponentModel.DesignerSerializationVisibility(System.ComponentModel.DesignerSerializationVisibility.Hidden)]
             public bool Selected { get; set; }
@@ -624,7 +330,7 @@ namespace WinFormsApp1
         }
 
         // Card panel — bevel border: dark outline + အပေါ် 1px highlight + အောက် 1px shade → ပတ်ဝန်းကျင်ထက် ထူးနေတယ်
-        private sealed class BevelCardPanel : Panel
+        internal sealed class BevelCardPanel : Panel
         {
             public BevelCardPanel()
             {
@@ -655,7 +361,7 @@ namespace WinFormsApp1
         }
 
         // ထိပ်ဆုံး brand header — gradient နဲ့ လှပတဲ့ title
-        private sealed class GradientBannerHeader : Panel
+        internal sealed class GradientBannerHeader : Panel
         {
             public GradientBannerHeader()
             {
@@ -701,71 +407,6 @@ namespace WinFormsApp1
         }
 
         // ================= Universal Multi-Brand Flasher Hub UI =================
-        private void InitializeUniversalFlasherHub(Panel parentPanel)
-        {
-            flasherHubPanel = new BevelCardPanel
-            {
-                Dock = DockStyle.Fill,
-                BackColor = Color.FromArgb(18, 24, 32),
-                Padding = new Padding(12),
-                Visible = false
-            };
-
-            lblFlasherTitle = CreateSeaLabel("⚡ FIRMWARE FLASHING ENGINE", new Point(12, 8), true);
-            lblFlasherTitle.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
-            lblFlasherTitle.ForeColor = Color.FromArgb(100, 181, 246);
-            flasherHubPanel.Controls.Add(lblFlasherTitle);
-
-            int startY = 40;
-            int gapY = 36;
-
-            void CreateSlotRow(ref CheckBox chk, ref TextBox txt, ref Button btn, int yPos, int slotIndex)
-            {
-                chk = new CheckBox
-                {
-                    Text = "SLOT",
-                    Location = new Point(15, yPos + 3),
-                    Size = new Size(125, 24),
-                    ForeColor = Color.White,
-                    Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                    Checked = true
-                };
-
-                txt = CreateServiceTextBox(new Point(145, yPos), 425);
-                txt.ReadOnly = true;
-
-                btn = CreateSeaButton("📂 Browse", new Point(580, yPos - 1), 90, 27, (s, e) => BrowseFlasherSlot(slotIndex));
-                btn.BackColor = Color.FromArgb(40, 60, 85);
-                Ui3D.Restyle3D(btn);
-
-                flasherHubPanel.Controls.AddRange(new Control[] { chk, txt, btn });
-            }
-
-            CreateSlotRow(ref chkSlot1, ref txtSlot1, ref btnBrowseSlot1, startY, 1);
-            CreateSlotRow(ref chkSlot2, ref txtSlot2, ref btnBrowseSlot2, startY + gapY, 2);
-            CreateSlotRow(ref chkSlot3, ref txtSlot3, ref btnBrowseSlot3, startY + (gapY * 2), 3);
-            CreateSlotRow(ref chkSlot4, ref txtSlot4, ref btnBrowseSlot4, startY + (gapY * 3), 4);
-            CreateSlotRow(ref chkSlot5, ref txtSlot5, ref btnBrowseSlot5, startY + (gapY * 4), 5);
-
-            // Options Bar
-            Panel optPanel = new Panel { Location = new Point(15, startY + (gapY * 5) + 6), Size = new Size(655, 36), BackColor = Color.FromArgb(25, 33, 44) };
-            chkAutoRebootMaster = new CheckBox { Text = "Auto Reboot after Flash", Location = new Point(15, 8), AutoSize = true, Checked = true, ForeColor = Color.FromArgb(0, 230, 118), Font = new Font("Segoe UI", 8.5F, FontStyle.Bold) };
-            optPanel.Controls.Add(chkAutoRebootMaster);
-            flasherHubPanel.Controls.Add(optPanel);
-
-            // Action Buttons
-            btnMasterFlash = CreateSeaButton("⚡ START (FLASH FIRMWARE)", new Point(15, startY + (gapY * 6) + 10), 240, 40, (s, e) => ExecuteMasterFlash());
-            btnMasterFlash.BackColor = Color.FromArgb(230, 60, 60);
-            Ui3D.Restyle3D(btnMasterFlash);
-            btnMasterFlash.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold);
-
-            btnResetFlasher = CreateSeaButton("🗑️ Reset Slots", new Point(265, startY + (gapY * 6) + 10), 120, 40, (s, e) => ResetFlasherSlots());
-            btnResetFlasher.BackColor = Color.FromArgb(60, 70, 85);
-            Ui3D.Restyle3D(btnResetFlasher);
-
-            flasherHubPanel.Controls.AddRange(new Control[] { btnMasterFlash, btnResetFlasher });
-            parentPanel.Controls.Add(flasherHubPanel);
-        }
 
         private void ConfigureFlasherHubForCategory(string category)
         {
@@ -819,7 +460,7 @@ namespace WinFormsApp1
             }
         }
 
-        private void ResetFlasherSlots()
+        internal void ResetFlasherSlots()
         {
             if (txtSlot1 != null) txtSlot1.Text = "";
             if (txtSlot2 != null) txtSlot2.Text = "";
@@ -828,7 +469,7 @@ namespace WinFormsApp1
             if (txtSlot5 != null) txtSlot5.Text = "";
         }
 
-        private void BrowseFlasherSlot(int slotIndex)
+        internal void BrowseFlasherSlot(int slotIndex)
         {
             using OpenFileDialog ofd = new OpenFileDialog();
 
@@ -1120,7 +761,7 @@ namespace WinFormsApp1
             return n;
         }
 
-        private void UpdateFlashSelButtonText()
+        internal void UpdateFlashSelButtonText()
         {
             if (btnQcFlashSelected == null) return;
             int n = CountCheckedFirmwareRows();
@@ -1208,7 +849,7 @@ namespace WinFormsApp1
         }
 
         // ================= Master Flashing Execution Engine =================
-        private async void ExecuteMasterFlash()
+        internal async void ExecuteMasterFlash()
         {
             if (currentCategory == "Samsung")
             {
@@ -1414,7 +1055,7 @@ namespace WinFormsApp1
             if (dynamicActionPanel.Height != newHeight) dynamicActionPanel.Height = newHeight;
         }
 
-        private void MobileBrandCombo_SelectedIndexChanged(object sender, EventArgs e)
+        internal void MobileBrandCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             UpdateBrandActionVisibility();
             string selectedBrand = mobileBrandCombo.SelectedItem?.ToString() ?? "# Auto Detect";
@@ -1452,7 +1093,7 @@ namespace WinFormsApp1
             mobileModelCombo.SelectedIndex = 0;
         }
 
-        private void MobileModelCombo_SelectedIndexChanged(object sender, EventArgs e)
+        internal void MobileModelCombo_SelectedIndexChanged(object sender, EventArgs e)
         {
             if (currentCategory != "Qualcomm") return;
 
@@ -1473,7 +1114,7 @@ namespace WinFormsApp1
         }
 
         // ================= Grid Row Selection & Double Click Popup Event =================
-        private void MobilePartitionGrid_SelectionChanged(object sender, EventArgs e)
+        internal void MobilePartitionGrid_SelectionChanged(object sender, EventArgs e)
         {
             if (mobilePartitionGrid.SelectedRows.Count > 0)
             {
@@ -1485,7 +1126,7 @@ namespace WinFormsApp1
             }
         }
 
-        private void MobilePartitionGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
+        internal void MobilePartitionGrid_CellDoubleClick(object sender, DataGridViewCellEventArgs e)
         {
             if (qcFirmwarePreviewMode) return; // firmware preview မှာ device partition action တွေ မသုံးရဘူး
             if (e.RowIndex >= 0 && mobilePartitionGrid.Rows[e.RowIndex].Cells.Count > 1)
@@ -1498,7 +1139,7 @@ namespace WinFormsApp1
         }
 
         // ================= Universal Partition Operation Handler =================
-        private async void ExecutePartitionAction(string action)
+        internal async void ExecutePartitionAction(string action)
         {
             if (string.IsNullOrEmpty(selectedPartitionName))
             {
@@ -1722,7 +1363,7 @@ namespace WinFormsApp1
         }
 
         // ================= Category Switching =================
-        private void SwitchCategory(string category)
+        internal void SwitchCategory(string category)
         {
             currentCategory = category;
             SetStatus($"Active Category: {category}");
@@ -1833,7 +1474,7 @@ namespace WinFormsApp1
             void AddActionBtn(string text, Color bg, EventHandler handler)
             {
                 if (x + btnWidth > dynamicActionPanel.Width - 20) { x = 8; y += btnHeight + gapY; }
-                Button btn = CreateSeaButton(text, new Point(x, y), btnWidth, btnHeight, handler);
+                Button btn = UIBuilder.CreateSeaButton(text, new Point(x, y), btnWidth, btnHeight, handler);
                 btn.BackColor = bg;
                 Ui3D.Restyle3D(btn);
                 dynamicActionPanel.Controls.Add(btn);
@@ -2041,7 +1682,7 @@ namespace WinFormsApp1
         }
 
         // ================= Force Stop All Running Operations =================
-        private void btnStop_Click(object sender, EventArgs e)
+        internal void btnStop_Click(object sender, EventArgs e)
         {
             // process kill/cancel core က ProcessRunnerService ထဲ (CancelAllOperations)
             _processRunner.CancelAllOperations();
@@ -4224,7 +3865,7 @@ namespace WinFormsApp1
         }
 
         // ================= Test Point (TP) Image Viewer Popup Form =================
-        private void ShowTestPointViewer(string brand, string model)
+        internal void ShowTestPointViewer(string brand, string model)
         {
             if (string.IsNullOrEmpty(brand) || brand.StartsWith("#") || string.IsNullOrEmpty(model) || model.StartsWith("#"))
             {
@@ -4272,7 +3913,7 @@ namespace WinFormsApp1
         }
 
         // ================= One-Click Driver Installer =================
-        private void InstallAllDrivers()
+        internal void InstallAllDrivers()
         {
             string driverDir = AppConfig.DriversDir;
             if (!Directory.Exists(driverDir))
@@ -4296,17 +3937,6 @@ namespace WinFormsApp1
             LogSuccess("✅ Driver installers launched!");
         }
 
-        // ================= UI Helpers =================
-        private Label CreateSeaLabel(string text, Point location, bool heading) => new Label { Text = text, Location = location, AutoSize = true, ForeColor = heading ? Color.FromArgb(210, 225, 240) : Color.FromArgb(175, 190, 205), Font = new Font("Segoe UI", heading ? 9F : 8.5F, heading ? FontStyle.Bold : FontStyle.Regular) };
-        private CheckBox CreateSeaCheckBox(string text, Point location) => new CheckBox { Text = text, Location = location, AutoSize = true, ForeColor = Color.FromArgb(205, 215, 225) };
-        private TextBox CreateServiceTextBox(Point location, int width) => new TextBox { Location = location, Size = new Size(width, 25), BackColor = Color.FromArgb(40, 50, 65), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
-        private Button CreateSeaButton(string text, Point location, int width, int height, EventHandler handler)
-        {
-            Button b = new Button { Text = text, Location = location, Size = new Size(width, height), FlatStyle = FlatStyle.Flat, BackColor = Color.FromArgb(47, 72, 101), ForeColor = Color.White, Font = new Font("Segoe UI", 8.5F, FontStyle.Bold), Margin = new Padding(3) };
-            Ui3D.Restyle3D(b);
-            b.Click += handler;
-            return b;
-        }
 
         // ================= Logging =================
         // python EDL / QSaharaServer raw output တွေကို ရှင်းလင်းပြီး လှပအောင် ပြောင်းပြတဲ့ smart filter
@@ -4432,7 +4062,7 @@ namespace WinFormsApp1
         }
 
         // ============ Settings tab — theme selector + PC info ============
-        private void BuildSettingsPanel(Panel host)
+        internal void BuildSettingsPanel(Panel host)
         {
             settingsPanel = new Panel
             {
@@ -4443,13 +4073,13 @@ namespace WinFormsApp1
                 Visible = false
             };
 
-            settingsPanel.Controls.Add(CreateSeaLabel("⚙️ SETTINGS", new Point(12, 10), true));
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("⚙️ SETTINGS", new Point(12, 10), true));
 
             // --- Theme section ---
-            settingsPanel.Controls.Add(CreateSeaLabel("🎨 Theme", new Point(12, 58), false));
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("🎨 Theme", new Point(12, 58), false));
             InitThemeSelector(settingsPanel); // combo ကို (150, 54) မှာ ထည့်ပေးမယ်
 
-            Button btnRefreshInfo = CreateSeaButton("🔄 Refresh Info", new Point(340, 52), 110, 26, (s, e) =>
+            Button btnRefreshInfo = UIBuilder.CreateSeaButton("🔄 Refresh Info", new Point(340, 52), 110, 26, (s, e) =>
             {
                 PopulatePcInfo();
                 SetStatus("PC info refreshed");
@@ -4459,7 +4089,7 @@ namespace WinFormsApp1
             settingsPanel.Controls.Add(btnRefreshInfo);
 
             // --- PC Info section ---
-            settingsPanel.Controls.Add(CreateSeaLabel("🖥️ PC INFO", new Point(12, 104), true));
+            settingsPanel.Controls.Add(UIBuilder.CreateSeaLabel("🖥️ PC INFO", new Point(12, 104), true));
 
             string[] titles =
             {
@@ -4472,7 +4102,7 @@ namespace WinFormsApp1
             const int step = 26;
             foreach (string t in titles)
             {
-                Label key = CreateSeaLabel(t, new Point(12, y), false);
+                Label key = UIBuilder.CreateSeaLabel(t, new Point(12, y), false);
                 key.AutoSize = false;
                 key.Size = new Size(190, 22);
                 key.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold); // ဖတ်ရလွယ်အောင် ပိုကြီး/ထူပေးတယ်
@@ -4643,7 +4273,7 @@ namespace WinFormsApp1
 
         // အောင်မြင်တဲ့ loader upload ရဲ့ hwid+pkhash → loader path ကို မှတ်ထားတယ် (နောက် Auto Detect အတွက်)
 
-        private void Log(string message, Color color)
+        internal void Log(string message, Color color)
         {
             if (this.InvokeRequired) { this.Invoke(new Action<string, Color>(Log), message, color); return; }
             color = ThemeManager.AdaptLog(color); // light theme မှာ log အရောင်တွေ ဖတ်ရလွယ်အောင်
@@ -4663,7 +4293,7 @@ namespace WinFormsApp1
         private void LogSPD(string m) => Log(m, colorSPD);
         private void LogSuccess(string m) => Log(m, colorSuccess);
         private void LogError(string m) => Log(m, colorError);
-        private void LogWarning(string m) => Log(m, colorWarning);
+        internal void LogWarning(string m) => Log(m, colorWarning);
         private void LogInfo(string m) => Log(m, colorInfo);
         private void SetStatus(string status) { if (this.InvokeRequired) this.Invoke(new Action<string>(SetStatus), status); else lblStatus.Text = status; }
 
@@ -4692,9 +4322,9 @@ namespace WinFormsApp1
         }
 
         // ================= Export Log =================
-        private void ExportLogToFile() { saveFileDlg.FileName = $"Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"; if (saveFileDlg.ShowDialog() == DialogResult.OK) IOFile.WriteAllText(saveFileDlg.FileName, rtbOutput.Text); }
+        internal void ExportLogToFile() { saveFileDlg.FileName = $"Log_{DateTime.Now:yyyyMMdd_HHmmss}.txt"; if (saveFileDlg.ShowDialog() == DialogResult.OK) IOFile.WriteAllText(saveFileDlg.FileName, rtbOutput.Text); }
 
-        private void BrowseFirmware_Click(object sender, EventArgs e)
+        internal void BrowseFirmware_Click(object sender, EventArgs e)
         {
             if (currentCategory == "Qualcomm")
                 openFileDlg.Filter = "Programmer Files (*.mbn;*.elf)|*.mbn;*.elf|All Files (*.*)|*.*";
@@ -4749,7 +4379,7 @@ namespace WinFormsApp1
             portTimer.Start();
         }
 
-        private void RefreshPorts()
+        internal void RefreshPorts()
         {
             try
             {
@@ -4900,115 +4530,4 @@ namespace WinFormsApp1
     }
 
     // ================= 🔍 Partition Hex Editor Window =================
-    public class HexEditWindow : Form
-    {
-        private readonly byte[] buffer;
-        private readonly string partName;
-        private readonly RichTextBox txtHex;
-        private readonly TextBox txtOffset;
-        private readonly TextBox txtBytes;
-        private readonly Label lblInfo;
-        private bool modified = false;
-
-        public bool Modified => modified;
-        public byte[] EditedBytes => buffer;
-
-        public HexEditWindow(byte[] data, string partition)
-        {
-            buffer = data;
-            partName = partition;
-            Text = $"🔍 Hex Edit — {partition} ({data.Length} bytes)";
-            Size = new Size(760, 620);
-            StartPosition = FormStartPosition.CenterParent;
-            BackColor = Color.FromArgb(20, 26, 36);
-
-            txtHex = new RichTextBox
-            {
-                Dock = DockStyle.Top,
-                Height = 420,
-                Font = new Font("Consolas", 9.5F),
-                BackColor = Color.FromArgb(12, 17, 24),
-                ForeColor = Color.FromArgb(210, 225, 240),
-                ReadOnly = true,
-                WordWrap = false
-            };
-            Controls.Add(txtHex);
-
-            Panel bottom = new Panel { Dock = DockStyle.Fill, Padding = new Padding(8) };
-            lblInfo = new Label { AutoSize = true, ForeColor = Color.FromArgb(160, 190, 220), Text = "" };
-            Label l1 = new Label { Text = "Offset (hex):", AutoSize = true, ForeColor = Color.White, Top = 30 };
-            txtOffset = new TextBox { Width = 120, BackColor = Color.FromArgb(35, 45, 58), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
-            Label l2 = new Label { Text = "Bytes (hex, ဥပမာ 00 01 FF):", AutoSize = true, ForeColor = Color.White, Top = 30 };
-            txtBytes = new TextBox { Width = 260, BackColor = Color.FromArgb(35, 45, 58), ForeColor = Color.White, BorderStyle = BorderStyle.FixedSingle };
-            Button btnApply = new Button { Text = "✏️ Apply", Width = 90, BackColor = Color.FromArgb(47, 72, 101), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            Button btnOk = new Button { Text = "✅ Save & Write", Width = 120, BackColor = Color.FromArgb(40, 130, 80), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-            Button btnCancel = new Button { Text = "Cancel", Width = 90, BackColor = Color.FromArgb(70, 80, 95), ForeColor = Color.White, FlatStyle = FlatStyle.Flat };
-
-            int x = 12;
-            lblInfo.Location = new Point(x, 6);
-            l1.Location = new Point(x, 32); x += l1.Width + 4;
-            txtOffset.Location = new Point(x, 28); x += txtOffset.Width + 14;
-            l2.Location = new Point(x, 32); x += l2.Width + 4;
-            txtBytes.Location = new Point(x, 28); x += txtBytes.Width + 10;
-            btnApply.Location = new Point(x, 27); x += btnApply.Width + 10;
-            btnOk.Location = new Point(12, 62);
-            btnCancel.Location = new Point(140, 62);
-            bottom.Controls.AddRange(new Control[] { lblInfo, l1, txtOffset, l2, txtBytes, btnApply, btnOk, btnCancel });
-            Controls.Add(bottom);
-
-            RenderView(0);
-            lblInfo.Text = "နည်း: offset (hex) ရိုက်ပြီး bytes (hex) ထည့်ကာ ✏️ Apply နှိပ်ပါ — offset 0x မပါဘဲ ရေးလို့ရတယ်။";
-
-            btnApply.Click += (s, e) =>
-            {
-                try
-                {
-                    string offTxt = txtOffset.Text.Trim().Replace("0x", "").Replace("0X", "");
-                    int off = Convert.ToInt32(offTxt, 16);
-                    string hex = txtBytes.Text.Trim().Replace(" ", "").Replace("0x", "").Replace("0X", "");
-                    if (hex.Length == 0 || hex.Length % 2 != 0) { MessageBox.Show("Bytes ကို hex အတွဲလိုက် ရိုက်ပါ (ဥပမာ 00 01 FF)"); return; }
-                    byte[] nb = new byte[hex.Length / 2];
-                    for (int i = 0; i < nb.Length; i++) nb[i] = Convert.ToByte(hex.Substring(i * 2, 2), 16);
-                    if (off < 0 || off + nb.Length > buffer.Length) { MessageBox.Show("Offset က partition ထက် ကျော်နေပါတယ် (size " + buffer.Length + " bytes)"); return; }
-                    for (int i = 0; i < nb.Length; i++) buffer[off + i] = nb[i];
-                    modified = true;
-                    LogEdit(off, nb.Length);
-                    RenderView(off);
-                }
-                catch (Exception ex) { MessageBox.Show("Error: " + ex.Message); }
-            };
-            btnOk.Click += (s, e) => DialogResult = DialogResult.OK;
-            btnCancel.Click += (s, e) => DialogResult = DialogResult.Cancel;
-        }
-
-        private void LogEdit(int off, int len)
-        {
-            lblInfo.Text = $"✅ Edited @ 0x{off:X} ({len} bytes) — 'Save & Write' နှိပ်ရင် ဖုန်းထဲ ပြန်ရေးမယ်";
-            lblInfo.ForeColor = Color.FromArgb(120, 230, 140);
-        }
-
-        private void RenderView(int centerOffset)
-        {
-            var sb = new System.Text.StringBuilder();
-            int show = Math.Min(buffer.Length, 0x4000);
-            int start = Math.Max(0, Math.Min(centerOffset - 0x100, Math.Max(0, show - 0x800)));
-            for (int i = start; i < start + show; i += 16)
-            {
-                sb.Append(i.ToString("X8")).Append("  ");
-                for (int k = 0; k < 16; k++)
-                {
-                    if (i + k < buffer.Length) sb.Append(buffer[i + k].ToString("X2")).Append(' ');
-                    else sb.Append("   ");
-                }
-                sb.Append(" |");
-                for (int k = 0; k < 16 && i + k < buffer.Length; k++)
-                {
-                    byte b = buffer[i + k];
-                    sb.Append(b >= 32 && b < 127 ? (char)b : '.');
-                }
-                sb.AppendLine("|");
-            }
-            txtHex.Text = sb.ToString();
-        }
-    }
 }
