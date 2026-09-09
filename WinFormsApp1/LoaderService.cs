@@ -3,11 +3,22 @@ using System.Collections.Generic;
 using System.Drawing;
 using System.IO;
 using System.Linq;
+using System.Net.Http;
+using System.Text.Json;
 using System.Text.RegularExpressions;
+using System.Threading.Tasks;
 using IOFile = System.IO.File;
 
 namespace WinFormsApp1
 {
+    // Remote loader index entry (loaders/index.json) — p = repo/app-relative path ("Loaders/...")
+    public sealed class LoaderIndexEntry
+    {
+        public string p { get; set; }
+        public long s { get; set; }
+        public string h { get; set; }
+    }
+
     // Loader management / device database / auto-detect (HWID+PK_HASH → loader) service
     // — Form1 (God Class) ကနေ ခွဲထုတ်ထားတယ်။ Logging ကို LogHandler (FirmwareService နဲ့ အတူတူ) ကနေ ထိုးသွင်းတယ်။
     public class LoaderService
@@ -17,9 +28,175 @@ namespace WinFormsApp1
 
         private readonly LogHandler _log;
 
+        // ===== Remote loader index (Loaders zip ထဲ မပါတော့လို့ brand/model စာရင်း + download အတွက်) =====
+        private static readonly HttpClient IndexHttp = new HttpClient { Timeout = TimeSpan.FromSeconds(20) };
+        public const string LoaderIndexUrl = "https://raw.githubusercontent.com/huaxinmobile-alt/PMK-Unlock-Tool/main/loaders/index.json";
+        private static string IndexCachePath => Path.Combine(AppConfig.DeviceDatabaseDir, "loader_index.json");
+        private readonly List<LoaderIndexEntry> _index = new();
+        private bool _indexLoaded;
+
+        public bool IndexLoaded => _indexLoaded;
+        public int IndexCount => _index.Count;
+        public event Action IndexRefreshed;
+
         public LoaderService(LogHandler logHandler)
         {
             _log = logHandler ?? delegate { };
+        }
+
+        // Index ကို network ကနေ refresh — offline ဆို disk cache ကို သုံးတယ်
+        public async Task RefreshIndexAsync()
+        {
+            try
+            {
+                string json = await IndexHttp.GetStringAsync(LoaderIndexUrl).ConfigureAwait(false);
+                if (ParseIndex(json))
+                {
+                    try
+                    {
+                        if (!Directory.Exists(AppConfig.DeviceDatabaseDir)) Directory.CreateDirectory(AppConfig.DeviceDatabaseDir);
+                        IOFile.WriteAllText(IndexCachePath, json);
+                    }
+                    catch { }
+                    IndexRefreshed?.Invoke();
+                    return;
+                }
+            }
+            catch { }
+            EnsureIndexCacheLoaded();
+        }
+
+        private void EnsureIndexCacheLoaded()
+        {
+            if (_indexLoaded) return;
+            try
+            {
+                if (IOFile.Exists(IndexCachePath))
+                    ParseIndex(IOFile.ReadAllText(IndexCachePath));
+            }
+            catch { }
+        }
+
+        private bool ParseIndex(string json)
+        {
+            try
+            {
+                using var doc = JsonDocument.Parse(json);
+                var root = doc.RootElement;
+                if (!root.TryGetProperty("files", out var arr)) return false;
+                _index.Clear();
+                foreach (var el in arr.EnumerateArray())
+                {
+                    string p = el.TryGetProperty("p", out var pv) ? pv.GetString() : "";
+                    if (string.IsNullOrEmpty(p)) continue;
+                    _index.Add(new LoaderIndexEntry
+                    {
+                        p = p,
+                        s = el.TryGetProperty("s", out var sv) ? sv.GetInt64() : 0,
+                        h = el.TryGetProperty("h", out var hv) ? hv.GetString() : ""
+                    });
+                }
+                _indexLoaded = _index.Count > 0;
+                return _indexLoaded;
+            }
+            catch { return false; }
+        }
+
+        // ===== Index-based helpers (Loaders မရှိသေးတောင် စာရင်း/ရှာဖွေ ရအောင်) =====
+        private List<LoaderIndexEntry> IndexEntriesUnder(string brandFolder)
+        {
+            EnsureIndexCacheLoaded();
+            if (string.IsNullOrEmpty(brandFolder)) return new List<LoaderIndexEntry>();
+            string prefix = "Loaders/" + brandFolder + "/";
+            return _index.Where(e => e.p.StartsWith(prefix, StringComparison.OrdinalIgnoreCase)).ToList();
+        }
+
+        public List<string> IndexBrands()
+        {
+            EnsureIndexCacheLoaded();
+            var brands = new List<string>();
+            foreach (var e in _index)
+            {
+                string[] parts = e.p.Split('/');
+                if (parts.Length >= 2 && parts[0].Equals("Loaders", StringComparison.OrdinalIgnoreCase))
+                {
+                    string b = parts[1];
+                    if (b.Length > 0 && !brands.Contains(b, StringComparer.OrdinalIgnoreCase)) brands.Add(b);
+                }
+            }
+            return brands;
+        }
+
+        public List<string> IndexModelsFor(string folderName)
+        {
+            var models = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
+            foreach (var e in IndexEntriesUnder(folderName))
+            {
+                string name = Path.GetFileNameWithoutExtension(e.p).Trim();
+                if (name.Length == 0) continue;
+                if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram)", RegexOptions.IgnoreCase)) continue;
+                if (Regex.IsMatch(name, @"^\d+$")) continue;
+                if (seen.Add(name)) models.Add(name);
+            }
+            models.Sort(FirmwareService.CompareNatural);
+            return models;
+        }
+
+        // Index ပေါ်မှာ FindQualcommLoader နဲ့ တူညီတဲ့ keyword-match — ရလာတဲ့ path က download လုပ်စရာ relative path
+        public string? FindQualcommLoaderIndex(string brand, string model)
+        {
+            try
+            {
+                string cleanBrand = brand.ToUpperInvariant();
+                if (cleanBrand.Contains("XIAOMI") || cleanBrand.Contains("REDMI")) cleanBrand = "XIAOMI";
+                else if (cleanBrand.Contains("VIVO")) cleanBrand = "VIVO";
+                else if (cleanBrand.Contains("OPPO")) cleanBrand = "OPPO";
+                else if (cleanBrand.Contains("REALME")) cleanBrand = "REALME";
+                else if (cleanBrand.Contains("SAMSUNG")) cleanBrand = "SAMSUNG";
+
+                string folder = cleanBrand switch
+                {
+                    "XIAOMI" => "Xiaomi",
+                    "VIVO" => "Vivo",
+                    "OPPO" => "Oppo",
+                    "REALME" => "Realme",
+                    "SAMSUNG" => "Samsung",
+                    _ => brand
+                };
+
+                var all = IndexEntriesUnder(folder);
+                if (all.Count == 0) return null;
+
+                var candidates = all.OrderBy(e =>
+                {
+                    if (e.p.Contains("No Auth", StringComparison.OrdinalIgnoreCase)) return 0;
+                    if (e.p.Contains("Auth Skip", StringComparison.OrdinalIgnoreCase)) return 1;
+                    if (e.p.Contains("SIG", StringComparison.OrdinalIgnoreCase)) return 2;
+                    return 3;
+                }).ToList();
+
+                Match codeMatch = Regex.Match(model ?? "", @"\((.*?)\)");
+                string codename = codeMatch.Success ? codeMatch.Groups[1].Value.Trim().ToUpperInvariant() : "";
+                string cleanModel = Regex.Replace(model ?? "", @"\(.*?\)", "").Trim().ToUpperInvariant().Replace(" / ", " ").Replace("/", " ");
+
+                foreach (var e in candidates)
+                {
+                    string fileName = Path.GetFileNameWithoutExtension(e.p).ToUpperInvariant();
+                    if (!string.IsNullOrEmpty(cleanModel) && !cleanModel.StartsWith("#"))
+                    {
+                        string[] modelKeywords = cleanModel.Split(new[] { ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (modelKeywords.Length >= 2 && modelKeywords.All(k => fileName.Contains(k)))
+                            return e.p;
+                        if (fileName.Contains(cleanModel))
+                            return e.p;
+                    }
+                    if (!string.IsNullOrEmpty(codename) && fileName.Contains(codename))
+                        return e.p;
+                }
+            }
+            catch (Exception ex) { _log($"⚠️ FindQualcommLoaderIndex error: {ex.Message}", WarningColor); }
+            return null;
         }
 
         // ===== Chipset → Brand → Model database (built-in) =====
@@ -260,54 +437,72 @@ namespace WinFormsApp1
         }
 
         // Loaders/<folder> ထဲက loader ဖိုင်နာမည်တွေကနေ model list ဆောက်ခြင်း (Qualcomm tab အတွက် အပြည့်အစုံ)
+        // local မှာ မရှိသေးရင် remote index ကနေ ဖြည့်ပေးတယ် (slim install)
         public List<string> GetQualcommFolderModels(string folderName)
         {
             var models = new List<string>();
             if (string.IsNullOrEmpty(folderName)) return models;
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 string baseDir = AppConfig.Combine(AppConfig.LoadersDir, folderName);
-                if (!Directory.Exists(baseDir)) return models;
-
-                var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
-                foreach (var f in Directory.GetFiles(baseDir, "*.*", SearchOption.AllDirectories))
+                if (Directory.Exists(baseDir))
                 {
-                    string ext = Path.GetExtension(f).ToLowerInvariant();
-                    if (ext != ".elf" && ext != ".mbn" && ext != ".bin" && ext != ".melf") continue;
+                    foreach (var f in Directory.GetFiles(baseDir, "*.*", SearchOption.AllDirectories))
+                    {
+                        string ext = Path.GetExtension(f).ToLowerInvariant();
+                        if (ext != ".elf" && ext != ".mbn" && ext != ".bin" && ext != ".melf") continue;
 
-                    string name = Path.GetFileNameWithoutExtension(f).Trim();
-                    if (name.Length == 0) continue;
+                        string name = Path.GetFileNameWithoutExtension(f).Trim();
+                        if (name.Length == 0) continue;
 
-                    // generic programmer / meta ဖိုင်တွေကို model အဖြစ် မထည့်ဘူး
-                    if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram)", RegexOptions.IgnoreCase)) continue;
-                    if (Regex.IsMatch(name, @"^\d+$")) continue; // chipset number သက်သက် (610, 430...) က model မဟုတ်ဘူး
+                        // generic programmer / meta ဖိုင်တွေကို model အဖြစ် မထည့်ဘူး
+                        if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram)", RegexOptions.IgnoreCase)) continue;
+                        if (Regex.IsMatch(name, @"^\d+$")) continue; // chipset number သက်သက် (610, 430...) က model မဟုတ်ဘူး
 
+                        if (seen.Add(name)) models.Add(name);
+                    }
+                }
+
+                // Remote index (Loaders folder မရှိသေးတဲ့ fresh install မှာ စာရင်းပြဖို့)
+                foreach (string name in IndexModelsFor(folderName))
+                {
                     if (seen.Add(name)) models.Add(name);
                 }
+
                 models.Sort(FirmwareService.CompareNatural); // G9 → G10 စဉ်မှန်အောင် natural order
             }
             catch (Exception ex) { _log($"⚠️ GetQualcommFolderModels error: {ex.Message}", WarningColor); }
             return models;
         }
 
-        // Loaders folder ထဲက brand အမည်စာရင်း (natural order, duplicate မရှိ)
+        // Loaders folder ထဲက brand အမည်စာရင်း (natural order, duplicate မရှိ) — index နဲ့ ပေါင်းထားတယ်
         public List<string> EnumerateLoaderBrands()
         {
             var brands = new List<string>();
+            var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             try
             {
                 string loadersRoot = AppConfig.LoadersDir;
-                if (!Directory.Exists(loadersRoot)) return brands;
-
-                foreach (var dir in Directory.GetDirectories(loadersRoot))
+                if (Directory.Exists(loadersRoot))
                 {
-                    string folderName = Path.GetFileName(dir);
-                    bool hasLoaders = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)
-                        .Any(f => f.EndsWith(".elf", StringComparison.OrdinalIgnoreCase) ||
-                                  f.EndsWith(".mbn", StringComparison.OrdinalIgnoreCase) ||
-                                  f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
-                    if (hasLoaders) brands.Add(folderName);
+                    foreach (var dir in Directory.GetDirectories(loadersRoot))
+                    {
+                        string folderName = Path.GetFileName(dir);
+                        bool hasLoaders = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)
+                            .Any(f => f.EndsWith(".elf", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".mbn", StringComparison.OrdinalIgnoreCase) ||
+                                      f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
+                        if (hasLoaders && seen.Add(folderName)) brands.Add(folderName);
+                    }
                 }
+
+                // Remote index — Loaders မရှိသေးရင် brand တွေ ဒီကနေ ပေါ်တယ်
+                foreach (string b in IndexBrands())
+                {
+                    if (seen.Add(b)) brands.Add(b);
+                }
+
                 brands.Sort(FirmwareService.CompareNatural);
             }
             catch (Exception ex) { _log($"⚠️ EnumerateLoaderBrands error: {ex.Message}", WarningColor); }

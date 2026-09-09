@@ -303,6 +303,33 @@ namespace WinFormsApp1
 
             // Online update — တစ်နေ့တစ်ခါ နောက်ခံမှာ တိတ်တိတ်ဆိတ် စစ်ပေးတယ် (UI ကို မနှောင့်ဘူး)
             AutoCheckUpdateSilently();
+
+            // Loader DB index — နောက်ခံမှာ refresh (slim install: brand/model စာရင်း + on-demand download အတွက်)
+            _loaderService.IndexRefreshed += OnLoaderIndexRefreshed;
+            _ = Task.Run(async () => { await _loaderService.RefreshIndexAsync(); });
+        }
+
+        // Index ရောက်လာရင် — QC tab မှာ စာရင်းအပြည့် ပြန်ဖြည့်ပေးတယ် (user က brand မရွေးရသေးရင်)
+        private void OnLoaderIndexRefreshed()
+        {
+            try
+            {
+                this.Invoke(new Action(() =>
+                {
+                    LogInfo($"☁️ Loader DB index ready ({_loaderService.IndexCount} loaders) — မရှိသေးတဲ့ loader တွေကို လိုအပ်မှ download လုပ်ပါမယ်");
+                    if (currentCategory != "Qualcomm") return;
+                    string curBrand = mobileBrandCombo.SelectedItem?.ToString() ?? "";
+                    if (curBrand == "# Auto Detect" || curBrand.Length == 0)
+                    {
+                        var brands = new List<string> { "# Auto Detect" };
+                        brands.AddRange(_loaderService.EnumerateLoaderBrands());
+                        mobileBrandCombo.Items.Clear();
+                        mobileBrandCombo.Items.AddRange(brands.ToArray());
+                        mobileBrandCombo.SelectedIndex = 0;
+                    }
+                }));
+            }
+            catch (Exception) { /* UI ပိတ်သွားချိန် refresh ပြီးခဲ့ရင် — ဘာမှ မလို */ }
         }
 
         // Startup auto-check — version သစ်ရှိမှပဲ log မှာ အသိပေးတယ်
@@ -951,6 +978,46 @@ namespace WinFormsApp1
             else
             {
                 txtFirmwarePath.Text = "";
+
+                // Slim install — local မှာ မရှိသေးဘဲ remote index ထဲမှာ ရှိရင် နောက်ခံမှာ download လုပ်ပြီး ဖြည့်ပေးတယ်
+                if (!string.IsNullOrEmpty(selectedBrand) && !string.IsNullOrEmpty(selectedModel) &&
+                    !selectedModel.StartsWith("#", StringComparison.Ordinal))
+                {
+                    _ = PrefetchLoaderAsync(selectedBrand, selectedModel);
+                }
+            }
+        }
+
+        // Model ရွေးလိုက်တာနဲ့ loader ကို နောက်ခံမှာ download (first use only — ပြီးရင် offline)
+        private async Task PrefetchLoaderAsync(string brand, string model)
+        {
+            try
+            {
+                string rel = _loaderService.FindQualcommLoaderIndex(brand, model);
+                if (string.IsNullOrEmpty(rel)) return; // index မှာလည်း မရှိ — auto-detect/Browse သုံးမယ်
+
+                // တစ်ခြား လုပ်ငန်းစဉ် မဖြစ်နေမှသာ (UI thread မှာ ပြန်စစ်)
+                string dl = await _loaderDownloader.DownloadLoaderIfNeededAsync(rel).ConfigureAwait(false);
+                if (dl == null)
+                {
+                    LogWarning($"⚠️ Loader download failed — {Path.GetFileName(rel)} ကို Browse နဲ့ ရွေးပါ သို့မဟုတ် internet စစ်ပြီး ပြန်စမ်းပါ");
+                    return;
+                }
+                // ဖိုင်ရောက်ပြီ — combo က မပြောင်းသေးရင် path ဖြည့်ပေး
+                this.Invoke(new Action(() =>
+                {
+                    if (mobileBrandCombo.SelectedItem?.ToString() == brand &&
+                        mobileModelCombo.SelectedItem?.ToString() == model)
+                    {
+                        txtFirmwarePath.Text = dl;
+                        if (txtSlot1 != null) txtSlot1.Text = dl;
+                        LogSuccess($"✅ Loader ready: {Path.GetFileName(dl)}");
+                    }
+                }));
+            }
+            catch (Exception ex)
+            {
+                LogWarning($"⚠️ Prefetch loader error: {ex.Message}");
             }
         }
 
