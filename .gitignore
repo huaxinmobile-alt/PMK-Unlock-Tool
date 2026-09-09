@@ -10,6 +10,9 @@ obj/
 # Local logs/scratch
 *.log
 
+# Build outputs (Loaders/edl/mtkclient တွေ source က copy ဖြစ်နေလို့ repo မှာ မထားတော့ဘူး)
+WinFormsApp1/bin/
+
 # Portable publish output (self-contained build) — folder ကြီးလို့ repo ထဲ မထည့်ဘူး
 Publish/
 publish/
