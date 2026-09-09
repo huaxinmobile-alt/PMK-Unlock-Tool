@@ -25,3 +25,6 @@ Releases/
 
 # Login user database (local per-PC — repo/zip ထဲ မထည့်)
 users.dat*
+
+# License private key (PMK ရဲ့ PC မှာပဲ — repo ထဲ ဘယ်တော့မှ မထည့်နဲ့)
+tools/private/

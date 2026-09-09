@@ -7,18 +7,18 @@ using System.Windows.Forms;
 
 namespace WinFormsApp1
 {
-    // Tool ဖွင့်တာနဲ့ အရင်ဆုံး ပေါ်တဲ့ login gate — password မှန်မှ main UI ပွင့်တယ်။
-    // "Gmail နဲ့ register" — Google OAuth တစ်ခါ register ပြီးရင် နောက်ပိုင်း offline login ပုံမှန်
+    // Gate window — activated မဟုတ်ရင် activation screen၊ ပြီးမှ login (offline member gate)
     public class LoginWindow : Form
     {
+        // ===== Login panel =====
         private readonly TextBox txtUser = new TextBox();
         private readonly TextBox txtPass = new TextBox();
         private readonly Label lblError = new Label();
         private readonly Button btnLogin = new Button();
         private readonly Button btnRegister = new Button();
-
-        // Login / password-အသစ်ထည့် panels
         private readonly Panel pnlLogin = new Panel();
+
+        // ===== Password အသစ် panel (force-change / gmail register) =====
         private readonly Panel pnlChange = new Panel();
         private readonly Label lblChgTitle = new Label();
         private readonly Label lblChgSub = new Label();
@@ -26,7 +26,12 @@ namespace WinFormsApp1
         private readonly TextBox txtNew2 = new TextBox();
         private readonly Label lblChangeError = new Label();
 
-        // Mode: force-change (default pw) / register (Gmail verified)
+        // ===== Activation panel (per-PC license) =====
+        private readonly Panel pnlActivate = new Panel();
+        private readonly TextBox txtInstall = new TextBox();
+        private readonly TextBox txtLicense = new TextBox();
+        private readonly Label lblActError = new Label();
+
         private UserEntry _pendingEntry;
         private string _pendingEmail;
 
@@ -37,12 +42,12 @@ namespace WinFormsApp1
         private static readonly Color Bg = Color.FromArgb(18, 24, 32);
         private static readonly Color FieldBg = Color.FromArgb(30, 39, 52);
         private static readonly Color ErrColor = Color.FromArgb(229, 115, 115);
+        private static readonly Color OkColor = Color.FromArgb(129, 199, 132);
         private static readonly Color InfoColor = Color.FromArgb(180, 205, 235);
 
         public LoginWindow()
         {
-            UserManager.EnsureLoaded();
-            Text = "PMK MOBILE SERVICE TOOL — Login";
+            Text = "PMK MOBILE SERVICE TOOL";
             FormBorderStyle = FormBorderStyle.FixedSingle;
             MaximizeBox = false;
             MinimizeBox = false;
@@ -103,17 +108,17 @@ namespace WinFormsApp1
             lblChgTitle.ForeColor = Color.White;
 
             lblChgSub.Location = new Point(40, 52);
-            lblChgSub.Size = new Size(400, 32);
+            lblChgSub.Size = new Size(400, 34);
             lblChgSub.Font = new Font("Segoe UI", 8.8F);
             lblChgSub.ForeColor = Color.FromArgb(180, 200, 120);
 
-            pnlChange.Controls.Add(MakeLabel("Password အသစ်", 90));
-            StyleField(txtNew1, 112, true);
-            pnlChange.Controls.Add(MakeLabel("Password ထပ်ရိုက်ပါ", 148));
-            StyleField(txtNew2, 170, true);
+            pnlChange.Controls.Add(MakeLabel("Password အသစ်", 92));
+            StyleField(txtNew1, 114, true);
+            pnlChange.Controls.Add(MakeLabel("Password ထပ်ရိုက်ပါ", 150));
+            StyleField(txtNew2, 172, true);
 
             Button btnSave = new Button();
-            StyleButton(btnSave, "✅  SAVE & ENTER", Color.FromArgb(40, 130, 80), 214, 400);
+            StyleButton(btnSave, "✅  SAVE & ENTER", Color.FromArgb(40, 130, 80), 216, 400);
             btnSave.Click += (s, e) => DoChange();
 
             lblChangeError.Location = new Point(40, 258);
@@ -123,23 +128,132 @@ namespace WinFormsApp1
 
             pnlChange.Controls.AddRange(new Control[] { lblChgTitle, lblChgSub, txtNew1, txtNew2, btnSave, lblChangeError });
 
+            // ================= Activation panel (per-PC license) =================
+            pnlActivate.Location = new Point(0, 86);
+            pnlActivate.Size = new Size(480, 340);
+            pnlActivate.BackColor = Bg;
+
+            Label lblActTitle = MakeLabel("🔑 Tool Activation", 14);
+            lblActTitle.Font = new Font("Segoe UI", 12F, FontStyle.Bold);
+            lblActTitle.ForeColor = Color.White;
+
+            Label lblActSub = MakeLabel("ဒီ PC ရဲ့ Installation ID ကို PMK ကို ပို့ပါ — license key ပြန်ရလာရင် အောက်မှာ paste လုပ်ပြီး Activate နှိပ်ပါ", 42);
+            lblActSub.Size = new Size(400, 36);
+            lblActSub.Font = new Font("Segoe UI", 8.8F);
+            lblActSub.ForeColor = Color.FromArgb(150, 175, 205);
+
+            Label lblInstLabel = MakeLabel("Installation ID:", 88);
+            lblInstLabel.ForeColor = Color.FromArgb(200, 214, 230);
+            lblInstLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+            StyleField(txtInstall, 108, false);
+            txtInstall.ReadOnly = true;
+            txtInstall.Font = new Font("Consolas", 10.5F);
+            txtInstall.Text = License.MachineIdDisplay;
+            txtInstall.BackColor = Color.FromArgb(24, 32, 44);
+            txtInstall.Click += (s, e) => txtInstall.SelectAll();
+
+            Label lblLicLabel = MakeLabel("License key:", 148);
+            lblLicLabel.ForeColor = Color.FromArgb(200, 214, 230);
+            lblLicLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+
+            StyleField(txtLicense, 168, false);
+            txtLicense.Font = new Font("Consolas", 9.5F);
+            txtLicense.Multiline = true;
+            txtLicense.Height = 34;
+            txtLicense.ScrollBars = ScrollBars.Vertical;
+
+            Button btnActivate = new Button();
+            StyleButton(btnActivate, "✅  ACTIVATE", Color.FromArgb(21, 101, 192), 212, 400);
+            btnActivate.Click += (s, e) => DoActivate();
+
+            lblActError.Location = new Point(40, 252);
+            lblActError.Size = new Size(400, 60);
+            lblActError.ForeColor = ErrColor;
+            lblActError.Font = new Font("Segoe UI", 9F);
+
+            pnlActivate.Controls.AddRange(new Control[] { lblActTitle, lblActSub, lblInstLabel, txtInstall, lblLicLabel, txtLicense, btnActivate, lblActError });
+
+            Controls.Add(pnlActivate);
             Controls.Add(pnlLogin);
             Controls.Add(pnlChange);
+            pnlLogin.Visible = false;
             pnlChange.Visible = false;
 
+            // ===== Start view: activated → login, မဟုတ်ရင် activation =====
+            if (License.IsActivated)
+            {
+                ShowLoginPanel();
+            }
+            else
+            {
+                var cur = License.Current;
+                if (cur != null && License.IsExpired(cur))
+                {
+                    lblActError.ForeColor = Color.FromArgb(255, 213, 79);
+                    lblActError.Text = $"သက်တမ်းကုန်ပါပြီ ({cur.Expiry}) — license အသစ်အတွက် PMK ကို ဆက်သွယ်ပါ";
+                }
+                ShowActivatePanel();
+            }
+
             // အောက်ခြေ version
-            Label lblVer = MakeLabel($"PMK Unlock Tool v{Application.ProductVersion.Split('+')[0]}  ·  Offline member access", 400);
-            lblVer.Location = new Point(40, 400);
-            lblVer.ForeColor = Color.FromArgb(100, 120, 140);
-            lblVer.Font = new Font("Segoe UI", 8F);
+            Label lblVer = new Label
+            {
+                Location = new Point(40, 402),
+                AutoSize = false,
+                Size = new Size(400, 18),
+                ForeColor = Color.FromArgb(100, 120, 140),
+                Font = new Font("Segoe UI", 8F),
+                Text = $"PMK Unlock Tool v{Application.ProductVersion.Split('+')[0]}  ·  Offline member access"
+            };
             Controls.Add(lblVer);
 
-            AcceptButton = btnLogin;
-            Shown += (s, e) => txtUser.Focus();
             lockTimer.Tick += (s, e) => UpdateLockState();
             txtPass.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) DoLogin(); };
             txtUser.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) DoLogin(); };
             txtNew2.KeyDown += (s, e) => { if (e.KeyCode == Keys.Enter) DoChange(); };
+            txtLicense.KeyDown += (s, e) =>
+            {
+                if (e.KeyCode == Keys.Enter && e.Control) DoActivate();
+            };
+            Shown += (s, e) => { if (pnlActivate.Visible) txtInstall.SelectAll(); else txtUser.Focus(); };
+        }
+
+        // ================= Panel switch =================
+        private void ShowLoginPanel()
+        {
+            UserManager.EnsureLoaded();
+            pnlActivate.Visible = false;
+            pnlChange.Visible = false;
+            pnlLogin.Visible = true;
+            AcceptButton = btnLogin;
+            txtUser.Focus();
+        }
+
+        private void ShowActivatePanel()
+        {
+            pnlLogin.Visible = false;
+            pnlChange.Visible = false;
+            pnlActivate.Visible = true;
+            AcceptButton = null;
+            txtLicense.Focus();
+        }
+
+        // ================= Activation =================
+        private void DoActivate()
+        {
+            string key = txtLicense.Text.Trim();
+            if (key.Length == 0) { lblActError.ForeColor = ErrColor; lblActError.Text = "License key ထည့်ပါ"; return; }
+            string err = License.Activate(key);
+            if (err != null)
+            {
+                lblActError.ForeColor = ErrColor;
+                lblActError.Text = err;
+                return;
+            }
+            ShowLoginPanel();
+            lblError.ForeColor = OkColor;
+            lblError.Text = $"✅ Activated — {License.ShopName}";
         }
 
         // ================= UI helpers =================
@@ -207,7 +321,7 @@ namespace WinFormsApp1
         // ================= Login =================
         private void DoLogin()
         {
-            if (pnlChange.Visible) return;
+            if (!pnlLogin.Visible) return;
             if (DateTime.Now < lockUntil) { UpdateLockState(); return; }
 
             string user = txtUser.Text.Trim();
@@ -226,7 +340,6 @@ namespace WinFormsApp1
                 return;
             }
 
-            // default password ဖြစ်နေရင် ပြောင်းမှ ဆက်လို့ရ
             if (entry.ForceChange && entry.Role != "master")
             {
                 _pendingEntry = entry;
@@ -239,10 +352,10 @@ namespace WinFormsApp1
             DialogResult = DialogResult.OK;
         }
 
-        // ================= Gmail register (တစ်ခါပဲ) =================
+        // ================= Gmail register (တစ်ခါပဲ — client id ရှိမှ) =================
         private async void DoRegister()
         {
-            if (pnlChange.Visible) return;
+            if (!pnlLogin.Visible) return;
             if (DateTime.Now < lockUntil) { UpdateLockState(); return; }
 
             btnLogin.Enabled = false;
@@ -295,11 +408,13 @@ namespace WinFormsApp1
             txtNew1.Clear();
             txtNew2.Clear();
             pnlLogin.Visible = false;
+            pnlActivate.Visible = false;
             pnlChange.Visible = true;
+            AcceptButton = null;
             txtNew1.Focus();
         }
 
-        // ================= Password set (force-change / register နှစ်မျိုးလုံး) =================
+        // ================= Password set (force-change / register) =================
         private void DoChange()
         {
             string p1 = txtNew1.Text;
@@ -310,7 +425,6 @@ namespace WinFormsApp1
 
             if (_pendingEmail != null)
             {
-                // Gmail register — account အသစ် ဖန်တီး
                 string err = UserManager.AddUser(_pendingEmail, p1, "admin");
                 if (err != null) { ChgErr(err); return; }
                 UserManager.TryLogin(_pendingEmail, p1, out _); // session set
@@ -319,7 +433,6 @@ namespace WinFormsApp1
             }
             if (_pendingEntry != null)
             {
-                // Default password ပြောင်း
                 string err = UserManager.SetPassword(_pendingEntry.Username, p1);
                 if (err != null) { ChgErr(err); return; }
                 DialogResult = DialogResult.OK;
@@ -328,7 +441,6 @@ namespace WinFormsApp1
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            // e.Graphics ကို dispose မလုပ်ရဘူး — framework ပိုင်တယ်
             using var grad = new LinearGradientBrush(ClientRectangle, Bg, Color.FromArgb(12, 18, 26), LinearGradientMode.Vertical);
             e.Graphics.FillRectangle(grad, ClientRectangle);
         }
