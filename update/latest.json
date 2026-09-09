@@ -1,7 +1,7 @@
 {
-  "version": "4.0.5",
-  "notes": "PMK Unlock Tool v4.0.5 \u2014 window opens in front automatically.",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.5/PMK-Unlock-Tool-v4.0.5.zip",
-  "sha256": "d13e4b24075d805a379bf4a5b3cfe7e54a08c8058ff176ff8fe062543cb4a4a1",
-  "size": 588121697
+  "version": "4.0.6",
+  "notes": "PMK Unlock Tool v4.0.6 \u2014 top banner now shows the full version number (e.g. v4.0.6).",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.6/PMK-Unlock-Tool-v4.0.6.zip",
+  "sha256": "8f98cdac283259525000010f4d1da638a368713fa7bc11a349003420f60461b9",
+  "size": 588121683
 }
