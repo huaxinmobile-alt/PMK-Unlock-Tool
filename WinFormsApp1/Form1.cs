@@ -46,6 +46,7 @@ namespace WinFormsApp1
         private LoaderService _loaderService;
         private ProcessRunnerService _processRunner;
         private QualcommService _qcService;
+        private MediaTekService _mtkService;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -174,6 +175,16 @@ namespace WinFormsApp1
                 () => mobilePortCombo.SelectedItem?.ToString() ?? "",
                 CurrentLoaderPath,
                 () => currentMemoryType);
+            _mtkService = new MediaTekService(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                SetOperationState,
+                () => pythonPath,
+                () => txtFirmwarePath.Text.Trim(),
+                _firmwareService,
+                _processRunner,
+                ShowGptPartitions);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -1546,28 +1557,7 @@ namespace WinFormsApp1
             string backupDir = Path.Combine(d.SelectedPath, $"MTK_Normal_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK($"\n💾 [MTK] Starting Normal ROM Backup (Skipping userdata/cache)...");
-            LogMTK($"📁 Destination: {backupDir}");
-            LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
-
-            // mtk.py rl <dir> --skip userdata,cache
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\" --skip userdata,cache", "Dumping Normal ROM...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                var allParts = partitions.Where(p => !p.Name.Equals("userdata", StringComparison.OrdinalIgnoreCase) && !p.Name.Equals("cache", StringComparison.OrdinalIgnoreCase)).Select(p => p.Name).ToArray();
-                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
-                LogSuccess("✅ Normal MediaTek Firmware backed up successfully! (Small & Fast)");
-                LogSuccess("📄 Generated MTK Scatter file successfully!");
-
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device rebooted successfully!\n");
-            }
+            await _mtkService.NormalDumpAsync(partitions, backupDir);
         }
 
         // ================= Progress Bar Updater Helper =================
@@ -2183,21 +2173,7 @@ namespace WinFormsApp1
         // ================= MTK Operations =================
         private async void btnMtkDetect_Click(object sender, EventArgs e)
         {
-            LogMTK("\n🔍 [MTK] Listening for MTK BROM Connection...");
-            LogMTK("📱 1. Power OFF the device completely.");
-            LogMTK("📱 2. Press & Hold (Volume Up + Volume Down).");
-            LogMTK("📱 3. Connect USB Cable NOW.");
-
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            string customDaArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            string output = await _processRunner.RunMtkSleekCommand($"\"{script}\" {customDaArg}printgpt", "Connecting MTK Device...");
-            if (!string.IsNullOrWhiteSpace(output))
-            {
-                ShowGptPartitions(output);
-            }
+            await _mtkService.DetectAsync();
         }
 
         private void btnMtkInfo_Click(object sender, EventArgs e) => btnMtkDetect_Click(sender, e);
@@ -2211,36 +2187,7 @@ namespace WinFormsApp1
             string backupDir = Path.Combine(folderDlg.SelectedPath, $"NV_Backup_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            LogMTK("\n💾 [MTK] Starting One-Shot NVRAM & NVDATA Backup...");
-            LogMTK("📱 Power OFF device -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string[] nvPartitions = { "nvcfg", "nvdata", "protect1", "protect2", "nvram" };
-            string partNamesArg = string.Join(",", nvPartitions);
-            string filePathsArg = string.Join(",", nvPartitions.Select(p => Path.Combine(backupDir, $"{p}.img")));
-
-            UpdateGlobalProgress(10, "Starting...");
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" r {partNamesArg} \"{filePathsArg}\"", "Backing up NV Partitions...");
-
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, nvPartitions);
-                UpdateGlobalProgress(100, "Done");
-                LogSuccess($"\n━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━");
-                LogSuccess($"✅ All NV Partitions backed up successfully in ONE shot!");
-                LogSuccess($"📄 Auto-generated Scatter File: PMK_Android_scatter.txt");
-                LogMTK($"📁 Saved Folder: {backupDir}");
-
-                LogMTK("🔄 [Auto Reboot] Restarting phone to System...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device rebooted successfully!\n");
-            }
-            else
-            {
-                LogWarning("⚠️ Check log above for details.");
-            }
+            await _mtkService.BackupNvAsync(partitions, backupDir);
         }
 
         private async void btnMtkWriteNv_Click(object sender, EventArgs e)
@@ -2257,22 +2204,7 @@ namespace WinFormsApp1
             if (MessageBox.Show($"Write '{partitionName}' to device?", "Confirm Write NV", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK($"\n✏️ Writing [{partitionName}] to device...");
-            LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
-
-            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}w {partitionName} \"{inputFile}\"", $"Writing {partitionName}...", true);
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess($"✅ {partitionName} written successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device rebooted successfully!\n");
-            }
+            await _mtkService.WriteNvAsync(inputFile, partitionName);
         }
 
         private async void btnMtkFormatFrp_Click(object sender, EventArgs e)
@@ -2280,22 +2212,7 @@ namespace WinFormsApp1
             if (MessageBox.Show("Format FRP / Google Account partition?", "Confirm FRP Format", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n🔓 [MTK] Formatting FRP partition...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}e frp", "Formatting FRP...", true);
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ FRP partition formatted successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Phone is restarting to Welcome Screen!\n");
-            }
+            await _mtkService.FormatFrpAsync();
         }
 
         // ================= MediaTek Full Backup (All Partitions including Userdata) =================
@@ -2308,27 +2225,7 @@ namespace WinFormsApp1
             string backupDir = Path.Combine(d.SelectedPath, $"MTK_Full_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = AppConfig.MtkScript;
-            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
-
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK($"\n💾 [MTK] Starting Full ROM Backup (All Partitions including userdata)...");
-            LogMTK($"📁 Destination: {backupDir}");
-            LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\"", "Dumping Full ROM...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                var allParts = partitions.Select(p => p.Name).ToArray();
-                _firmwareService.GeneratePmkScatterFile(partitions, backupDir, allParts.Length > 0 ? allParts : new string[] { "boot", "recovery", "super", "system", "vendor" });
-                LogSuccess("✅ Full MediaTek Firmware backed up successfully!");
-                LogSuccess("📄 Generated MTK Scatter file successfully!");
-
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device rebooted successfully!\n");
-            }
+            await _mtkService.FullDumpAsync(partitions, backupDir);
         }
 
 
@@ -2338,38 +2235,12 @@ namespace WinFormsApp1
             if (MessageBox.Show("Unlock Bootloader via MTK BROM? (Will wipe user data)", "Confirm BL Unlock", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n🔓 [MTK] Unlocking Bootloader (seccfg)...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg unlock", "Unlocking Bootloader...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Bootloader Unlocked successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device is rebooting to Unlocked State!\n");
-            }
+            await _mtkService.UnlockBLAsync();
         }
 
         private async void btnMtkRelockBL_Click(object sender, EventArgs e)
         {
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n🔒 [MTK] Relocking Bootloader...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg lock", "Relocking Bootloader...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Bootloader Relocked successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device is rebooting to Locked State!\n");
-            }
+            await _mtkService.RelockBLAsync();
         }
 
         private async void btnMtkUserlockReset_Click(object sender, EventArgs e)
@@ -2377,20 +2248,7 @@ namespace WinFormsApp1
             if (MessageBox.Show("Format Userlock / Screen Lock? (All user data will be erased)", "Confirm Userlock Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n🔑 [MTK] Resetting Userlock (Formatting userdata & metadata)...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e userdata,metadata", "Formatting Userlock...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Screen lock removed successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Phone is restarting to Factory Setup!\n");
-            }
+            await _mtkService.UserlockResetAsync();
         }
 
         private async void btnMtkMiAccountReset_Click(object sender, EventArgs e)
@@ -2398,39 +2256,12 @@ namespace WinFormsApp1
             if (MessageBox.Show("Reset Mi Account (Format Persist)?", "Confirm Mi Account Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n☁️ [Xiaomi] Resetting Mi Account Lock...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e persist,frp", "Resetting Mi Account...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Mi Account Reset completed!");
-                LogWarning("⚠️ Disable OTA update after booting to prevent relocking.");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device is rebooting!\n");
-            }
+            await _mtkService.MiAccountResetAsync();
         }
 
         private async void btnMtkRemoveDemo_Click(object sender, EventArgs e)
         {
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n📱 [MTK] Removing Demo Mode (Oppo/Realme/Vivo)...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e opporeserve2,demo,devinfo", "Removing Demo Mode...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Demo Mode removed successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Device is rebooting to Normal Mode!\n");
-            }
+            await _mtkService.RemoveDemoAsync();
         }
 
         private async void btnMtkSamsungKG_Click(object sender, EventArgs e)
@@ -2438,20 +2269,7 @@ namespace WinFormsApp1
             if (MessageBox.Show("Reset Samsung KG / MDM Lock?", "Confirm KG Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n🛡️ [Samsung] Resetting KG Lock / Persistent...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e persistent,param,steady", "Resetting Samsung KG...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ Samsung KG / Persistent cleared successfully!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Phone is rebooting!\n");
-            }
+            await _mtkService.SamsungKGResetAsync();
         }
 
         private async void btnMtkFixNvram_Click(object sender, EventArgs e)
@@ -2459,28 +2277,12 @@ namespace WinFormsApp1
             if (MessageBox.Show("Reset NV data to fix WiFi/Baseband Error? (Make sure you have NV backup)", "Confirm NV Fix", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = AppConfig.MtkScript;
-            string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
-
-            LogMTK("\n📶 [MTK] Resetting NV Data & Sec Partitions...");
-            LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
-
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e nvdata,nvcfg", "Fixing NVRAM...");
-            if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
-            {
-                LogSuccess("✅ NVRAM Error cleared!");
-                LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
-                LogSuccess("📱 Phone is rebooting!\n");
-            }
+            await _mtkService.FixNvramAsync();
         }
 
         private async void btnMtkReboot_Click(object sender, EventArgs e)
         {
-            string script = AppConfig.MtkScript;
-            LogMTK("\n🔄 [MTK] Sending Reset/Reboot command to device...");
-            await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting Device...");
-            LogSuccess("✅ Reboot command sent!");
+            await _mtkService.RebootAsync();
         }
 
         // ================= Sleek MTK Output Processor =================
