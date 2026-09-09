@@ -2377,6 +2377,7 @@ namespace WinFormsApp1
 
                 case "ADB":
                     AddActionBtn("📱 ADB Devices", Color.FromArgb(33, 150, 243), btnAdbDevices_Click);
+                    AddActionBtn("📋 Full Info", Color.FromArgb(66, 133, 244), btnFullInfo_Click);
                     AddActionBtn("🗑️ Debloater (Apps)", Color.FromArgb(230, 80, 40), btnAdbDebloat_Click);
                     AddActionBtn("🇲🇲 Enable All Lang", Color.FromArgb(76, 175, 80), btnAdbEnableLang_Click);
                     AddActionBtn("🖥️ Screen Mirror", Color.FromArgb(0, 188, 212), btnAdbScrcpy_Click);
@@ -2405,6 +2406,7 @@ namespace WinFormsApp1
 
                 case "Sideload":
                     AddActionBtn("📊 Check Info", Color.FromArgb(33, 150, 243), btnSlInfo_Click);
+                    AddActionBtn("📋 Full Info", Color.FromArgb(66, 133, 244), btnFullInfo_Click);
                     AddActionBtn("🔄 Reboot Recovery", Color.FromArgb(255, 152, 0), btnSlRebootRecovery_Click);
                     AddActionBtn("📦 Sideload ZIP", Color.FromArgb(230, 80, 40), btnSlSideload_Click);
                     AddActionBtn("🔄 Reboot System", Color.FromArgb(60, 100, 140), btnSlRebootSystem_Click);
@@ -3989,36 +3991,80 @@ namespace WinFormsApp1
                             bool anyProp = false;
                             if (!string.IsNullOrWhiteSpace(props))
                             {
-                                string[] wantKeys =
+                                // ဖုန်းအကြောင်း အဓိက prop key တွေ — ဒီ key ပါတဲ့ စာကြောင်းတွေ အကုန်ပြမယ်
+                                string[] keyTokens =
                                 {
-                                    "ro.product.manufacturer", "ro.product.brand", "ro.product.model",
-                                    "ro.product.name", "ro.product.device", "ro.product.mod_device",
-                                    "ro.build.version.release", "ro.build.version.sdk", "ro.build.version.incremental",
-                                    "ro.build.version.security_patch", "ro.build.display.id",
-                                    "ro.build.fingerprint", "ro.product.cpu.abilist", "ro.serialno", "ro.boot.serialno",
-                                    "ro.boot.hardware", "ro.boot.verifiedbootstate",
-                                    "ro.miui.ui.version.name", "ro.miui.ui.version.code", "ro.miui.version.incremental"
+                                    "ro.product.", "ro.build.", "ro.miui.", "ro.mi.os.", "ro.boot.",
+                                    "ro.serialno", "persist.sys.region", "ro.carrier", "region", "security_patch",
+                                    "selinux", "verifiedboot", "warranty", "token", "hwc"
                                 };
+                                int shownProps = 0;
                                 foreach (string pl in props.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
                                 {
                                     string pt = pl.Trim();
                                     if (pt.Length == 0) continue;
-                                    foreach (string k in wantKeys)
+                                    string keyPart = pt;
+                                    int br = pt.IndexOf(']');
+                                    if (pt.StartsWith("[") && br > 0) keyPart = pt.Substring(1, br - 1);
+                                    else
                                     {
-                                        if (pt.StartsWith(k + "]", StringComparison.OrdinalIgnoreCase) || pt.StartsWith(k + "=", StringComparison.OrdinalIgnoreCase))
-                                        {
-                                            if (!anyProp) LogInfo("── Properties ──");
-                                            anyProp = true;
-                                            int eq = pt.IndexOf(']');
-                                            if (eq > 0) LogADB($"• {k} = {pt.Substring(eq + 1).TrimStart(' ', '=')}");
-                                            else if (pt.Contains('=')) LogADB($"• {pt}");
-                                            break;
-                                        }
+                                        int eq = pt.IndexOf('=');
+                                        if (eq > 0) keyPart = pt.Substring(0, eq);
                                     }
+                                    keyPart = keyPart.Trim();
+                                    bool hit = false;
+                                    foreach (string tk in keyTokens)
+                                    {
+                                        if (keyPart.Contains(tk, StringComparison.OrdinalIgnoreCase)) { hit = true; break; }
+                                    }
+                                    if (!hit) continue;
+                                    if (!anyProp) LogInfo("── Properties ──");
+                                    anyProp = true;
+                                    LogADB($"• {pt}");
+                                    if (++shownProps >= 60) { LogInfo("   (...ကျန်တဲ့ props တွေ ချန်လိုက်ပြီ)"); break; }
                                 }
                                 if (!anyProp && (props.Contains("error", StringComparison.OrdinalIgnoreCase) || props.Contains("closed", StringComparison.OrdinalIgnoreCase)))
                                 {
                                     LogInfo("   (shell getprop မရဘူး — ဒီ recovery/sideload မှာ shell ပိတ်ထားတာ ပုံမှန်ပါ)");
+                                }
+
+                                if (anyProp)
+                                {
+                                    // MiAssistant ပုံစံ compact summary — props ရှိတဲ့အခါ ဖုန်းရဲ့ အဓိက info ကျစ်ကျစ်လျစ်လျစ်ပြမယ်
+                                    string[] sumKeys =
+                                    {
+                                        "ro.product.marketname", "ro.product.model", "ro.product.device",
+                                        "ro.build.version.release", "ro.build.version.sdk",
+                                        "persist.sys.grant_version", "ro.build.display.id",
+                                        "ro.build.version.security_patch", "ro.miui.region", "ro.boot.hwc", "ro.serialno"
+                                    };
+                                    string SumVal(string propsText, string key)
+                                    {
+                                        foreach (string pl in propsText.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                                        {
+                                            string pt = pl.Trim();
+                                            if (pt.StartsWith("[" + key + "]", StringComparison.OrdinalIgnoreCase))
+                                            {
+                                                int idx = pt.IndexOf("]: [");
+                                                if (idx > 0)
+                                                {
+                                                    string v = pt.Substring(idx + 4);
+                                                    if (v.EndsWith("]")) v = v.Substring(0, v.Length - 1);
+                                                    return v.Trim();
+                                                }
+                                            }
+                                        }
+                                        return "-";
+                                    }
+                                    LogInfo("── Summary (MiAssistant ပုံစံ) ──");
+                                    LogADB($"   MarketName : {SumVal(props, sumKeys[0])}");
+                                    LogADB($"   Model      : {SumVal(props, sumKeys[1])}   (device: {SumVal(props, sumKeys[2])})");
+                                    LogADB($"   Android    : {SumVal(props, sumKeys[3])}   (SDK {SumVal(props, sumKeys[4])})");
+                                    LogADB($"   System     : {SumVal(props, sumKeys[5])}");
+                                    LogADB($"   Build      : {SumVal(props, sumKeys[6])}");
+                                    LogADB($"   Security   : {SumVal(props, sumKeys[7])}");
+                                    LogADB($"   Region     : {SumVal(props, sumKeys[8])}   (hwc: {SumVal(props, sumKeys[9])})");
+                                    LogADB($"   Serial     : {SumVal(props, sumKeys[10])}");
                                 }
                             }
                             if (!anyProp)
@@ -4147,6 +4193,137 @@ namespace WinFormsApp1
             LogADB("\n🔄 [Sideload] Rebooting to System...");
             await RunAdbTargeted("reboot", "Rebooting System...", false);
             LogSuccess("📱 Phone ကို System ထဲ ပြန် boot လုပ်နေပါပြီ။");
+        }
+
+        // ================= Full Device Info (UFS Checker / INFO CHECKER ပုံစံ — ADB ONLINE လိုအပ်) =================
+        private async void btnFullInfo_Click(object sender, EventArgs e)
+        {
+            string serial = await GetActiveAdbSerial();
+            if (string.IsNullOrEmpty(serial))
+            {
+                LogWarning("⚠️ ADB device (ONLINE) မတွေ့ပါ — ဖုန်းကို Android ထဲ boot တင်ပြီး USB debugging ဖွင့်ထားပါ (ဒါမှမဟုတ် shell ရတဲ့ recovery menu မှာ ထားပါ)။\n   Sideload screen ပေါ်မှာတော့ ဘယ် tool နဲ့မှ full info မရနိုင်ပါ။");
+                return;
+            }
+            LogADB($"\n📋 [Full Info] Reading device information (serial: {serial})...");
+            SetOperationState(true);
+            SetStatus("Reading full device info...");
+            try
+            {
+                async Task<string> Sh(string cmd)
+                {
+                    string r = await RunProcessCommand(adbPath, $"-s {serial} shell {cmd}", "", false);
+                    return (r ?? "").Trim();
+                }
+
+                // props တစ်ခါယူပြီး dictionary ဆောက်
+                var prop = new Dictionary<string, string>(StringComparer.OrdinalIgnoreCase);
+                string allProps = await Sh("getprop");
+                foreach (string pl in allProps.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                {
+                    string pt = pl.Trim();
+                    if (pt.StartsWith("[") && pt.Contains("]:"))
+                    {
+                        int br = pt.IndexOf(']');
+                        string k = pt.Substring(1, br - 1);
+                        int vi = pt.IndexOf("]: [");
+                        if (vi > 0)
+                        {
+                            string v = pt.Substring(vi + 4);
+                            if (v.EndsWith("]")) v = v.Substring(0, v.Length - 1);
+                            prop[k] = v.Trim();
+                        }
+                    }
+                }
+                string P(string k) => prop.TryGetValue(k, out var v) && !string.IsNullOrWhiteSpace(v) ? v : "-";
+
+                void Row(string name, string val)
+                {
+                    if (string.IsNullOrEmpty(val) || val == "-") return;
+                    LogADB($"   {name,-20}: {val}");
+                }
+
+                // ---- IMEI helper (service call → getprop → dumpsys) ----
+                async Task<string> TryImei(string[] cmds)
+                {
+                    var rx = new Regex("(\\d{15})");
+                    foreach (string c in cmds)
+                    {
+                        string o = await Sh(c);
+                        if (string.IsNullOrEmpty(o) || o.Contains("Permission", StringComparison.OrdinalIgnoreCase)) continue;
+                        var m = rx.Match(o);
+                        if (m.Success) return m.Groups[1].Value;
+                    }
+                    return "-";
+                }
+
+                // ===== IDENTITY =====
+                LogInfo("── 🏷️ Identity ──");
+                Row("Brand", P("ro.product.brand"));
+                Row("Model", P("ro.product.model"));
+                Row("Market Name", P("ro.product.marketname"));
+                Row("Device (codename)", P("ro.product.device"));
+                Row("Region (miui)", P("ro.miui.region"));
+                Row("Region (locale)", P("ro.product.locale.region"));
+                Row("Hardware", P("ro.hardware"));
+                Row("SoC Manufacturer", P("ro.soc.manufacturer"));
+                Row("SoC Model", P("ro.soc.model"));
+                Row("Board Platform", P("ro.board.platform"));
+
+                // ===== UNIQUE IDs =====
+                LogInfo("── 🔑 Unique IDs ──");
+                Row("Serial (Android)", P("ro.serialno"));
+                Row("SNO (Bootloader)", P("ro.boot.serialno"));
+                Row("PSN Code", P("ro.ril.oem.psn"));
+                string btMac = await Sh("settings get secure bluetooth_address");
+                Row("Bluetooth MAC", btMac.Contains("null") ? "-" : btMac);
+                Row("WiFi MAC", P("ro.boot.wifimac"));
+                Row("CPUID", P("ro.boot.cpuid"));
+                Row("HW Version", P("ro.boot.hwversion"));
+
+                // ===== OS SOFTWARE =====
+                LogInfo("── 🤖 Android / Software ──");
+                Row("Android Version", P("ro.build.version.release"));
+                Row("API SDK", P("ro.build.version.sdk"));
+                Row("CPU ABI", P("ro.product.cpu.abilist"));
+                Row("Security Patch", P("ro.build.version.security_patch"));
+                string swV = P("persist.sys.grant_version");
+                if (swV == "-") swV = P("ro.build.display.id");
+                Row("System (ROM)", swV);
+                Row("Build Fingerprint", P("ro.build.fingerprint"));
+                Row("Time Zone", P("persist.sys.timezone"));
+                Row("SELinux", await Sh("getenforce"));
+                string suChk = await Sh("ls /system/xbin/su /system/bin/su /sbin/su 2>/dev/null");
+                Row("Root Access", string.IsNullOrEmpty(suChk) || suChk.Contains("No such") ? "no" : "YES (" + string.Join(" ", suChk.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).Select(x => x.Trim()).Take(2)) + ")");
+                Row("Debuggable", P("ro.debuggable"));
+
+                // ===== IMEI =====
+                LogInfo("── 📶 IMEI ──");
+                string imei1 = await TryImei(new[] { "service call iphonesubinfo 1 s16 com.android.shell", "service call iphonesubinfo 4 i32 1 s16 com.android.shell", "getprop ro.ril.oem.imei" });
+                string imei2 = await TryImei(new[] { "service call iphonesubinfo 12 i32 2 s16 com.android.shell", "service call iphonesubinfo 11 i32 2 s16 com.android.shell", "getprop ro.ril.oem.imei2" });
+                Row("IMEI Slot 1", imei1);
+                Row("IMEI Slot 2", imei2);
+
+                // ===== BOOT / SECURITY / STORAGE =====
+                LogInfo("── 🔒 Boot / Storage ──");
+                Row("Bootloader State", P("ro.boot.vbmeta.device_state"));
+                Row("Verified Boot", P("ro.boot.verifiedbootstate"));
+                Row("Crypto State", P("ro.crypto.state"));
+                Row("Active Slot", P("ro.boot.slot_suffix"));
+                string frpPath = await Sh("ls /dev/block/bootdevice/by-name/frp /dev/block/by-name/frp 2>/dev/null");
+                Row("FRP Partition", string.IsNullOrEmpty(frpPath) || frpPath.Contains("No such") ? "not found" : frpPath.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim());
+                string disk = await Sh("cat /sys/class/scsi_device/0:0:0:0/device/model 2>/dev/null");
+                Row("Storage (UFS model)", string.IsNullOrEmpty(disk) ? P("ro.boot.bootdevice") : disk.Trim());
+
+                LogSuccess("✅ Full info ဖတ်ပြီးပါပြီ။");
+            }
+            catch (Exception ex)
+            {
+                LogError($"❌ Full info error: {ex.Message}");
+            }
+            finally
+            {
+                SetOperationState(false);
+            }
         }
 
         // ================= ADB Handlers & Functions =================
