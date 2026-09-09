@@ -13,3 +13,6 @@ obj/
 # Portable publish output (self-contained build) — folder ကြီးလို့ repo ထဲ မထည့်ဘူး
 Publish/
 publish/
+
+# Release publish intermediate (dotnet publish build tree) — folder ကြီးလို့ exclude
+WinFormsApp1/bin/Release/

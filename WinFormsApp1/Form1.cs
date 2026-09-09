@@ -288,7 +288,7 @@ namespace WinFormsApp1
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
-            this.MinimumSize = new Size(1024, 768);
+            this.MinimumSize = new Size(1290, 768); // 8 tabs လုံး မပြတ်အောင် min width; height က content အပြည့်
             this.StartPosition = FormStartPosition.CenterScreen;
 
             if (openFileDlg == null) openFileDlg = new OpenFileDialog();
