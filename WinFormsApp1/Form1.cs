@@ -480,7 +480,8 @@ namespace WinFormsApp1
                     float yCenter = (Height - titleSize.Height) / 2;
                     g.DrawString(title, titleFont, titleBrush, 16, yCenter);
 
-                    string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "4.0");
+                    // Version အပြည့် (4.0.5 လို ၃ ပိုင်း) — major.minor ပဲ မဟုတ်ဘူး
+                    string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(3) ?? "?");
                     g.DrawString(ver, verFont, subBrush, 16 + titleSize.Width + 12, yCenter + 1);
                 }
             }
