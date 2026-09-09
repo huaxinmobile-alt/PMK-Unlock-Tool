@@ -660,7 +660,7 @@ namespace WinFormsApp1
                 using (var titleFont = new Font("Segoe UI", 13.5F, FontStyle.Bold))
                 using (var titleBrush = new SolidBrush(Color.White))
                 using (var subBrush = new SolidBrush(Color.FromArgb(190, 225, 255)))
-                using (var verFont = new Font("Segoe UI", 9F, FontStyle.Regular))
+                using (var verFont = new Font("Segoe UI", 12F, FontStyle.Bold))
                 {
                     string title = "PMK MOBILE SERVICE TOOL";
                     var titleSize = g.MeasureString(title, titleFont);
@@ -668,7 +668,7 @@ namespace WinFormsApp1
                     g.DrawString(title, titleFont, titleBrush, 16, yCenter);
 
                     string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "4.0");
-                    g.DrawString(ver, verFont, subBrush, 16 + titleSize.Width + 10, yCenter + 4);
+                    g.DrawString(ver, verFont, subBrush, 16 + titleSize.Width + 12, yCenter + 1);
                 }
             }
         }
