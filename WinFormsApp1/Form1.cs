@@ -257,7 +257,7 @@ namespace WinFormsApp1
         private readonly Dictionary<Control, int> themeSlotMap = new Dictionary<Control, int>();
         private bool themeLoading = true;
         private ComboBox cboTheme = null;
-        private string ThemeFilePath => Path.Combine(Application.StartupPath, "theme.txt");
+        private string ThemeFilePath => AppConfig.ThemeFile;
 
         // Settings tab — PC info value labels (title → value label)
         private Panel settingsPanel = null;
@@ -310,14 +310,10 @@ namespace WinFormsApp1
             InitializePaths();
             InitializePythonPaths();
 
-            deviceDatabasePath = Path.Combine(Application.StartupPath, "device_database");
-            if (!Directory.Exists(deviceDatabasePath)) Directory.CreateDirectory(deviceDatabasePath);
-
-            loadersDirectoryPath = Path.Combine(Application.StartupPath, "Loaders");
-            if (!Directory.Exists(loadersDirectoryPath)) Directory.CreateDirectory(loadersDirectoryPath);
-
-            qualcommCorePath = Path.Combine(Application.StartupPath, "QualcommCore");
-            if (!Directory.Exists(qualcommCorePath)) Directory.CreateDirectory(qualcommCorePath);
+            deviceDatabasePath = AppConfig.DeviceDatabaseDir;
+            loadersDirectoryPath = AppConfig.LoadersDir;
+            qualcommCorePath = AppConfig.QualcommCoreDir;
+            AppConfig.EnsureCoreDirectories();
 
             InitializeMobileSeaLayout();
             SwitchCategory("Qualcomm");
@@ -1254,10 +1250,10 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         private string FindXiaomiSigFile()
         {
             string[] sigPaths = {
-                Path.Combine(Application.StartupPath, "Loaders", "Xiaomi", "SIG's", "SIG #1.bin"),
-                Path.Combine(Application.StartupPath, "Loaders", "Xiaomi", "SIG's", "SIG #1", "sig.bin"),
-                Path.Combine(Application.StartupPath, "Loaders", "Xiaomi", "SIG", "SIG #1.bin"),
-                Path.Combine(Application.StartupPath, "sig.bin")
+                AppConfig.Combine(AppConfig.LoadersDir, "Xiaomi", "SIG's", "SIG #1.bin"),
+                AppConfig.Combine(AppConfig.LoadersDir, "Xiaomi", "SIG's", "SIG #1", "sig.bin"),
+                AppConfig.Combine(AppConfig.LoadersDir, "Xiaomi", "SIG", "SIG #1.bin"),
+                AppConfig.SigBinRoot
             };
 
             foreach (var path in sigPaths)
@@ -1267,7 +1263,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
             try
             {
-                string sigDir = Path.Combine(Application.StartupPath, "Loaders", "Xiaomi", "SIG's");
+                string sigDir = AppConfig.Combine(AppConfig.LoadersDir, "Xiaomi", "SIG's");
                 if (Directory.Exists(sigDir))
                 {
                     var binFiles = Directory.GetFiles(sigDir, "*.bin", SearchOption.AllDirectories);
@@ -1340,7 +1336,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
 
             // STEP 2: Python EDL qfil (auth auto + eMMC/UFS support + per-file colored progress)
-            string edlScript = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string edlScript = AppConfig.EdlScript;
             if (IOFile.Exists(edlScript))
             {
                 string loaderArg = (!string.IsNullOrEmpty(loader) && IOFile.Exists(loader)) ? $"--loader=\"{loader}\" " : "";
@@ -1405,7 +1401,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = Application.StartupPath
+                WorkingDirectory = AppConfig.BaseDir
             };
             process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
 
@@ -1683,7 +1679,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 if (chkAutoRebootMaster != null && chkAutoRebootMaster.Checked)
                 {
                     LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
-                    string edlScript = Path.Combine(Application.StartupPath, "edl", "edl.py");
+                    string edlScript = AppConfig.EdlScript;
                     await RunProcessCommand(pythonPath, $"\"{edlScript}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                     LogSuccess("📱 Phone is rebooting!\n");
                 }
@@ -1797,7 +1793,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                     if (chkAutoRebootMaster.Checked)
                     {
                         LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
-                        string edlScript2 = Path.Combine(Application.StartupPath, "edl", "edl.py");
+                        string edlScript2 = AppConfig.EdlScript;
                         await RunProcessCommand(pythonPath, $"\"{edlScript2}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                         LogSuccess("📱 Phone is rebooting!\n");
                     }
@@ -1818,7 +1814,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                     return;
                 }
 
-                string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+                string script = AppConfig.MtkScript;
                 string daArg = !string.IsNullOrWhiteSpace(txtSlot2.Text) ? $"--loader \"{txtSlot2.Text.Trim()}\" " : "";
                 string scatterFile = txtSlot1.Text.Trim();
                 string firmwareFolder = Path.GetDirectoryName(scatterFile);
@@ -2000,8 +1996,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
             if (currentCategory == "MediaTek")
             {
-                string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-                if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+                string script = AppConfig.MtkScript;
+                if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
                 string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -2064,7 +2060,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 }
 
                 // Fallback Python EDL Path
-                string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+                string script = AppConfig.EdlScript;
                 string loaderArg = GetEdlLoaderArg();
 
                 switch (action)
@@ -2115,9 +2111,9 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             try
             {
                 string[] searchPaths = {
-                    Path.Combine(Application.StartupPath, "Loaders"),
-                    Path.Combine(Application.StartupPath, "Qualcomm-firehoses-main"),
-                    Path.Combine(Application.StartupPath, "edl", "Loaders"),
+                    AppConfig.LoadersDir,
+                    AppConfig.QualcommFirehosesDir,
+                    AppConfig.EdlLoadersDir,
                     @"C:\Users\PMK\Downloads\Qualcomm-firehoses-main\Qualcomm-firehoses-main"
                 };
 
@@ -2189,7 +2185,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
             try
             {
-                string loadersRoot = Path.Combine(Application.StartupPath, "Loaders");
+                string loadersRoot = AppConfig.LoadersDir;
                 if (Directory.Exists(loadersRoot))
                 {
                     foreach (var dir in Directory.GetDirectories(loadersRoot))
@@ -2210,7 +2206,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (string.IsNullOrEmpty(folderName)) return models;
             try
             {
-                string baseDir = Path.Combine(Application.StartupPath, "Loaders", folderName);
+                string baseDir = AppConfig.Combine(AppConfig.LoadersDir, folderName);
                 if (!Directory.Exists(baseDir)) return models;
 
                 var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
@@ -2240,7 +2236,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             var brands = new List<string>();
             try
             {
-                string loadersRoot = Path.Combine(Application.StartupPath, "Loaders");
+                string loadersRoot = AppConfig.LoadersDir;
                 if (!Directory.Exists(loadersRoot)) return brands;
 
                 foreach (var dir in Directory.GetDirectories(loadersRoot))
@@ -2331,7 +2327,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                     RedirectStandardOutput = true,
                     RedirectStandardError = true,
                     CreateNoWindow = true,
-                    WorkingDirectory = Application.StartupPath
+                    WorkingDirectory = AppConfig.BaseDir
                 };
                 p.Start();
                 string outp = p.StandardOutput.ReadToEnd();
@@ -2650,7 +2646,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(d.SelectedPath, $"QC_Normal_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm($"\n💾 [Qualcomm] Starting Normal ROM Backup (Skipping userdata/cache for fast speed)...");
@@ -2683,8 +2679,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(d.SelectedPath, $"MTK_Normal_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -2846,7 +2842,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (UseUsbTransport())
             {
                 LogQualcomm("\n⚡ [USB Mode] Fast transport detected — connecting & reading GPT...");
-                string gptScript = Path.Combine(Application.StartupPath, "edl", "edl.py");
+                string gptScript = AppConfig.EdlScript;
                 if (!await RunUsbReadGptAsync(gptScript))
                 {
                     // USB path မှာ fail ဖြစ်ရင် serial fallback မလုပ်တော့ဘူး (COM port မရှိတဲ့ setup မို့)
@@ -2868,7 +2864,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                     // — Xiaomi auth (sig) ကို module က auto ကိုင်တွယ်ပြီး --memory flag က sector size မှန်အောင် လုပ်ပေးပါတယ်
                     // — ဖုန်းက firehose ရောက်ပြီးသားမို့ --loader မပါတဲ့ command သုံးပါတယ် (loader ပါရင် python က Sahara လို့ ထင်ပြီး ရှုပ်နိုင်လို့)
                     LogQualcomm("\n📋 [Firehose] Reading GPT Partition Table (Python EDL)...");
-                    string gptScript = Path.Combine(Application.StartupPath, "edl", "edl.py");
+                    string gptScript = AppConfig.EdlScript;
                     string gptArgs = $"--serial --memory={currentMemoryType} ";
                     string selPort = mobilePortCombo.SelectedItem?.ToString() ?? "";
                     if (selPort.StartsWith("COM", StringComparison.OrdinalIgnoreCase))
@@ -2900,7 +2896,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
 
             // Fallback Python EDL Path (With Auto SIG Bypass)
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             string output = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}printgpt", "Connecting Qualcomm 9008...");
@@ -2928,7 +2924,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(folderDlg.SelectedPath, $"QC_EFS_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
             string[] efsParts = { "modemst1", "modemst2", "fsg", "fsc" };
 
@@ -2948,7 +2944,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             folderDlg.Description = "Select Folder containing EFS backup images (modemst1.img, etc.)";
             if (folderDlg.ShowDialog() != DialogResult.OK) return;
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
             string[] efsParts = { "modemst1", "modemst2", "fsg", "fsc" };
 
@@ -2992,7 +2988,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
 
             // Fallback Python EDL Path
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm("\n🔑 [Qualcomm] Safe Formatting Metadata & User Keys...");
@@ -3021,7 +3017,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 return;
             }
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
             LogQualcomm("\n🔄 [Qualcomm] Sending Reset command to 9008 Port...");
             await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting Device...");
@@ -3085,7 +3081,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         // ဖုန်းထဲက modem (NON-HLOS) partition ကို တိုက်ရိုက် dump → patch → ပြန်ရေးခြင်း
         private async Task<bool> RunPhoneDirectModemPatchAsync()
         {
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string dumpPath = Path.Combine(Path.GetTempPath(), "pmk_modem_dump.bin");
 
             LogQualcomm("\n☁️ [Direct] Reading modem (NON-HLOS) partition from phone...");
@@ -3220,7 +3216,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 return;
             }
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string port = GetActiveComPort();
             string loader = txtFirmwarePath.Text.Trim();
             if (string.IsNullOrEmpty(loader) && txtSlot1 != null) loader = txtSlot1.Text.Trim();
@@ -3280,7 +3276,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
 
             // Fallback Python EDL Path
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             // FRP သိမ်းတဲ့ partition ကို auto ရှာဖွေခြင်း:
@@ -3368,7 +3364,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             }
 
             // Fallback Python EDL Path
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm("\n🔒 [Qualcomm] Formatting userdata...");
@@ -3397,7 +3393,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(d.SelectedPath, $"QC_Full_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm($"\n💾 [Qualcomm] Starting Full Firmware Backup (All Partitions including userdata)...");
@@ -3449,8 +3445,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             LogMTK("📱 2. Press & Hold (Volume Up + Volume Down).");
             LogMTK("📱 3. Connect USB Cable NOW.");
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             string customDaArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -3472,8 +3468,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(folderDlg.SelectedPath, $"NV_Backup_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             LogMTK("\n💾 [MTK] Starting One-Shot NVRAM & NVDATA Backup...");
             LogMTK("📱 Power OFF device -> Hold (Vol+ & Vol-) -> Insert USB Cable");
@@ -3518,8 +3514,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show($"Write '{partitionName}' to device?", "Confirm Write NV", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -3541,8 +3537,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Format FRP / Google Account partition?", "Confirm FRP Format", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -3569,8 +3565,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             string backupDir = Path.Combine(d.SelectedPath, $"MTK_Full_ROM_{DateTime.Now:yyyyMMdd_HHmmss}");
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            if (!IOFile.Exists(script)) script = Path.Combine(Application.StartupPath, "mtk", "mtk.py");
+            string script = AppConfig.MtkScript;
+            if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
@@ -3645,7 +3641,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Unlock Bootloader via MTK BROM? (Will wipe user data)", "Confirm BL Unlock", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n🔓 [MTK] Unlocking Bootloader (seccfg)...");
@@ -3663,7 +3659,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
         private async void btnMtkRelockBL_Click(object sender, EventArgs e)
         {
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n🔒 [MTK] Relocking Bootloader...");
@@ -3684,7 +3680,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Format Userlock / Screen Lock? (All user data will be erased)", "Confirm Userlock Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n🔑 [MTK] Resetting Userlock (Formatting userdata & metadata)...");
@@ -3705,7 +3701,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Reset Mi Account (Format Persist)?", "Confirm Mi Account Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n☁️ [Xiaomi] Resetting Mi Account Lock...");
@@ -3724,7 +3720,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
         private async void btnMtkRemoveDemo_Click(object sender, EventArgs e)
         {
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n📱 [MTK] Removing Demo Mode (Oppo/Realme/Vivo)...");
@@ -3745,7 +3741,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Reset Samsung KG / MDM Lock?", "Confirm KG Reset", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n🛡️ [Samsung] Resetting KG Lock / Persistent...");
@@ -3766,7 +3762,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show("Reset NV data to fix WiFi/Baseband Error? (Make sure you have NV backup)", "Confirm NV Fix", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             string daArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
             LogMTK("\n📶 [MTK] Resetting NV Data & Sec Partitions...");
@@ -3784,7 +3780,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
         private async void btnMtkReboot_Click(object sender, EventArgs e)
         {
-            string script = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
+            string script = AppConfig.MtkScript;
             LogMTK("\n🔄 [MTK] Sending Reset/Reboot command to device...");
             await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting Device...");
             LogSuccess("✅ Reboot command sent!");
@@ -3809,7 +3805,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = Application.StartupPath
+                WorkingDirectory = AppConfig.BaseDir
             };
 
             process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
@@ -3975,7 +3971,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 RedirectStandardOutput = true,
                 RedirectStandardError = true,
                 CreateNoWindow = true,
-                WorkingDirectory = Application.StartupPath
+                WorkingDirectory = AppConfig.BaseDir
             };
 
             var fullOutput = new System.Text.StringBuilder();
@@ -4295,7 +4291,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 }
 
                 // Fastboot devices ကိုပါ scan (fastboot mode phone တွေ အတွက်)
-                string fbPath = Path.Combine(Application.StartupPath, "fastboot.exe");
+                string fbPath = AppConfig.FastbootExe;
                 if (IOFile.Exists(fbPath))
                 {
                     LogInfo("── Fastboot Devices ──");
@@ -4844,8 +4840,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
         private void btnAdbScrcpy_Click(object sender, EventArgs e)
         {
-            string scrcpyPath = Path.Combine(Application.StartupPath, "scrcpy", "scrcpy.exe");
-            if (!IOFile.Exists(scrcpyPath)) scrcpyPath = Path.Combine(Application.StartupPath, "scrcpy.exe");
+            string scrcpyPath = AppConfig.ScrcpyExe;
+            if (!IOFile.Exists(scrcpyPath)) scrcpyPath = AppConfig.ScrcpyExeRootFallback;
 
             if (IOFile.Exists(scrcpyPath))
             {
@@ -5289,7 +5285,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             Match codeMatch = Regex.Match(model, @"\((.*?)\)");
             string codename = codeMatch.Success ? codeMatch.Groups[1].Value.Trim() : "";
 
-            string tpBaseDir = Path.Combine(Application.StartupPath, "TestPoints");
+            string tpBaseDir = AppConfig.TestPointsDir;
             string imgPath = Path.Combine(tpBaseDir, cleanBrand, $"{cleanModel}.jpg");
 
             if (!IOFile.Exists(imgPath) && !string.IsNullOrEmpty(codename))
@@ -5325,7 +5321,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
         // ================= One-Click Driver Installer =================
         private void InstallAllDrivers()
         {
-            string driverDir = Path.Combine(Application.StartupPath, "Drivers");
+            string driverDir = AppConfig.DriversDir;
             if (!Directory.Exists(driverDir))
             {
                 LogError("❌ Drivers folder not found at: " + driverDir);
@@ -5596,7 +5592,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             catch (Exception ex) { driveInfo = ex.Message; }
 
             // Runtime engines
-            string startUp = Application.StartupPath;
+            string startUp = AppConfig.BaseDir;
             bool edlOk = IOFile.Exists(Path.Combine(startUp, "edl", "edl.py"));
             bool mtkOk = IOFile.Exists(Path.Combine(startUp, "mtkclient", "mtk.py")) || IOFile.Exists(Path.Combine(startUp, "mtk", "mtk.py"));
             int loaderBrands = 0;
@@ -5706,8 +5702,8 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
                 string key = detectedHwid + "_" + detectedPkhash;
                 // PC ပြောင်းရင် (clone နေရာပြောင်းရင်) အလုပ်ဖြစ်အောင် — app folder အောက်က loader ဆိုရင် relative path နဲ့ မှတ်တယ်
-                string storePath = loader.StartsWith(Application.StartupPath, StringComparison.OrdinalIgnoreCase)
-                    ? Path.GetRelativePath(Application.StartupPath, loader)
+                string storePath = loader.StartsWith(AppConfig.BaseDir, StringComparison.OrdinalIgnoreCase)
+                    ? Path.GetRelativePath(AppConfig.BaseDir, loader)
                     : loader;
                 var lines = IOFile.Exists(AutoLoaderMapPath) ? IOFile.ReadAllLines(AutoLoaderMapPath).ToList() : new List<string>();
                 lines.RemoveAll(l => l.StartsWith(key + "|"));
@@ -5718,7 +5714,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 // (ဒါဆို နောက်တစ်ခါ loader မရွေးဘဲ python က session တစ်ခုတည်းနဲ့ auto အကုန်လုပ်နိုင်တယ်)
                 try
                 {
-                    string pyLoaders = Path.Combine(Application.StartupPath, "edl", "edlclient", "Loaders");
+                    string pyLoaders = AppConfig.Combine(AppConfig.EdlDir, "edlclient", "Loaders");
                     if (!Directory.Exists(pyLoaders)) Directory.CreateDirectory(pyLoaders);
                     string baseName = detectedHwid.Replace("0x", "").ToLowerInvariant() + "_" +
                                       detectedPkhash.Replace("0x", "").ToLowerInvariant();
@@ -5746,7 +5742,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                     {
                         string stored = l.Substring(l.IndexOf('|') + 1).Trim();
                         // absolute (အဟောင်း format) ဖြစ်ရင် တည့်တည့်စမ်း၊ မဟုတ်ရင် app folder (bin) နဲ့ ယှဉ်တဲ့ relative path အနေနဲ့ စမ်းတယ်
-                        string loader = Path.IsPathRooted(stored) ? stored : Path.Combine(Application.StartupPath, stored);
+                        string loader = Path.IsPathRooted(stored) ? stored : AppConfig.Combine(AppConfig.BaseDir, stored);
                         if (IOFile.Exists(loader)) return loader;
                     }
                 }
@@ -6011,32 +6007,32 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
 
         private void InitializePaths()
         {
-            qflEnginePath = Path.Combine(Application.StartupPath, "QFL", "QFL.exe");
-            string qflBin = Path.Combine(Application.StartupPath, "QFL", "bin");
+            qflEnginePath = AppConfig.QflEngineExe;
+            string qflBin = AppConfig.Combine(AppConfig.QflDir, "bin");
 
             if (IOFile.Exists(Path.Combine(qflBin, "adb.exe")))
             {
                 adbPath = Path.Combine(qflBin, "adb.exe");
                 fastbootPath = Path.Combine(qflBin, "fastboot.exe");
             }
-            else if (IOFile.Exists(Path.Combine(Application.StartupPath, "bin", "adb.exe")))
+            else if (IOFile.Exists(AppConfig.Combine(AppConfig.BaseDir, "bin", "adb.exe")))
             {
-                adbPath = Path.Combine(Application.StartupPath, "bin", "adb.exe");
-                fastbootPath = Path.Combine(Application.StartupPath, "bin", "fastboot.exe");
+                adbPath = AppConfig.Combine(AppConfig.BaseDir, "bin", "adb.exe");
+                fastbootPath = AppConfig.Combine(AppConfig.BaseDir, "bin", "fastboot.exe");
             }
             else
             {
-                adbPath = Path.Combine(Application.StartupPath, "adb.exe");
-                fastbootPath = Path.Combine(Application.StartupPath, "fastboot.exe");
+                adbPath = AppConfig.AdbExe;
+                fastbootPath = AppConfig.FastbootExe;
             }
         }
 
         private void InitializePythonPaths()
         {
             pythonPath = "python";
-            mtkScriptPath = Path.Combine(Application.StartupPath, "mtkclient", "mtk.py");
-            edlScriptPath = Path.Combine(Application.StartupPath, "edl", "edl.py");
-            spdScriptPath = Path.Combine(Application.StartupPath, "spd", "spd.py");
+            mtkScriptPath = AppConfig.MtkScript;
+            edlScriptPath = AppConfig.EdlScript;
+            spdScriptPath = AppConfig.SpdScript;
         }
 
         private void InitializePortTimer()
@@ -6083,7 +6079,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
                 return;
             }
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             string dumpPath = Path.Combine(Path.GetTempPath(), $"pmk_{part}_dump.bin");
             try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ btnQcHexEdit_Click temp cleanup warning: {ex.Message}"); }
 
@@ -6147,7 +6143,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             saveFileDlg.FileName = "persist_backup.img";
             if (saveFileDlg.ShowDialog() != DialogResult.OK) return;
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             LogQualcomm("\n💾 [Persist Backup] Dumping persist partition...");
             SetOperationState(true);
             SetStatus("Backing up persist...");
@@ -6174,7 +6170,7 @@ try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogEr
             if (MessageBox.Show($"persist image ကို ဖုန်းထဲ ပြန်ရေးမလား?\n\n{Path.GetFileName(openFileDlg.FileName)} — ဒီ partition ကို ပြန်ရေးတာက ဖုန်း model တူမှသာ လုပ်သင့်ပါတယ်!", "Persist Restore", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) != DialogResult.Yes)
                 return;
 
-            string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
+            string script = AppConfig.EdlScript;
             LogQualcomm("\n♻️ [Persist Restore] Writing persist partition...");
             SetOperationState(true);
             SetStatus("Restoring persist...");

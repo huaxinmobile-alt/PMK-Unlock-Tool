@@ -34,6 +34,7 @@ namespace WinFormsApp1
         public static string TestPointsDir => Path.Combine(BaseDir, "TestPoints");           // pinout images: TestPoints/Brand/Model.jpg
         public static string ScrcpyDir => Path.Combine(BaseDir, "scrcpy");                   // screen mirror
         public static string QflDir => Path.Combine(BaseDir, "QFL");                         // QFL native engine
+        public static string DriversDir => Path.Combine(BaseDir, "Drivers");                 // driver installer (.exe) files
 
         // Extra loader search roots (loader auto-detect လုပ်တုန်း ဒီ folder တွေပါ ရှာပေးတယ်)
         public static string QualcommFirehosesDir => Path.Combine(BaseDir, "Qualcomm-firehoses-main");
