@@ -39,6 +39,7 @@ namespace WinFormsApp1
         // Extra loader search roots (loader auto-detect လုပ်တုန်း ဒီ folder တွေပါ ရှာပေးတယ်)
         public static string QualcommFirehosesDir => Path.Combine(BaseDir, "Qualcomm-firehoses-main");
         public static string EdlLoadersDir => Path.Combine(EdlDir, "Loaders");
+        public static string EdlClientLoadersDir => Path.Combine(EdlDir, "edlclient", "Loaders");   // python auto-loader DB
 
         // ================= Key files inside folders =================
         public static string EdlScript => Path.Combine(EdlDir, "edl.py");
