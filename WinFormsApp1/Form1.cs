@@ -262,9 +262,10 @@ namespace WinFormsApp1
             // Theme engine — UI တစ်ခုလုံးကို ရွေးထားတဲ့ theme နဲ့ ပြန်ချိန်တယ်
             ApplyTheme();
 
-            Log("╔══════════════════════════════════════════════╗", colorInfo);
-            Log("║   PMK Unlock Tool v4.0 - Advanced Edition    ║", colorInfo);
-            Log("╚══════════════════════════════════════════════╝", colorInfo);
+            // Version ကို csproj <Version> ကနေ အလိုအလျောက် ယူတယ် (banner မှာ စာလုံးတောင့် မရေးတော့ဘူး)
+            string appVer = Application.ProductVersion.Split('+')[0];
+            Log($"🚀 PMK Unlock Tool v{appVer} — Advanced Edition", colorInfo);
+            Log("━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━", colorInfo);
             Log("📱 Connect your device and select a command.", colorInfo);
             Log($"👤 Logged in: {UserManager.CurrentUsername} ({UserManager.CurrentRole})", colorInfo);
 
@@ -3445,7 +3446,7 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
             Set("C: Drive", driveInfo);
             Set("System Uptime", $"{(int)up.TotalDays}d {up.Hours}h {up.Minutes}m");
             Set(".NET Runtime", $".NET {Environment.Version} ({RuntimeInformation.ProcessArchitecture})");
-            Set("Tool Version", Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "?");
+            Set("Tool Version", Application.ProductVersion.Split('+')[0]);
             Set("App Folder", startUp);
             Set("Loader DB", loaderBrands > 0 ? $"{loaderBrands} brand folder(s) in Loaders\\" : "not found");
             Set("edl engine", edlOk ? "✅ edl\\edl.py present" : "❌ missing");
