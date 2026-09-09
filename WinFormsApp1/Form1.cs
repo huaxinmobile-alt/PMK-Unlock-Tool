@@ -48,6 +48,7 @@ namespace WinFormsApp1
         private QualcommService _qcService;
         private MediaTekService _mtkService;
         private AdbFastbootService _adbFbService;
+        private SamsungSpdService _samSpdService;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -194,6 +195,13 @@ namespace WinFormsApp1
                 _processRunner,
                 () => adbPath,
                 () => fastbootPath);
+            _samSpdService = new SamsungSpdService(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                SetOperationState,
+                _processRunner,
+                () => adbPath);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -2968,169 +2976,19 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
         }
 
         // ================= Spreadtrum & Samsung Handlers =================
-        private async void btnSpdDetect_Click(object sender, EventArgs e)
-        {
-            LogSPD("\n📱 [SPD] Reading Spreadtrum Device Hardware Info...");
-            string platform = await _processRunner.RunAdbTargeted("shell getprop ro.board.platform", "", false);
-            string chip = await _processRunner.RunAdbTargeted("shell getprop ro.hardware", "", false);
-            string model = await _processRunner.RunAdbTargeted("shell getprop ro.product.model", "", false);
+        private async void btnSpdDetect_Click(object sender, EventArgs e) => await _samSpdService.SpdGetDeviceInfoAsync();
 
-            Log("╔══════════════════════════════════════════════════════════╗", colorSPD);
-            Log("║             📱 SPREADTRUM / UNISOC INFO                  ║", colorSPD);
-            Log("╚══════════════════════════════════════════════════════════╝", colorSPD);
-            Log($"  • Model Name       : {model?.Trim() ?? "N/A"}", colorSuccess);
-            Log($"  • Platform         : {platform?.Trim() ?? "N/A"}", colorInfo);
-            Log($"  • Chipset          : {chip?.Trim() ?? "N/A"}", colorInfo);
-            Log("────────────────────────────────────────────────────────────\n", colorSPD);
-        }
+        private async void btnSpdReadPart_Click(object sender, EventArgs e) => await _samSpdService.SpdFrpResetAsync();
 
-        private async void btnSpdReadPart_Click(object sender, EventArgs e)
-        {
-            LogSPD("\n🔓 [SPD] Resetting Spreadtrum FRP...");
-            await _processRunner.RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing SetupWizard...", false);
-            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
-            LogSuccess("✅ SPD FRP Reset command sent! Phone is restarting.");
-        }
+        private async void btnSamInfo_Click(object sender, EventArgs e) => await _samSpdService.GetDeviceInfoAsync();
 
-        private async void btnSamInfo_Click(object sender, EventArgs e)
-        {
-            LogSamsung("\n📱 [Samsung] Reading Samsung Device Info (MTP / ADB)...");
-            string model = await _processRunner.RunAdbTargeted("shell getprop ro.product.model", "", false);
-            string csc = await _processRunner.RunAdbTargeted("shell getprop ro.csc.sales_code", "", false);
-            string build = await _processRunner.RunAdbTargeted("shell getprop ro.build.display.id", "", false);
-            string oneui = await _processRunner.RunAdbTargeted("shell getprop ro.build.version.oneui", "", false);
+        private async void btnSamRebootDownload_Click(object sender, EventArgs e) => await _samSpdService.RebootToDownloadAsync();
 
-            Log("╔══════════════════════════════════════════════════════════╗", colorSamsung);
-            Log("║             📱 SAMSUNG DEVICE INFORMATION                ║", colorSamsung);
-            Log("╚══════════════════════════════════════════════════════════╝", colorSamsung);
-            Log($"  • Model Name       : {model?.Trim() ?? "N/A"}", colorSuccess);
-            Log($"  • CSC / Region     : {csc?.Trim() ?? "N/A"}", colorFastboot);
-            Log($"  • One UI Version   : {oneui?.Trim() ?? "N/A"}", colorInfo);
-            Log($"  • PDA / Build      : {build?.Trim() ?? "N/A"}", colorInfo);
-            Log("────────────────────────────────────────────────────────────\n", colorSamsung);
-        }
+        private async void btnSamRebootNormal_Click(object sender, EventArgs e) => await _samSpdService.RebootToSystemAsync();
 
-        private async void btnSamRebootDownload_Click(object sender, EventArgs e)
-        {
-            LogSamsung("\n⚡ Rebooting Samsung device to Download Mode...");
-            await _processRunner.RunAdbTargeted("reboot download", "To Download Mode...");
-        }
+        private async void btnSamReadPit_Click(object sender, EventArgs e) => await _samSpdService.ReadPitAsync();
 
-        private async void btnSamRebootNormal_Click(object sender, EventArgs e)
-        {
-            LogSamsung("\n🔄 Rebooting Samsung device to System...");
-            await _processRunner.RunAdbTargeted("reboot", "Rebooting...");
-        }
-
-        private async void btnSamReadPit_Click(object sender, EventArgs e)
-        {
-            LogSamsung("\n📋 Reading Samsung PIT Partition Table in Download Mode...");
-            LogInfo("📱 Connect phone in Download Mode (Vol Down + Power + Insert USB)");
-            await Task.Delay(100);
-        }
-
-        private async void btnSamMtpFrp_Click(object sender, EventArgs e)
-        {
-            LogSamsung("\n╔══════════════════════════════════════════════════════════╗");
-            LogSamsung("║         🔓 SAMSUNG MTP ONE-CLICK FRP RESET               ║");
-            LogSamsung("╚══════════════════════════════════════════════════════════╝");
-            LogSamsung("📱 1. Power ON device to Welcome Screen.");
-            LogSamsung("📱 2. Click [Emergency Call] -> Type: *#0*# (or *#*#88#*#*)");
-            LogSamsung("📱 3. Test Menu screen must appear on phone!");
-            LogSamsung("⏳ Sending AT Commands to trigger USB Debugging...");
-
-            SetOperationState(true);
-            SetStatus("Running Samsung MTP FRP...");
-            UpdateGlobalProgress(10, "Detecting Modem...");
-
-            await Task.Run(async () =>
-            {
-                string[] ports = SerialPort.GetPortNames();
-                bool found = false;
-
-                foreach (string portName in ports)
-                {
-                    try
-                    {
-                        using SerialPort sp = new SerialPort(portName, 115200, Parity.None, 8, StopBits.One);
-                        sp.ReadTimeout = 1000;
-                        sp.WriteTimeout = 1000;
-                        sp.Open();
-
-                        sp.WriteLine("AT\r\n");
-                        Thread.Sleep(200);
-                        string res = sp.ReadExisting();
-
-                        if (res.Contains("OK"))
-                        {
-                            found = true;
-                            this.Invoke(new Action(() => LogSuccess($"⚡ Found Samsung Modem Port on [{portName}]!")));
-
-                            string[] atCmds = {
-                                "AT+KICOMPATIBILITY=0\r\n",
-                                "AT+DUMPCTRL=1,0\r\n",
-                                "AT+DEBUGLVC=0,5\r\n",
-                                "AT+SWVERSION=1\r\n",
-                                "AT+ACTIVATE=0,0,0\r\n"
-                            };
-
-                            foreach (var cmd in atCmds)
-                            {
-                                sp.WriteLine(cmd);
-                                Thread.Sleep(300);
-                            }
-                            break;
-                        }
-                    }
-                    catch (Exception ex) { LogWarning($"⚠️ btnSamMtpFrp_Click error: {ex.Message}"); }
-                }
-
-                if (!found)
-                {
-                    this.Invoke(new Action(() => LogError("❌ Samsung Modem COM Port not found. Ensure Samsung USB Drivers are installed.")));
-                    this.Invoke(new Action(() => SetOperationState(false)));
-                    this.Invoke(new Action(() => SetStatus("Ready")));
-                    return;
-                }
-
-                this.Invoke(new Action(() => LogSuccess("🚀 Exploit sent! Look at the phone screen and tap [ALLOW ALWAYS] for USB Debugging.")));
-                this.Invoke(new Action(() => UpdateGlobalProgress(50, "Waiting for ADB...")));
-
-                for (int i = 1; i <= 15; i++)
-                {
-                    this.Invoke(new Action(() => SetStatus($"Waiting for ADB Authorization ({i}/15)...")));
-                    string dev = await _processRunner.RunProcessCommand(adbPath, "devices", "", false);
-                    if (dev != null && dev.Contains("\tdevice"))
-                    {
-                        this.Invoke(new Action(() => LogSuccess("✅ ADB Device Authorized! Resetting FRP...")));
-                        this.Invoke(new Action(() => UpdateGlobalProgress(85, "Resetting FRP...")));
-
-                        await _processRunner.RunProcessCommand(adbPath, "shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "", false);
-                        await _processRunner.RunProcessCommand(adbPath, "shell pm clear com.sec.android.app.SecSetupWizard", "", false);
-                        await _processRunner.RunProcessCommand(adbPath, "shell pm clear com.google.android.setupwizard", "", false);
-                        await _processRunner.RunProcessCommand(adbPath, "reboot", "", false);
-
-                        this.Invoke(new Action(() =>
-                        {
-                            UpdateGlobalProgress(100, "Done");
-                            LogSuccess("🎉 Samsung FRP Reset Successfully! Phone is rebooting to Home.");
-                            SetOperationState(false);
-                            SetStatus("Ready");
-                        }));
-                        return;
-                    }
-                    await Task.Delay(2000);
-                }
-
-                this.Invoke(new Action(() =>
-                {
-                    LogWarning("⚠️ ADB authorization timeout. Please retry.");
-                    SetOperationState(false);
-                    SetStatus("Ready");
-                    UpdateGlobalProgress(0);
-                }));
-            });
-        }
+        private async void btnSamMtpFrp_Click(object sender, EventArgs e) => await _samSpdService.MtpFrpResetAsync();
 
         // ================= Test Point (TP) Image Viewer Popup Form =================
         internal void ShowTestPointViewer(string brand, string model)
