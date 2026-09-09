@@ -2404,7 +2404,7 @@ namespace WinFormsApp1
                     break;
 
                 case "Sideload":
-                    AddActionBtn("🔍 Check State", Color.FromArgb(33, 150, 243), btnSlState_Click);
+                    AddActionBtn("📊 Check Info", Color.FromArgb(33, 150, 243), btnSlInfo_Click);
                     AddActionBtn("🔄 Reboot Recovery", Color.FromArgb(255, 152, 0), btnSlRebootRecovery_Click);
                     AddActionBtn("📦 Sideload ZIP", Color.FromArgb(230, 80, 40), btnSlSideload_Click);
                     AddActionBtn("🔄 Reboot System", Color.FromArgb(60, 100, 140), btnSlRebootSystem_Click);
@@ -3925,36 +3925,115 @@ namespace WinFormsApp1
         }
 
         // ================= Sideload (Recovery ADB Sideload) Handlers =================
-        private async void btnSlState_Click(object sender, EventArgs e)
+        private async void btnSlInfo_Click(object sender, EventArgs e)
         {
-            LogADB("\n🔍 [Sideload] Checking connected devices / state...");
-            string output = await RunProcessCommand(adbPath, "devices -l", "Checking ADB devices...", false);
-            if (string.IsNullOrWhiteSpace(output))
+            LogADB("\n📊 [Sideload] Gathering device info (ADB + Fastboot + properties)...");
+            SetOperationState(true);
+            SetStatus("Checking connected devices...");
+            try
             {
-                LogError("❌ ADB daemon not responding. Phone ကို USB ချိတ်ပြီး ပြန်စမ်းပါ။");
-                return;
+                string devOut = await RunProcessCommand(adbPath, "devices -l", "Scanning ADB devices...", false);
+                bool anyDevice = false;
+
+                if (string.IsNullOrWhiteSpace(devOut))
+                {
+                    LogError("❌ ADB daemon not responding. Phone ကို USB ချိတ်ပြီး ပြန်စမ်းပါ။");
+                }
+                else
+                {
+                    LogInfo("── ADB Devices ──");
+                    LogADB(devOut.Trim());
+                    string[] lines = devOut.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
+                    foreach (string line in lines)
+                    {
+                        string t = line.Trim();
+                        if (t.Length == 0 || t.StartsWith("List of devices") || t.StartsWith("*")) continue;
+                        string[] parts = t.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                        if (parts.Length == 0) continue;
+                        string serial = parts[0];
+                        string state = parts.Length > 1 ? parts[1] : "?";
+
+                        // state အလိုက် အချက်ပြ
+                        string stateMsg;
+                        switch (state.ToLowerInvariant())
+                        {
+                            case "sideload": stateMsg = "📦 Sideload mode — ZIP ပို့ဖို့ အဆင်သင့်"; break;
+                            case "recovery": stateMsg = "🔧 Recovery — 'Apply update from ADB' ရွေးမှ Sideload ဖြစ်မယ်"; break;
+                            case "device": stateMsg = "💻 Normal Android — Reboot Recovery လုပ်ပြီး Apply update from ADB ရွေးပါ"; break;
+                            case "offline": stateMsg = "⚠️ Offline — USB cable/port ပြောင်းကြည့်ပါ"; break;
+                            case "unauthorized": stateMsg = "🔒 Unauthorized — ဖုန်းပေါ်မှာ USB debugging allow နှိပ်ပါ"; break;
+                            case "bootloader": stateMsg = "⚡ Bootloader mode (fastboot)"; break;
+                            default: stateMsg = $"({state})"; break;
+                        }
+                        LogInfo($"• {serial}  →  {stateMsg}");
+
+                        // extra tags (device:model:... transport_id:...) ရှိရင် ပြ
+                        if (parts.Length > 2)
+                        {
+                            var tags = parts.Skip(2).Where(p => p.Contains(':'));
+                            string tagsTxt = string.Join("  ", tags);
+                            if (tagsTxt.Length > 0) LogInfo($"   {tagsTxt}");
+                        }
+
+                        // info ပိုထုတ်နိုင်တဲ့ state တွေမှာ getprop စမ်းတယ် (sideload/recovery/device)
+                        if (state.Equals("sideload", StringComparison.OrdinalIgnoreCase) ||
+                            state.Equals("recovery", StringComparison.OrdinalIgnoreCase) ||
+                            state.Equals("device", StringComparison.OrdinalIgnoreCase))
+                        {
+                            anyDevice = true;
+                            string props = await RunProcessCommand(adbPath, $"-s {serial} shell getprop", "Reading device properties...", false);
+                            if (!string.IsNullOrWhiteSpace(props))
+                            {
+                                string[] wantKeys =
+                                {
+                                    "ro.product.manufacturer", "ro.product.brand", "ro.product.model",
+                                    "ro.product.name", "ro.product.device", "ro.build.version.release",
+                                    "ro.build.version.sdk", "ro.build.version.security_patch", "ro.build.display.id",
+                                    "ro.build.fingerprint", "ro.product.cpu.abilist", "ro.serialno", "ro.boot.serialno"
+                                };
+                                LogInfo("── Properties ──");
+                                foreach (string pl in props.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    string pt = pl.Trim();
+                                    foreach (string k in wantKeys)
+                                    {
+                                        if (pt.StartsWith(k + "]", StringComparison.OrdinalIgnoreCase) || pt.StartsWith(k + "=", StringComparison.OrdinalIgnoreCase))
+                                        {
+                                            int eq = pt.IndexOf(']');
+                                            if (eq > 0) LogADB($"• {k} = {pt.Substring(eq + 1).TrimStart(' ', '=')}");
+                                            else if (pt.Contains('=')) LogADB($"• {pt}");
+                                            break;
+                                        }
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                LogInfo("   (shell getprop က ပြန်မလာဘူး — ဒီ mode မှာ shell မရနိုင်တာ ပုံမှန်ပါ)");
+                            }
+                        }
+                    }
+                }
+
+                // Fastboot devices ကိုပါ scan (fastboot mode phone တွေ အတွက်)
+                string fbPath = Path.Combine(Application.StartupPath, "fastboot.exe");
+                if (IOFile.Exists(fbPath))
+                {
+                    LogInfo("── Fastboot Devices ──");
+                    string fbOut = await RunProcessCommand(fbPath, "devices -l", "Scanning fastboot devices...", false);
+                    string fbTrim = (fbOut ?? "").Trim();
+                    if (string.IsNullOrEmpty(fbTrim) || fbTrim.Contains("no devices"))
+                        LogInfo("   (fastboot device မတွေ့ပါ)");
+                    else
+                        LogADB(fbTrim);
+                }
+
+                if (!anyDevice && !string.IsNullOrWhiteSpace(devOut))
+                    LogInfo("💡 ဖုန်းမတွေ့သေးပါ — USB ချိတ်ပြီး ဒီအတိုင်း ပြန်နှိပ်ပါ။ (Sideload mode ဖုန်းဆို 'adb devices' မှာ sideload ပြပါလိမ့်မယ်)");
             }
-            LogADB(output.Trim());
-            string lower = output.ToLowerInvariant();
-            if (lower.Contains("sideload"))
+            finally
             {
-                LogSuccess("📦 Device က Sideload mode မှာ အဆင်သင့်ဖြစ်နေပါပြီ — ZIP ရွေးပြီး 📦 Sideload ZIP နှိပ်ပါ။");
-            }
-            else if (lower.Contains("recovery"))
-            {
-                LogInfo("🔧 Device က Recovery mode မှာရှိနေတယ် — Recovery menu ထဲက 'Apply update from ADB' ကို ရွေးမှသာ Sideload mode ဖြစ်မယ်။");
-            }
-            else if (lower.Contains("device\n") || lower.Contains("device\t") || Regex.IsMatch(output, @"\bdevice\b", RegexOptions.IgnoreCase))
-            {
-                LogInfo("💻 Device က Android (normal) mode — ဒီအတွက်:\n   1) 🔄 Reboot Recovery နှိပ်ပါ\n   2) ဖုန်းပေါ်မှာ 'Apply update from ADB' ရွေးပါ\n   3) ပြီးမှ 📦 Sideload ZIP နှိပ်ပါ");
-            }
-            else if (lower.Contains("fastboot"))
-            {
-                LogInfo("⚡ Device က Fastboot mode — 'adb reboot recovery' လုပ်ဖို့ fastboot reboot recovery သုံးပါ၊ ဒါမှမဟုတ် ဖုန်းပေါ်က recovery ရွေးပါ။");
-            }
-            else
-            {
-                LogWarning("⚠️ Device state ကို မသိရသေးပါ — ဖုန်းကို စစ်ဆေးပါ (တချို့ဖုန်းမှာ ဖန်သားပြင်ပေါ် Sideload mode စာပြပါတယ်)။");
+                SetOperationState(false);
             }
         }
 
