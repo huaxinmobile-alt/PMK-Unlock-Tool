@@ -3992,9 +3992,12 @@ namespace WinFormsApp1
                                 string[] wantKeys =
                                 {
                                     "ro.product.manufacturer", "ro.product.brand", "ro.product.model",
-                                    "ro.product.name", "ro.product.device", "ro.build.version.release",
-                                    "ro.build.version.sdk", "ro.build.version.security_patch", "ro.build.display.id",
-                                    "ro.build.fingerprint", "ro.product.cpu.abilist", "ro.serialno", "ro.boot.serialno"
+                                    "ro.product.name", "ro.product.device", "ro.product.mod_device",
+                                    "ro.build.version.release", "ro.build.version.sdk", "ro.build.version.incremental",
+                                    "ro.build.version.security_patch", "ro.build.display.id",
+                                    "ro.build.fingerprint", "ro.product.cpu.abilist", "ro.serialno", "ro.boot.serialno",
+                                    "ro.boot.hardware", "ro.boot.verifiedbootstate",
+                                    "ro.miui.ui.version.name", "ro.miui.ui.version.code", "ro.miui.version.incremental"
                                 };
                                 foreach (string pl in props.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
                                 {
@@ -4020,7 +4023,16 @@ namespace WinFormsApp1
                             }
                             if (!anyProp)
                             {
-                                LogInfo("   (ဒီ mode မှာ ဖုန်း properties တွေ shell ကနေ ဖတ်လို့မရပါ — Samsung stock recovery/sideload မှာ ဒီလိုဖြစ်တတ်ပါတယ်။ Model က ADB tag ကနေ ရပြီးသားပါ)");
+                                if (state.Equals("sideload", StringComparison.OrdinalIgnoreCase))
+                                {
+                                    LogInfo("   ⚠️ Sideload mode မှာ shell ပိတ်ထားလို့ props မဖတ်နိုင်ပါ — info အပြည့်အစုံ ရဖို့:");
+                                    LogInfo("       (a) ဖုန်းပေါ်မှာ Back နှိပ်ပြီး recovery menu အဓိကနေရာမှာ ရပ်ထားပါ (state=recovery) → Check Info ပြန်နှိပ်ပါ");
+                                    LogInfo("       (b) သို့မဟုတ် Android system ထဲ boot တက်ပြီးမှ ADB tab / Check Info နဲ့ ပြန်စစ်ပါ — အပြည့်စုံဆုံး (MIUI version, security patch စသည်)");
+                                }
+                                else
+                                {
+                                    LogInfo("   (ဒီ mode မှာ ဖုန်း properties တွေ shell ကနေ ဖတ်လို့မရပါ — Samsung/Xiaomi stock recovery/sideload မှာ ဒီလိုဖြစ်တတ်ပါတယ်။ Model က ADB tag ကနေ ရပြီးသားပါ)");
+                                }
                             }
                         }
                     }
@@ -4034,9 +4046,37 @@ namespace WinFormsApp1
                     string fbOut = await RunProcessCommand(fbPath, "devices -l", "Scanning fastboot devices...", false);
                     string fbTrim = (fbOut ?? "").Trim();
                     if (string.IsNullOrEmpty(fbTrim) || fbTrim.Contains("no devices"))
+                    {
                         LogInfo("   (fastboot device မတွေ့ပါ)");
+                    }
                     else
+                    {
                         LogADB(fbTrim);
+                        // fastboot device တွေ့ရင် getvar all နဲ့ model/bootloader/security state အပြည့် ထုတ်ပေးတယ်
+                        foreach (string fl in fbTrim.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                        {
+                            string ft = fl.Trim();
+                            if (ft.Length == 0 || !ft.Contains('\t') && !ft.Contains(' ')) continue;
+                            string[] fparts = ft.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
+                            if (fparts.Length == 0 || fparts[0] == "List" || fparts[0].StartsWith("*")) continue;
+                            string fbSerial = fparts[0];
+                            if (fbSerial.Length < 4) continue;
+                            string gv = await RunProcessCommand(fbPath, $"-s {fbSerial} getvar all", $"Reading {fbSerial} fastboot vars...", false);
+                            if (!string.IsNullOrWhiteSpace(gv))
+                            {
+                                LogInfo($"── {fbSerial} getvar all ──");
+                                int shown = 0;
+                                foreach (string gl in gv.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                                {
+                                    string gt = gl.Trim();
+                                    if (gt.Length == 0 || gt.StartsWith("Finished") || gt.StartsWith("getvar") || gt.Contains("is not") && gt.Contains("error", StringComparison.OrdinalIgnoreCase)) continue;
+                                    LogADB($"   {gt}");
+                                    if (++shown >= 40) { LogInfo("   (...ဆက်ကျန်တာတွေ ချန်လိုက်ပြီ)"); break; }
+                                }
+                            }
+                            break; // ပထမဆုံး fastboot device တစ်ခုပဲ အသေးစိတ် ပြမယ်
+                        }
+                    }
                 }
 
                 if (!anyDevice && !string.IsNullOrWhiteSpace(devOut))
