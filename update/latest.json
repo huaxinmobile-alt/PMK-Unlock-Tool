@@ -1,7 +1,7 @@
 {
-  "version": "4.0.6",
-  "notes": "PMK Unlock Tool v4.0.6 \u2014 top banner now shows the full version number (e.g. v4.0.6).",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.6/PMK-Unlock-Tool-v4.0.6.zip",
-  "sha256": "8f98cdac283259525000010f4d1da638a368713fa7bc11a349003420f60461b9",
-  "size": 588121683
+  "version": "4.0.7",
+  "notes": "PMK Unlock Tool v4.0.7 \u2014 slim download (~130MB instead of 561MB).\n\nLoaders are no longer bundled in the zip. When the tool needs a loader it downloads that single file from the GitHub repo automatically (first use only, then cached offline). If the download fails the operation stops with a clear message \u2014 Browse to pick a loader manually also still works.",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.7/PMK-Unlock-Tool-v4.0.7.zip",
+  "sha256": "70ab394400484c450914d3f568424d410c76eb78b0f14852b5900c2d0892383e",
+  "size": 134999970
 }
