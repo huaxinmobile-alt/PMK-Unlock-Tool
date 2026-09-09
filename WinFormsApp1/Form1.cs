@@ -2184,7 +2184,7 @@ namespace WinFormsApp1
         {
             currentCategory = category;
             SetStatus($"Active Category: {category}");
-            Log($"\n🔄 Switched to [{category}] Mode", colorInfo);
+            // Tab ပြောင်းတိုင်း log မှာ "Switched to..." စာကြောင်းတွေ မထည့်တော့ဘူး (log ကို ရှင်းရှင်းလင်းလင်း ထားချင်လို့)
 
             // Memory type selector က Qualcomm mode မှာသာ အသုံးဝင်ပါတယ်
             bool showMemSelector = (category == "Qualcomm");
