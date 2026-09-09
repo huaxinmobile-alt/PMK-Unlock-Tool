@@ -22,6 +22,7 @@ import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 LOADERS = os.path.join(ROOT, "WinFormsApp1", "Loaders")
+PROJECT = os.path.join(ROOT, "WinFormsApp1")  # p က "Loaders/..." နဲ့ စတယ် (app ဘက်က ဒီပုံစံပဲ မျှော်တယ်)
 OUT = os.path.join(ROOT, "loaders", "index.json")
 EXTS = {".elf", ".mbn", ".bin", ".melf"}
 
@@ -40,7 +41,7 @@ def main():
             if os.path.splitext(f)[1].lower() not in EXTS:
                 continue
             full = os.path.join(dirpath, f)
-            rel = os.path.relpath(full, ROOT).replace("\\", "/")  # "Loaders/..."
+            rel = os.path.relpath(full, PROJECT).replace("\\", "/")  # "Loaders/..." (WinFormsApp1 အောက်ကနေ)
             h = hashlib.sha256()
             with open(full, "rb") as fh:
                 for chunk in iter(lambda: fh.read(1024 * 1024), b""):
