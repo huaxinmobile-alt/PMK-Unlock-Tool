@@ -23,6 +23,10 @@ namespace WinFormsApp1
     {
         // ================= Paths =================
         private string adbPath = "";
+
+        // Sideload tab — package (zip) picker row
+        private Panel sideloadPanel = null;
+        private TextBox txtSideloadPath = null;
         private string fastbootPath = "";
         private string pythonPath = "python";
         private string mtkScriptPath = "";
@@ -407,7 +411,7 @@ namespace WinFormsApp1
             Panel rightPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(22, 29, 39), Padding = new Padding(8) };
             FlowLayoutPanel categoryBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(31, 41, 55), Padding = new Padding(4), WrapContents = false, AutoScroll = true };
 
-            string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Spreadtrum", "Samsung", "Settings" };
+            string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Sideload", "Spreadtrum", "Samsung", "Settings" };
             categoryTabButtons.Clear();
             foreach (string category in categories)
             {
@@ -520,6 +524,27 @@ namespace WinFormsApp1
             // Universal Multi-Brand Flasher Panel
             InitializeUniversalFlasherHub(rightPanel);
 
+            // ===== Sideload Package Row (Sideload tab မှာသာ ပေါ်မယ်) =====
+            sideloadPanel = new Panel
+            {
+                Dock = DockStyle.Top,
+                Height = 46,
+                BackColor = Color.FromArgb(27, 36, 48),
+                BorderStyle = BorderStyle.FixedSingle,
+                Visible = false
+            };
+            sideloadPanel.Controls.Add(CreateSeaLabel("📦 Package (.zip):", new Point(10, 12), false));
+            txtSideloadPath = CreateServiceTextBox(new Point(150, 9), 500);
+            txtSideloadPath.ReadOnly = true;
+            sideloadPanel.Controls.Add(txtSideloadPath);
+            Button btnSlBrowse = CreateSeaButton("📂 Browse", new Point(665, 8), 85, 26, (s, e) =>
+            {
+                using var dlg = new OpenFileDialog { Title = "Select ZIP package to sideload (ROM/OTA/patch)", Filter = "ZIP Package (*.zip)|*.zip|All files (*.*)|*.*" };
+                if (dlg.ShowDialog() == DialogResult.OK) txtSideloadPath.Text = dlg.FileName;
+            });
+            btnSlBrowse.BackColor = Color.FromArgb(33, 150, 243);
+            sideloadPanel.Controls.Add(btnSlBrowse);
+
             // Footer Bar with Progress Bar
             Panel footerBar = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(20, 28, 38) };
 
@@ -574,6 +599,7 @@ namespace WinFormsApp1
             if (settingsPanel != null) rightPanel.Controls.Add(settingsPanel);
             rightPanel.Controls.Add(footerBar);
             rightPanel.Controls.Add(dynamicActionPanel);
+            if (sideloadPanel != null) rightPanel.Controls.Add(sideloadPanel);
             rightPanel.Controls.Add(profilePanel);
             rightPanel.Controls.Add(categoryBar);
 
@@ -2204,6 +2230,7 @@ namespace WinFormsApp1
                 if (profilePanel != null) profilePanel.Visible = false; // PROFILE/loader row မပြစေရ
                 if (flasherHubPanel != null) flasherHubPanel.Visible = false;
                 if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = false;
+                if (sideloadPanel != null) sideloadPanel.Visible = false;
                 if (settingsPanel != null)
                 {
                     settingsPanel.Visible = true;
@@ -2260,6 +2287,7 @@ namespace WinFormsApp1
             {
                 flasherHubPanel.Visible = showFlasherHub;
                 mobilePartitionGrid.Visible = !showFlasherHub;
+                if (category == "Sideload") mobilePartitionGrid.Visible = false; // sideload မှာ grid မလို
                 if (showFlasherHub) ConfigureFlasherHubForCategory(category);
             }
 
@@ -2277,6 +2305,7 @@ namespace WinFormsApp1
 
             if (dynamicActionPanel == null) return;
             dynamicActionPanel.Visible = true; // Settings က ပြန်ထွက်လာရင် action buttons တွေ ပြန်ပြဖို့
+            if (sideloadPanel != null) sideloadPanel.Visible = (category == "Sideload"); // zip row — Sideload tab မှာသာ
             dynamicActionPanel.Controls.Clear();
             dynamicButtons.Clear();
 
@@ -2372,6 +2401,13 @@ namespace WinFormsApp1
                     AddActionBtn("🔧 Flash Recovery", Color.FromArgb(33, 150, 243), btnFbFlashRecovery_Click);
                     AddActionBtn("🔓 OEM Unlock", Color.FromArgb(255, 193, 7), btnFbUnlock_Click);
                     AddActionBtn("🔄 Reboot System", Color.FromArgb(60, 100, 140), btnFbReboot_Click);
+                    break;
+
+                case "Sideload":
+                    AddActionBtn("🔍 Check State", Color.FromArgb(33, 150, 243), btnSlState_Click);
+                    AddActionBtn("🔄 Reboot Recovery", Color.FromArgb(255, 152, 0), btnSlRebootRecovery_Click);
+                    AddActionBtn("📦 Sideload ZIP", Color.FromArgb(230, 80, 40), btnSlSideload_Click);
+                    AddActionBtn("🔄 Reboot System", Color.FromArgb(60, 100, 140), btnSlRebootSystem_Click);
                     break;
 
                 case "Spreadtrum":
@@ -3886,6 +3922,101 @@ namespace WinFormsApp1
             string serial = await GetActiveAdbSerial();
             string targetArg = string.IsNullOrEmpty(serial) ? "" : $"-s {serial} ";
             return await RunProcessCommand(adbPath, $"{targetArg}{subArgs}", statusText, logLive);
+        }
+
+        // ================= Sideload (Recovery ADB Sideload) Handlers =================
+        private async void btnSlState_Click(object sender, EventArgs e)
+        {
+            LogADB("\n🔍 [Sideload] Checking connected devices / state...");
+            string output = await RunProcessCommand(adbPath, "devices -l", "Checking ADB devices...", false);
+            if (string.IsNullOrWhiteSpace(output))
+            {
+                LogError("❌ ADB daemon not responding. Phone ကို USB ချိတ်ပြီး ပြန်စမ်းပါ။");
+                return;
+            }
+            LogADB(output.Trim());
+            string lower = output.ToLowerInvariant();
+            if (lower.Contains("sideload"))
+            {
+                LogSuccess("📦 Device က Sideload mode မှာ အဆင်သင့်ဖြစ်နေပါပြီ — ZIP ရွေးပြီး 📦 Sideload ZIP နှိပ်ပါ။");
+            }
+            else if (lower.Contains("recovery"))
+            {
+                LogInfo("🔧 Device က Recovery mode မှာရှိနေတယ် — Recovery menu ထဲက 'Apply update from ADB' ကို ရွေးမှသာ Sideload mode ဖြစ်မယ်။");
+            }
+            else if (lower.Contains("device\n") || lower.Contains("device\t") || Regex.IsMatch(output, @"\bdevice\b", RegexOptions.IgnoreCase))
+            {
+                LogInfo("💻 Device က Android (normal) mode — ဒီအတွက်:\n   1) 🔄 Reboot Recovery နှိပ်ပါ\n   2) ဖုန်းပေါ်မှာ 'Apply update from ADB' ရွေးပါ\n   3) ပြီးမှ 📦 Sideload ZIP နှိပ်ပါ");
+            }
+            else if (lower.Contains("fastboot"))
+            {
+                LogInfo("⚡ Device က Fastboot mode — 'adb reboot recovery' လုပ်ဖို့ fastboot reboot recovery သုံးပါ၊ ဒါမှမဟုတ် ဖုန်းပေါ်က recovery ရွေးပါ။");
+            }
+            else
+            {
+                LogWarning("⚠️ Device state ကို မသိရသေးပါ — ဖုန်းကို စစ်ဆေးပါ (တချို့ဖုန်းမှာ ဖန်သားပြင်ပေါ် Sideload mode စာပြပါတယ်)။");
+            }
+        }
+
+        private async void btnSlRebootRecovery_Click(object sender, EventArgs e)
+        {
+            LogADB("\n🔄 [Sideload] Rebooting to Recovery...");
+            string res = await RunAdbTargeted("reboot recovery", "Rebooting to Recovery...", false);
+            if (PythonOpSucceeded(res) || string.IsNullOrEmpty(res) || !res.Contains("error", StringComparison.OrdinalIgnoreCase))
+            {
+                LogSuccess("📱 Phone က Recovery ကို reboot လုပ်နေပါပြီ။");
+                LogInfo("   ဖုန်းပေါ်မှာ 'Apply update from ADB' (sideload) ကို ရွေးပေးပါ — ပြီးရင် Sideload ZIP ခလုတ် နှိပ်လို့ရပါပြီ။");
+            }
+            else
+            {
+                LogError($"❌ Reboot recovery မအောင်မြင်ပါ: {res}");
+            }
+        }
+
+        private async void btnSlSideload_Click(object sender, EventArgs e)
+        {
+            if (txtSideloadPath == null || string.IsNullOrWhiteSpace(txtSideloadPath.Text) || !IOFile.Exists(txtSideloadPath.Text.Trim()))
+            {
+                LogWarning("⚠️ အရင် 📦 Package (.zip) ဖိုင်ကို Browse နဲ့ ရွေးပေးပါ။");
+                return;
+            }
+            string zip = txtSideloadPath.Text.Trim();
+
+            LogADB($"\n📦 [Sideload] Sideloading: {Path.GetFileName(zip)}");
+            LogInfo("   Phone က 'Apply update from ADB' စာမျက်နှာမှာ ရပ်နေတာ သေချာပါစေ — ဒီကနေ package ပို့ပေးမယ်။");
+            SetOperationState(true);
+            SetStatus("Sideloading package...");
+            try
+            {
+                string output = await RunProcessCommand(adbPath, $"sideload \"{zip}\"", "Sideloading package...");
+                SetOperationState(false);
+                string low = (output ?? "").ToLowerInvariant();
+                if (string.IsNullOrEmpty(low))
+                {
+                    LogSuccess("✅ Sideload ပြီးစီးဟန်ရှိပါတယ် — ဖုန်းမျက်နှာပြင်မှာ 'Install from ADB complete' ပြထားလား စစ်ပါ။");
+                }
+                else if (low.Contains("error") || low.Contains("failed") || low.Contains("closed") && low.Contains("unable"))
+                {
+                    LogError($"❌ Sideload မအောင်မြင်ပါ:\n{output.Trim()}");
+                    LogWarning("💡 ဖုန်းက Sideload mode မှာ ရပ်နေကြောင်း သေချာပါစေ (Recovery → Apply update from ADB)။ ZIP က ROM/OTA format မှန်ရင် ပြန်စမ်းပါ။");
+                }
+                else
+                {
+                    LogSuccess("✅ Sideload ပြီးပါပြီ — ဖုန်းမျက်နှာပြင်မှာ အတည်ပြုပြီး 'Reboot system now' ရွေးပါ (သို့မဟုတ် ဒီကနေ 🔄 Reboot System နှိပ်ပါ)။");
+                }
+            }
+            catch (Exception ex)
+            {
+                SetOperationState(false);
+                LogError($"❌ Sideload error: {ex.Message}");
+            }
+        }
+
+        private async void btnSlRebootSystem_Click(object sender, EventArgs e)
+        {
+            LogADB("\n🔄 [Sideload] Rebooting to System...");
+            await RunAdbTargeted("reboot", "Rebooting System...", false);
+            LogSuccess("📱 Phone ကို System ထဲ ပြန် boot လုပ်နေပါပြီ။");
         }
 
         // ================= ADB Handlers & Functions =================
