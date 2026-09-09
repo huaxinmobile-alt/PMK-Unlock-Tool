@@ -370,7 +370,7 @@ namespace WinFormsApp1
 
             CheckBox autoConnect = new CheckBox { Text = "Auto", Location = new Point(175, 60), AutoSize = true, Checked = true, ForeColor = Color.White };
             btnMobileGo = CreateSeaButton("🔄 Ref", new Point(230, 56), 55, 28, (s, e) => { RefreshPorts(); Log("🔄 Ports refreshed.", colorInfo); });
-            Button btnDevMgr = CreateSeaButton("🛠️ DevMgr", new Point(290, 56), 65, 28, (s, e) => { try { Process.Start(new ProcessStartInfo("devmgmt.msc") { UseShellExecute = true }); } catch { } });
+            Button btnDevMgr = CreateSeaButton("🛠️ DevMgr", new Point(290, 56), 65, 28, (s, e) => { try { Process.Start(new ProcessStartInfo("devmgmt.msc") { UseShellExecute = true }); } catch (Exception ex) { LogWarning($"⚠️ btnDevMgr_Click warning: {ex.Message}"); } });
             btnDevMgr.BackColor = Color.FromArgb(40, 70, 90);
             Ui3D.Restyle3D(btnDevMgr);
 
@@ -1072,7 +1072,7 @@ namespace WinFormsApp1
                             insideImages.Add(entryName);
                             string sizeOctal = System.Text.Encoding.ASCII.GetString(buffer, 124, 11).Trim('\0', ' ');
                             long entryBytes = 0;
-                            try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch { }
+try { entryBytes = Convert.ToInt64(sizeOctal, 8); } catch (Exception ex) { LogError($"❌ InspectTarFirmware entry parse failed: {ex.Message}"); }
                             long blocks = (entryBytes + 511) / 512;
                             fs.Seek(blocks * 512, SeekOrigin.Current);
                         }
@@ -1089,7 +1089,7 @@ namespace WinFormsApp1
                 }
                 Log("────────────────────────────────────────────────────────────\n", colorSamsung);
             }
-            catch { }
+            catch (Exception ex) { LogError($"❌ InspectTarFirmware failed: {ex.Message}"); }
         }
 
         private void InspectXmlFirmware(string xmlPath)
@@ -1118,7 +1118,7 @@ namespace WinFormsApp1
                 if (matches.Count > 15) Log($"  ... and {matches.Count - 15} more partitions", colorInfo);
                 Log("────────────────────────────────────────────────────────────\n", colorQualcomm);
             }
-            catch { }
+            catch (Exception ex) { LogError($"❌ InspectXmlFirmware failed: {ex.Message}"); }
         }
 
         private void InspectScatterFirmware(string scatterPath)
@@ -1145,7 +1145,7 @@ namespace WinFormsApp1
                 Log($"  • Partitions   : {partCount} defined in partition layout", colorSuccess);
                 Log("────────────────────────────────────────────────────────────\n", colorMTK);
             }
-            catch { }
+            catch (Exception ex) { LogError($"❌ InspectScatterFirmware failed: {ex.Message}"); }
         }
 
         private void InspectPacFirmware(string pacPath)
@@ -1162,7 +1162,7 @@ namespace WinFormsApp1
                 Log($"  • Package Size : {sizeMB:F2} MB", colorInfo);
                 Log("────────────────────────────────────────────────────────────\n", colorSPD);
             }
-            catch { }
+            catch (Exception ex) { LogError($"❌ InspectPacFirmware failed: {ex.Message}"); }
         }
 
         // ================= QUALCOMM NATIVE (C++) & HYBRID EXECUTION =================
@@ -1235,7 +1235,7 @@ namespace WinFormsApp1
             }
             finally
             {
-                if (!p.HasExited) { try { p.Kill(entireProcessTree: true); } catch { } }
+                if (!p.HasExited) { try { p.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ } }
             }
 
             return false;
@@ -1274,7 +1274,7 @@ namespace WinFormsApp1
                     if (binFiles.Length > 0) return binFiles[0];
                 }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ FindXiaomiSigFile warning: {ex.Message}"); }
 
             return "";
         }
@@ -1514,7 +1514,7 @@ namespace WinFormsApp1
             finally
             {
                 lastPythonExitCode = process.HasExited ? process.ExitCode : -1;
-                if (!process.HasExited) { try { process.Kill(entireProcessTree: true); } catch { } }
+                if (!process.HasExited) { try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ } }
                 currentProcess = null;
                 cts = null;
                 SetOperationState(false);
@@ -1533,7 +1533,7 @@ namespace WinFormsApp1
                 if (bytes >= 1024.0 * 1024.0) return $"{bytes / (1024.0 * 1024.0):F2} MB";
                 return $"{kb:F0} KB";
             }
-            catch { return kbStr; }
+            catch (Exception ex) { LogWarning($"⚠️ FormatKbSize fallback: {ex.Message}"); return kbStr; }
         }
 
         // rawprogram0.xml ရွေးလိုက်တာနဲ့ firmware partitions တွေကို grid ထဲ checkbox နဲ့ ပြပေးခြင်း
@@ -2170,7 +2170,7 @@ namespace WinFormsApp1
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ FindQualcommLoader error: {ex.Message}"); }
 
             return null;
         }
@@ -2199,7 +2199,7 @@ namespace WinFormsApp1
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ ResolveQualcommLoaderFolder error: {ex.Message}"); }
             return "";
         }
 
@@ -2230,7 +2230,7 @@ namespace WinFormsApp1
                 }
                 models.Sort(CompareNatural); // G9 → G10 စဉ်မှန်အောင် natural order
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ GetQualcommFolderModels error: {ex.Message}"); }
             return models;
         }
 
@@ -2254,7 +2254,7 @@ namespace WinFormsApp1
                 }
                 brands.Sort(CompareNatural);
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ EnumerateLoaderBrands error: {ex.Message}"); }
             return brands;
         }
 
@@ -2295,7 +2295,7 @@ namespace WinFormsApp1
             {
                 if (SerialPort.GetPortNames().Length == 0) return true; // COM port မရှိ = WinUSB driver setup
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ UseUsbTransport warning: {ex.Message}"); }
             return false;
         }
 
@@ -2312,7 +2312,7 @@ namespace WinFormsApp1
                 string probe = RunPythonOneShot("-c \"import usb.core\nok=False\ntry:\n d=usb.core.find(idVendor=0x05c6,idProduct=0x9008)\n if d is not None:\n  d.get_active_configuration()\n  ok=True\nexcept Exception:\n pass\nprint('YES' if ok else 'NO')\"", 12);
                 usb9008Available = probe != null && probe.Contains("YES");
             }
-            catch { usb9008Available = false; }
+            catch (Exception ex) { LogWarning($"⚠️ IsUsb9008Available warning: {ex.Message}"); usb9008Available = false; }
             return usb9008Available;
         }
 
@@ -2339,7 +2339,7 @@ namespace WinFormsApp1
                 p.WaitForExit(3000);
                 return (outp + "\n" + err).Trim();
             }
-            catch { return null; }
+            catch (Exception ex) { LogWarning($"⚠️ RunPythonOneShot warning: {ex.Message}"); return null; }
         }
 
         private string GetEdlLoaderArg()
@@ -2395,7 +2395,7 @@ namespace WinFormsApp1
                 string[] ports = SerialPort.GetPortNames();
                 if (ports.Length > 0) return $"--serial --portname={ports[0]} ";
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ GetEdlResetArgs warning: {ex.Message}"); }
             return "--serial ";
         }
 
@@ -2407,7 +2407,7 @@ namespace WinFormsApp1
                 return IOFile.Exists(edlScriptPath) &&
                        IOFile.ReadAllText(edlScriptPath).Contains("--sig", StringComparison.OrdinalIgnoreCase);
             }
-            catch { return false; }
+            catch (Exception ex) { LogWarning($"⚠️ EdlSupportsSig fallback: {ex.Message}"); return false; }
         }
 
         // ================= Category Switching =================
@@ -2747,11 +2747,11 @@ namespace WinFormsApp1
                     var running = Process.GetProcessesByName(pName);
                     foreach (var p in running)
                     {
-                        try { p.Kill(); } catch { }
+                        try { p.Kill(); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
                     }
                 }
             }
-            catch { }
+            catch (Exception) { /* Operation already stopped or process exited — safe to ignore */ }
             finally
             {
                 currentProcess = null;
@@ -2793,7 +2793,7 @@ namespace WinFormsApp1
         {
             if (currentProcess != null && !currentProcess.HasExited)
             {
-                try { currentProcess.Kill(entireProcessTree: true); } catch { }
+                try { currentProcess.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
             }
         }
 
@@ -2826,7 +2826,7 @@ namespace WinFormsApp1
             if (!probe.IsCompleted)
             {
                 KillCurrentPython();
-                try { await probe; } catch { }
+                try { await probe; } catch (Exception) { /* probe failed — loader-missing path က အောက်မှာ ကိုယ်တိုင် သတိပေးပြီးသား */ }
                 LogWarning("⚠️ ဒီဖုန်းအတွက် loader မမှတ်ရသေးပါ — Brand/Model ရွေးပြီး တစ်ခါ လုပ်ပေးပါ (နောက်ကစ auto မှတ်မိပါမယ်)");
                 return false;
             }
@@ -3093,7 +3093,7 @@ namespace WinFormsApp1
             SetStatus("Reading modem partition...");
             UpdateGlobalProgress(15, "Reading modem...");
 
-            try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch { }
+            try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ RunPhoneDirectModemPatchAsync temp cleanup warning: {ex.Message}"); }
 
             string rArgs = GetEdlLoaderArg();
             string res = await RunProcessCommand(pythonPath, $"\"{script}\" {rArgs}r modem \"{dumpPath}\"", "Reading modem...", true);
@@ -3199,7 +3199,7 @@ namespace WinFormsApp1
             {
                 if (!IOFile.Exists(backupPath)) IOFile.Copy(src, backupPath);
             }
-            catch { }
+            catch (Exception ex) { LogError($"❌ btnQcMiBypass_Click failed: {ex.Message}"); }
 
             byte[] repBytes = System.Text.Encoding.ASCII.GetBytes(REPL);
             foreach (int off in offsets)
@@ -3857,7 +3857,7 @@ namespace WinFormsApp1
                             ulong bytes = Convert.ToUInt64(raw.Replace("0x", ""), 16);
                             emmcSize = $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
                         }
-                        catch { emmcSize = raw; }
+                        catch (Exception ex) { LogWarning($"⚠️ eMMC size parse fallback: {ex.Message}"); emmcSize = raw; }
                     }
                     else if (cleanLine.Contains("Bypassing security", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("Done sending payload", StringComparison.OrdinalIgnoreCase))
                     {
@@ -3946,7 +3946,7 @@ namespace WinFormsApp1
             }
             finally
             {
-                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch { }
+                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
                 currentProcess = null;
                 cts = null;
                 SetOperationState(false);
@@ -4036,7 +4036,7 @@ namespace WinFormsApp1
             }
             finally
             {
-                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch { }
+                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
                 currentProcess = null;
                 cts = null;
                 SetOperationState(false);
@@ -4064,7 +4064,7 @@ namespace WinFormsApp1
                     if (bytes >= 1024UL) return $"{bytes / (1024.0 * 1024.0):F2} KB";
                     return $"{bytes} B";
                 }
-                catch { return "N/A"; }
+                catch (Exception ex) { LogWarning($"⚠️ FormatHexSize fallback: {ex.Message}"); return "N/A"; }
             }
 
             foreach (string rawLine in lines)
@@ -5224,7 +5224,7 @@ namespace WinFormsApp1
                             break;
                         }
                     }
-                    catch { }
+                    catch (Exception ex) { LogWarning($"⚠️ btnSamMtpFrp_Click error: {ex.Message}"); }
                 }
 
                 if (!found)
@@ -5342,7 +5342,7 @@ namespace WinFormsApp1
             foreach (var exe in exes)
             {
                 LogInfo($"🛠️ Installing Driver: {Path.GetFileName(exe)}...");
-                try { Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true }); } catch { }
+                try { Process.Start(new ProcessStartInfo(exe) { UseShellExecute = true }); } catch (Exception ex) { LogWarning($"⚠️ InstallAllDrivers warning: {ex.Message}"); }
             }
             LogSuccess("✅ Driver installers launched!");
         }
@@ -5573,7 +5573,7 @@ namespace WinFormsApp1
                 ms.dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
                 if (GlobalMemoryStatusEx(ref ms)) { ramTotal = ms.ullTotalPhys; ramAvail = ms.ullAvailPhys; }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ PopulatePcInfo error (RAM): {ex.Message}"); }
 
             // CPU name (registry)
             string cpuName = "";
@@ -5582,7 +5582,7 @@ namespace WinFormsApp1
                 using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
                 cpuName = key?.GetValue("ProcessorNameString")?.ToString()?.Trim() ?? "";
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ PopulatePcInfo error (CPU): {ex.Message}"); }
 
             // Drive C:
             string driveInfo = "";
@@ -5600,7 +5600,7 @@ namespace WinFormsApp1
             bool edlOk = IOFile.Exists(Path.Combine(startUp, "edl", "edl.py"));
             bool mtkOk = IOFile.Exists(Path.Combine(startUp, "mtkclient", "mtk.py")) || IOFile.Exists(Path.Combine(startUp, "mtk", "mtk.py"));
             int loaderBrands = 0;
-            try { loaderBrands = Directory.GetDirectories(Path.Combine(startUp, "Loaders")).Length; } catch { }
+            try { loaderBrands = Directory.GetDirectories(Path.Combine(startUp, "Loaders")).Length; } catch (Exception ex) { LogWarning($"⚠️ PopulatePcInfo error (Loaders scan): {ex.Message}"); }
 
             // Python version (fast hidden check)
             string pyVer = "";
@@ -5617,7 +5617,7 @@ namespace WinFormsApp1
                 if (p != null)
                 {
                     string outp = p.StandardError.ReadToEnd() + p.StandardOutput.ReadToEnd();
-                    if (!p.WaitForExit(3000)) { try { p.Kill(); } catch { } pyVer = "timeout"; }
+                    if (!p.WaitForExit(3000)) { try { p.Kill(); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ } pyVer = "timeout"; }
                     else pyVer = outp.Trim();
                 }
                 else pyVer = "cannot start";
@@ -5661,7 +5661,7 @@ namespace WinFormsApp1
                 if (themeLoading) return;
                 ThemeManager.Set(cboTheme.Text);
                 ApplyTheme();
-                try { IOFile.WriteAllText(ThemeFilePath, cboTheme.Text); } catch { }
+                try { IOFile.WriteAllText(ThemeFilePath, cboTheme.Text); } catch (Exception ex) { LogWarning($"⚠️ InitThemeSelector error: {ex.Message}"); }
                 Log($"🎨 Theme changed: {cboTheme.Text}", colorInfo);
             };
             host.Controls.Add(cboTheme);
@@ -5681,7 +5681,7 @@ namespace WinFormsApp1
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ InitThemeSelector error: {ex.Message}"); }
         }
 
         // ============ Auto-Detect loader learning (HWID+PK_HASH → loader) ============
@@ -5751,7 +5751,7 @@ namespace WinFormsApp1
                     }
                 }
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ TryResolveAutoLoader error: {ex.Message}"); }
             return "";
         }
 
@@ -5880,7 +5880,7 @@ namespace WinFormsApp1
                         display = $"💾 Total disk: {(bytes / (1024.0 * 1024.0 * 1024.0)):F2} GB";
                         col = colorSuccess;
                     }
-                    catch { return; }
+                    catch (Exception ex) { LogWarning($"⚠️ LogEdlLineSmart size parse fallback: {ex.Message}"); return; }
                 }
                 else return;
             }
@@ -5979,7 +5979,7 @@ namespace WinFormsApp1
                 cts?.Cancel();
                 if (currentProcess != null && !currentProcess.HasExited) currentProcess.Kill(entireProcessTree: true);
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ Form1_FormClosing error: {ex.Message}"); }
             finally
             {
                 portTimer?.Stop();
@@ -6061,7 +6061,7 @@ namespace WinFormsApp1
                 if (mobilePortCombo.Items.Contains(currentSelection)) mobilePortCombo.SelectedItem = currentSelection;
                 else mobilePortCombo.SelectedIndex = 0;
             }
-            catch { }
+            catch (Exception ex) { LogWarning($"⚠️ RefreshPorts warning: {ex.Message}"); }
         }
 
         // ================= 🔍 Partition Hex Editor (devinfo/config စတဲ့ သေးငယ်တဲ့ partition) =================
@@ -6076,7 +6076,7 @@ namespace WinFormsApp1
             }
 
             ulong partSize = 0;
-            try { partSize = Convert.ToUInt64(pinfo.Length.Replace("0x", ""), 16); } catch { }
+            try { partSize = Convert.ToUInt64(pinfo.Length.Replace("0x", ""), 16); } catch (Exception ex) { LogWarning($"⚠️ btnQcHexEdit_Click fallback: {ex.Message}"); }
             if (partSize == 0 || partSize > 64UL * 1024 * 1024)
             {
                 MessageBox.Show("ဒီ tool က 64MB အောက် partition တွေအတွက်ပါ (ဒီ partition: " + pinfo.Length + " B) — persist လိုအကြီးကြီးဆို Persist B/U tool သုံးပါ။", "Hex Edit", MessageBoxButtons.OK, MessageBoxIcon.Warning);
@@ -6085,7 +6085,7 @@ namespace WinFormsApp1
 
             string script = Path.Combine(Application.StartupPath, "edl", "edl.py");
             string dumpPath = Path.Combine(Path.GetTempPath(), $"pmk_{part}_dump.bin");
-            try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch { }
+            try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ btnQcHexEdit_Click temp cleanup warning: {ex.Message}"); }
 
             SetOperationState(true);
             SetStatus($"Dumping {part}...");
@@ -6095,7 +6095,7 @@ namespace WinFormsApp1
             byte[] data = null;
             if (PythonOpSucceeded(res) && IOFile.Exists(dumpPath))
             {
-                try { data = IOFile.ReadAllBytes(dumpPath); } catch { }
+                try { data = IOFile.ReadAllBytes(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ btnQcHexEdit_Click fallback: {ex.Message}"); }
             }
 
             if (data == null || data.Length == 0)
