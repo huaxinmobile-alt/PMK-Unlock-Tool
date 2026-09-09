@@ -1,7 +1,7 @@
 {
-  "version": "4.0.4",
-  "notes": "PMK Unlock Tool v4.0.4 \u2014 version display fix.\n\n- Startup log banner now shows the real version (was hardcoded v4.0)\n- Settings \u2192 PC INFO \u2192 Tool Version shows clean version",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.4/PMK-Unlock-Tool-v4.0.4.zip",
-  "sha256": "1e78389137ee9d269aa41ef9def7318b1239eaaed57364db36cfecd847e10f67",
-  "size": 588121294
+  "version": "4.0.5",
+  "notes": "PMK Unlock Tool v4.0.5 \u2014 window opens in front automatically.",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.5/PMK-Unlock-Tool-v4.0.5.zip",
+  "sha256": "d13e4b24075d805a379bf4a5b3cfe7e54a08c8058ff176ff8fe062543cb4a4a1",
+  "size": 588121697
 }
