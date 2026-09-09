@@ -4311,8 +4311,33 @@ namespace WinFormsApp1
                 Row("Active Slot", P("ro.boot.slot_suffix"));
                 string frpPath = await Sh("ls /dev/block/bootdevice/by-name/frp /dev/block/by-name/frp 2>/dev/null");
                 Row("FRP Partition", string.IsNullOrEmpty(frpPath) || frpPath.Contains("No such") ? "not found" : frpPath.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries).FirstOrDefault()?.Trim());
-                string disk = await Sh("cat /sys/class/scsi_device/0:0:0:0/device/model 2>/dev/null");
-                Row("Storage (UFS model)", string.IsNullOrEmpty(disk) ? P("ro.boot.bootdevice") : disk.Trim());
+
+                // Storage chip (UFS/eMMC) — sysfs ကနေ တကယ့် chip model ကို ရှာဖတ်တယ်
+                string diskProbe = await Sh("for f in /sys/block/sd*/device/model /sys/class/scsi_device/*/device/model /sys/block/mmcblk*/device/name /sys/block/mmcblk*/device/manfid; do if [ -r \"$f\" ]; then v=$(cat \"$f\" 2>/dev/null); [ -n \"$v\" ] && echo \"$f=$v\"; fi; done 2>/dev/null");
+                string chipModel = "";
+                string mmcName = "", mmcManf = "";
+                if (!string.IsNullOrWhiteSpace(diskProbe))
+                {
+                    foreach (string dl in diskProbe.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries))
+                    {
+                        string dt = dl.Trim();
+                        int eq = dt.LastIndexOf('=');
+                        if (eq <= 0) continue;
+                        string path = dt.Substring(0, eq).Trim();
+                        string val = dt.Substring(eq + 1).Trim();
+                        if (val.Length == 0) continue;
+                        if (path.Contains("/device/model") && val != "1d84000.ufshc")
+                        {
+                            chipModel = val; // scsi/ufs model ဥပမာ SAMSUNG KLUDG4UHGC...
+                        }
+                        else if (path.Contains("mmcblk") && path.EndsWith("/name")) mmcName = val;
+                        else if (path.Contains("mmcblk") && path.EndsWith("/manfid")) mmcManf = val;
+                    }
+                }
+                if (string.IsNullOrEmpty(chipModel) && !string.IsNullOrEmpty(mmcName))
+                    chipModel = mmcName + (string.IsNullOrEmpty(mmcManf) ? "" : $" (manfid {mmcManf})");
+                Row("Storage Chip", string.IsNullOrEmpty(chipModel) ? P("ro.boot.bootdevice") : chipModel);
+                Row("Boot Device", P("ro.boot.bootdevice"));
 
                 LogSuccess("✅ Full info ဖတ်ပြီးပါပြီ။");
             }
