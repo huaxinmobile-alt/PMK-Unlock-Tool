@@ -37,8 +37,6 @@ namespace WinFormsApp1
         private string qflEnginePath = "";
 
         // ================= Process Control =================
-        private CancellationTokenSource cts = null;
-        private Process currentProcess = null;
         private bool isOperationRunning = false;
         private System.Windows.Forms.Timer portTimer = null;
 
@@ -46,20 +44,13 @@ namespace WinFormsApp1
         private List<PartitionInfo> partitions = new List<PartitionInfo>();
         private FirmwareService _firmwareService;
         private LoaderService _loaderService;
+        private ProcessRunnerService _processRunner;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         private string currentMemoryType = "emmc";
         private bool usb9008Available = false;   // WinUSB (QHSUSB__BULK) transport ရှိမရှိ — USB mode က serial ထက် 3x မြန်ပါတယ်
         private DateTime usbProbeTime = DateTime.MinValue;
-        private int lastPythonExitCode = -1;     // python op တစ်ခုစီရဲ့ exit code (success စစ်ဖို့)
 
-        // ============ Clean EDL log state ============
-        private string detectedChipset = "";     // python ကနေ ဖတ်လို့ရတဲ့ chipset (CPU detected)
-        private string detectedHwid = "";        // HWID (auto-loader learning အတွက်)
-        private string detectedPkhash = "";      // PK_HASH (auto-loader learning အတွက်)
-        private bool detectedLoaderMissing = false; // python က ဒီဖုန်းအတွက် loader မတွေ့ဘူးဆိုတဲ့ flag
-        private string lastSmartLine = "";
-        private int lastSmartRepeat = 0;
 
 
         // ================= UI Controls =================
@@ -168,6 +159,15 @@ namespace WinFormsApp1
             InitializeComponent();
             _firmwareService = new FirmwareService(Log);
             _loaderService = new LoaderService(Log);
+            _processRunner = new ProcessRunnerService(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                SetOperationState,
+                () => _loaderService.PersistAutoLoaderMap(_processRunner.DetectedHwid, _processRunner.DetectedPkhash, CurrentLoaderPath()),
+                () => pythonPath,
+                () => adbPath,
+                a => this.Invoke(a));
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -934,80 +934,7 @@ namespace WinFormsApp1
             return ports.Length > 0 ? ports[0] : "COM11";
         }
 
-        private async Task<bool> RunNativeSaharaLoader(string portName, string loaderPath)
-        {
-            string qSaharaExe = Path.Combine(qualcommCorePath, "QSaharaServer.exe");
-            if (!IOFile.Exists(qSaharaExe)) return false;
 
-            string args = $"-p \\\\.\\{portName} -s 13:\"{loaderPath}\"";
-
-            LogQualcomm($"\n🚀 [Native Sahara] Uploading Loader via QSaharaServer: {Path.GetFileName(loaderPath)}...");
-            UpdateGlobalProgress(25, "Uploading Loader...");
-
-            // Loader upload (serial) က စက္ကန့် ၃၀-၉၀ ကြာနိုင်လို့ timeout 90s ပေးထားပြီး
-            // cancel ဖြစ်ရင် COM port လွှတ်ဖို့ process ကို သေချာ kill လုပ်ပါတယ်
-            using var saharaCts = new CancellationTokenSource(TimeSpan.FromSeconds(90));
-            var output = new System.Text.StringBuilder();
-
-            using var p = new Process();
-            p.StartInfo = new ProcessStartInfo
-            {
-                FileName = qSaharaExe,
-                Arguments = args,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = qualcommCorePath
-            };
-
-            try
-            {
-                p.OutputDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) output.AppendLine(e.Data); };
-                p.ErrorDataReceived += (s, e) => { if (!string.IsNullOrEmpty(e.Data)) output.AppendLine(e.Data); };
-
-                p.Start();
-                p.BeginOutputReadLine();
-                p.BeginErrorReadLine();
-                await p.WaitForExitAsync(saharaCts.Token);
-
-                string result = output.ToString();
-                // QSaharaServer build အချို့က success ဖြစ်ရင်တောင် ဘာမှ ထုတ်မပြတတ်လို့ exit code 0 ကို အဓိက စစ်ပါတယ်
-                if (p.ExitCode == 0 ||
-                    result.Contains("Sahara protocol completed") ||
-                    result.Contains("Done sending payload") ||
-                    result.Contains("File transferred successfully"))
-                {
-                    LogSuccess("✅ Sahara Handshake Completed! Switched to Firehose Mode.");
-                    return true;
-                }
-
-                LogError($"❌ QSaharaServer failed with exit code {p.ExitCode}.");
-            }
-            catch (OperationCanceledException)
-            {
-                LogError("❌ Sahara Upload Timeout (90s): ဖုန်းဘက်မှ တုံ့ပြန်မှု မရှိပါ။ ဖုန်းကို Battery ဖြုတ်/တပ်ပြီး Test Point ပြန်ထောက်ပေးပါ။");
-            }
-            catch (Exception ex)
-            {
-                LogError($"❌ Sahara Error: {ex.Message}");
-            }
-            finally
-            {
-                if (!p.HasExited) { try { p.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ } }
-            }
-
-            return false;
-        }
-
-        private async Task<string> RunNativeFhLoader(string portName, string fhArgs)
-        {
-            string fhLoaderExe = Path.Combine(qualcommCorePath, "fh_loader.exe");
-            if (!IOFile.Exists(fhLoaderExe)) return null;
-
-            string args = $"--port=\\\\.\\{portName} --noprompt {fhArgs}";
-            return await RunProcessCommand(fhLoaderExe, args, "Executing Firehose Command...", true);
-        }
 
 
         // ================= Hybrid Qualcomm Execution Handler =================
@@ -1033,7 +960,7 @@ namespace WinFormsApp1
             // Auto-Detect: loader မပါဘဲ flash စမ်းရင် — ဒီဖုန်းအတွက် မှတ်ထားတဲ့ loader ရှိရင် အလိုအလျောက် ယူမယ်
             if (string.IsNullOrEmpty(loader) || !IOFile.Exists(loader))
             {
-                string autoLdr = _loaderService.TryResolveAutoLoader(detectedHwid, detectedPkhash);
+                string autoLdr = _loaderService.TryResolveAutoLoader(_processRunner.DetectedHwid, _processRunner.DetectedPkhash);
                 if (autoLdr.Length > 0)
                 {
                     loader = autoLdr;
@@ -1053,7 +980,7 @@ namespace WinFormsApp1
                 if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && !string.IsNullOrEmpty(loader) && IOFile.Exists(loader))
                 {
                     LogQualcomm("\n🚀 [1/2] Uploading Firehose Loader (QSaharaServer)...");
-                    bool loaderUp = await RunNativeSaharaLoader(port, loader);
+                    bool loaderUp = await _processRunner.RunNativeSaharaLoader(port, loader);
                     if (loaderUp)
                     {
                         LogQualcomm("🔄 Waiting for Firehose mode switch...");
@@ -1084,7 +1011,7 @@ namespace WinFormsApp1
 
                 LogQualcomm("\n🚀 [2/2] Flashing Firmware (Python EDL qfil)...");
 
-                string edlRes = await RunQfilFlash(edlCmd, seqFiles, "Flashing Firmware...");
+                string edlRes = await _processRunner.RunQfilFlash(edlCmd, seqFiles, "Flashing Firmware...");
 
                 // Success စစ်ဆေးချက်: [PMK-DONE] marker တွေ အကုန်ရောက်ရင် အောင် (python ရဲ့ "ok" စာသား တစ်ခါတစ်လေ မပါတတ်လို့)
                 int doneCount = edlRes == null ? 0 : System.Text.RegularExpressions.Regex.Matches(edlRes, @"\[PMK-DONE\]").Count;
@@ -1116,142 +1043,6 @@ namespace WinFormsApp1
 
         // ================= Colored per-file qfil flash runner =================
         // python qfil output ကို marker ([PMK-FLASH]/[PMK-DONE]) နဲ့ အရောင်စုံ log ပြောင်းပေးပါတယ်
-        private async Task<string> RunQfilFlash(string arguments, List<string> seqFiles, string statusText)
-        {
-            if (string.IsNullOrWhiteSpace(pythonPath)) return null;
-
-            using CancellationTokenSource operationCts = new CancellationTokenSource();
-            using Process process = new Process();
-            cts = operationCts;
-            currentProcess = process;
-            SetOperationState(true);
-            if (!string.IsNullOrEmpty(statusText)) SetStatus(statusText);
-            UpdateGlobalProgress(5, "Connecting...");
-
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = pythonPath,
-                Arguments = $"-u {arguments}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = AppConfig.BaseDir
-            };
-            process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
-
-            var fullOutput = new System.Text.StringBuilder();
-            int flashCounter = 0;
-            int totalFiles = seqFiles != null && seqFiles.Count > 0 ? seqFiles.Count : 0;
-            string lastSpeed = "";
-
-            void HandleLine(string rawLine)
-            {
-                if (string.IsNullOrEmpty(rawLine)) return;
-                string line = Regex.Replace(rawLine, @"\x1B\[[^@-~]*[=@-~]", "").Trim();
-                if (string.IsNullOrEmpty(line)) return;
-                fullOutput.AppendLine(line);
-
-                // python ရဲ့ raw progress bar တွေ (carriage-return) ကို ချန်ပြီး progress bar ကိုပဲ update လုပ်တယ်
-                if (line.StartsWith("Progress:") || line.StartsWith("Done |") || line.StartsWith("|") || line.StartsWith("\r") || line.StartsWith("Wrote "))
-                {
-                    // ⚡ speed (MB/s) ကို ဖမ်းပြီး label မှာ ပြတယ်
-                    Match spd = Regex.Match(line, @"([\d.]+)\s*(MB|KB|GB)/s");
-                    if (spd.Success) lastSpeed = spd.Groups[1].Value + " " + spd.Groups[2].Value + "/s";
-
-                    Match pct = Regex.Match(line, @"(\d{1,3}(?:\.\d+)?)%");
-                    if (pct.Success && double.TryParse(pct.Groups[1].Value, System.Globalization.NumberStyles.Float, System.Globalization.CultureInfo.InvariantCulture, out double pv))
-                    {
-                        int basePct = totalFiles > 0 ? (flashCounter * 100) / totalFiles : 0;
-                        UpdateGlobalProgress(Math.Min(99, basePct + (int)(pv / (totalFiles > 0 ? totalFiles : 1))), lastSpeed);
-                    }
-                    return;
-                }
-
-                this.Invoke(new Action(() =>
-                {
-                    if (line.StartsWith("[PMK-FLASH]"))
-                    {
-                        string file = line.Substring("[PMK-FLASH]".Length).Trim();
-                        flashCounter++;
-                        int idx = flashCounter;
-                        string cnt = totalFiles > 0 ? $"[{idx}/{totalFiles}] " : "";
-                        Log($"\n🔥 {cnt}Flashing: {file} ...", Color.FromArgb(255, 179, 71));
-                        SetStatus($"Flashing ({idx}{(totalFiles > 0 ? "/" + totalFiles : "")}): {file}");
-                        UpdateGlobalProgress(totalFiles > 0 ? (idx * 100) / totalFiles : 10, file);
-                    }
-                    else if (line.StartsWith("[PMK-DONE]"))
-                    {
-                        string file = line.Substring("[PMK-DONE]".Length).Trim();
-                        string spdTxt = lastSpeed.Length > 0 ? $" — ⚡ {lastSpeed}" : "";
-                        Log($"✅ {file} — written successfully{spdTxt}", colorSuccess);
-                    }
-                    else if (line.Contains("[qfil] raw programming ok.") || line.Contains("[qfil] patching ok"))
-                    {
-                        Log(line.Replace("[qfil]", "📦"), colorSuccess);
-                    }
-                    else if (line.Contains("Only nop and sig") || line.Contains("Auth detected"))
-                    {
-                        Log($"🔑 {line}", colorWarning);
-                    }
-                    else if (line.Contains("authenticated", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Log($"🔓 {line}", colorSuccess);
-                    }
-                    else if (line.Contains("Mode detected"))
-                    {
-                        Log($"🔌 {line}", Color.FromArgb(128, 216, 255));
-                    }
-                    else if (line.Contains("Traceback") || line.Contains("Error:") || line.Contains("error:") || line.Contains("failed", StringComparison.OrdinalIgnoreCase) || line.Contains("ERROR"))
-                    {
-                        Log($"❌ {line}", colorError);
-                    }
-                    else if (line.Contains("Uploading loader") || line.Contains("Waiting for the device") || line.Contains("Device detected"))
-                    {
-                        Log($"⏳ {line}", colorInfo);
-                    }
-                    else if (line.StartsWith("main") || line.StartsWith("firehose") || line.StartsWith("sahara") || line.StartsWith("DeviceClass"))
-                    {
-                        // logger prefix line တွေကို ချန်လိုက်တယ် (အဓိပ္ပါယ်မရှိလို့)
-                    }
-                    else if (!string.IsNullOrEmpty(line))
-                    {
-                        Log(line, colorInfo);
-                    }
-                }));
-            }
-
-            process.OutputDataReceived += (s, e) => HandleLine(e.Data);
-            process.ErrorDataReceived += (s, e) => HandleLine(e.Data);
-
-            try
-            {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                await process.WaitForExitAsync(operationCts.Token);
-                return fullOutput.ToString().Trim();
-            }
-            catch (OperationCanceledException)
-            {
-                LogError("🛑 Flash operation cancelled by user.");
-                return null;
-            }
-            catch (Exception ex)
-            {
-                LogError($"❌ {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                lastPythonExitCode = process.HasExited ? process.ExitCode : -1;
-                if (!process.HasExited) { try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ } }
-                currentProcess = null;
-                cts = null;
-                SetOperationState(false);
-                SetStatus("Ready");
-            }
-        }
 
         // ================= Qualcomm Firmware Preview (QFIL / unlock-tool style) =================
 
@@ -1403,7 +1194,7 @@ namespace WinFormsApp1
                 {
                     LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
                     string edlScript = AppConfig.EdlScript;
-                    await RunProcessCommand(pythonPath, $"\"{edlScript}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                    await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                     LogSuccess("📱 Phone is rebooting!\n");
                 }
             }
@@ -1474,7 +1265,7 @@ namespace WinFormsApp1
                         if (chkAutoRebootMaster.Checked)
                         {
                             LogSamsung("🔄 [Auto Reboot] Rebooting phone to System...");
-                            await RunAdbTargeted("reboot", "Rebooting...", false);
+                            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
                             LogSuccess("📱 Phone is restarting to Welcome Setup. Enjoy!\n");
                         }
 
@@ -1517,7 +1308,7 @@ namespace WinFormsApp1
                     {
                         LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
                         string edlScript2 = AppConfig.EdlScript;
-                        await RunProcessCommand(pythonPath, $"\"{edlScript2}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                        await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript2}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                         LogSuccess("📱 Phone is rebooting!\n");
                     }
                 }
@@ -1545,14 +1336,14 @@ namespace WinFormsApp1
                 LogMTK($"\n🔥 [MTK SP Flash] Flashing Scatter Directory: {firmwareFolder}...");
                 LogMTK("📱 Power OFF device -> Hold (Vol+ & Vol-) -> Connect USB Cable");
 
-                string res = await RunMtkSleekCommand($"\"{script}\" {daArg}--loglevel INFO wl \"{firmwareFolder}\"", "Flashing MediaTek Scatter...");
+                string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}--loglevel INFO wl \"{firmwareFolder}\"", "Flashing MediaTek Scatter...");
                 if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
                 {
                     LogSuccess("✅ MediaTek Scatter Flashing Completed Successfully!");
                     if (chkAutoRebootMaster.Checked)
                     {
                         LogMTK("🔄 [Auto Reboot] Restarting phone to System...");
-                        await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                        await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                         LogSuccess("📱 Phone is rebooting!\n");
                     }
                 }
@@ -1731,7 +1522,7 @@ namespace WinFormsApp1
                         if (saveFileDlg.ShowDialog() == DialogResult.OK)
                         {
                             LogMTK($"\n📖 [MTK] Dumping partition [{part}]...");
-                            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}r {part} \"{saveFileDlg.FileName}\"", $"Reading {part}...");
+                            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}r {part} \"{saveFileDlg.FileName}\"", $"Reading {part}...");
                             if (res != null) LogSuccess($"✅ Partition [{part}] saved to: {saveFileDlg.FileName}");
                         }
                         break;
@@ -1743,7 +1534,7 @@ namespace WinFormsApp1
                             if (MessageBox.Show($"Flash file into '{part}' partition?", "Confirm Write", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                             {
                                 LogMTK($"\n✏️ [MTK] Writing to partition [{part}]...");
-                                string res = await RunProcessCommand(pythonPath, $"\"{script}\" {daArg}w {part} \"{openFileDlg.FileName}\"", $"Writing {part}...", true);
+                                string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}w {part} \"{openFileDlg.FileName}\"", $"Writing {part}...", true);
                                 if (res != null) LogSuccess($"✅ Successfully written to [{part}]!");
                             }
                         }
@@ -1754,7 +1545,7 @@ namespace WinFormsApp1
                         if (MessageBox.Show($"Are you sure you want to erase/format [{part}] partition?", "Confirm Erase", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                         {
                             LogMTK($"\n🗑️ [MTK] Erasing partition [{part}]...");
-                            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {daArg}e {part}", $"Erasing {part}...", true);
+                            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}e {part}", $"Erasing {part}...", true);
                             if (res != null) LogSuccess($"✅ Partition [{part}] erased successfully!");
                         }
                         break;
@@ -1768,15 +1559,15 @@ namespace WinFormsApp1
                 // Native C++ Execution
                 if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && IOFile.Exists(loader))
                 {
-                    bool sOk = await RunNativeSaharaLoader(port, loader);
+                    bool sOk = await _processRunner.RunNativeSaharaLoader(port, loader);
                     if (sOk)
                     {
                         await Task.Delay(1000);
                         if (action == "Erase" || action == "Format")
                         {
-                            await RunNativeFhLoader(port, $"--erase={part}");
+                            await _processRunner.RunNativeFhLoader(port, $"--erase={part}");
                             LogSuccess($"✅ Partition [{part}] erased successfully via Native Engine!");
-                            await RunNativeFhLoader(port, "--reset");
+                            await _processRunner.RunNativeFhLoader(port, "--reset");
                             return;
                         }
                     }
@@ -1793,7 +1584,7 @@ namespace WinFormsApp1
                         if (saveFileDlg.ShowDialog() == DialogResult.OK)
                         {
                             LogQualcomm($"\n📖 [Qualcomm] Dumping partition [{part}]...");
-                            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}r {part} \"{saveFileDlg.FileName}\"", $"Reading {part}...");
+                            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}r {part} \"{saveFileDlg.FileName}\"", $"Reading {part}...");
                             if (res != null) LogSuccess($"✅ Partition [{part}] saved to: {saveFileDlg.FileName}");
                         }
                         break;
@@ -1805,7 +1596,7 @@ namespace WinFormsApp1
                             if (MessageBox.Show($"Flash file into '{part}' partition?", "Confirm Write", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                             {
                                 LogQualcomm($"\n✏️ [Qualcomm] Writing to partition [{part}]...");
-                                string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}w {part} \"{openFileDlg.FileName}\"", $"Writing {part}...", true);
+                                string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}w {part} \"{openFileDlg.FileName}\"", $"Writing {part}...", true);
                                 if (res != null) LogSuccess($"✅ Successfully written to [{part}]!");
                             }
                         }
@@ -1816,7 +1607,7 @@ namespace WinFormsApp1
                         if (MessageBox.Show($"Are you sure you want to erase [{part}] partition?", "Confirm Erase", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
                         {
                             LogQualcomm($"\n🗑️ [Qualcomm] Erasing partition [{part}]...");
-                            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e {part}", $"Erasing {part}...", true);
+                            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e {part}", $"Erasing {part}...", true);
                             if (res != null) LogSuccess($"✅ Partition [{part}] erased successfully!");
                         }
                         break;
@@ -1853,7 +1644,7 @@ namespace WinFormsApp1
             {
                 // device ကို မြင်ရုံနဲ့ မလုံလောက် — libusb က တကယ် OPEN လို့ရမှ USB mode မှန်တယ်
                 // (usbser driver နဲ့ ချိတ်ထားရင် find က YES ပြန်ပေမဲ့ open မရတတ်လို့)
-                string probe = RunPythonOneShot("-c \"import usb.core\nok=False\ntry:\n d=usb.core.find(idVendor=0x05c6,idProduct=0x9008)\n if d is not None:\n  d.get_active_configuration()\n  ok=True\nexcept Exception:\n pass\nprint('YES' if ok else 'NO')\"", 12);
+                string probe = _processRunner.RunPythonOneShot("-c \"import usb.core\nok=False\ntry:\n d=usb.core.find(idVendor=0x05c6,idProduct=0x9008)\n if d is not None:\n  d.get_active_configuration()\n  ok=True\nexcept Exception:\n pass\nprint('YES' if ok else 'NO')\"", 12);
                 usb9008Available = probe != null && probe.Contains("YES");
             }
             catch (Exception ex) { LogWarning($"⚠️ IsUsb9008Available warning: {ex.Message}"); usb9008Available = false; }
@@ -1861,30 +1652,6 @@ namespace WinFormsApp1
         }
 
         // Python one-shot command (probe လိုမျိုး မြန်မြန်ဆန်ဆန်) အတွက် — log မထုတ်ဘူး
-        private string RunPythonOneShot(string args, int timeoutSeconds)
-        {
-            try
-            {
-                using CancellationTokenSource cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(timeoutSeconds));
-                using Process p = new Process();
-                p.StartInfo = new ProcessStartInfo
-                {
-                    FileName = pythonPath,
-                    Arguments = args,
-                    UseShellExecute = false,
-                    RedirectStandardOutput = true,
-                    RedirectStandardError = true,
-                    CreateNoWindow = true,
-                    WorkingDirectory = AppConfig.BaseDir
-                };
-                p.Start();
-                string outp = p.StandardOutput.ReadToEnd();
-                string err = p.StandardError.ReadToEnd();
-                p.WaitForExit(3000);
-                return (outp + "\n" + err).Trim();
-            }
-            catch (Exception ex) { LogWarning($"⚠️ RunPythonOneShot warning: {ex.Message}"); return null; }
-        }
 
         private string GetEdlLoaderArg()
         {
@@ -2201,14 +1968,14 @@ namespace WinFormsApp1
             LogQualcomm($"📁 Destination: {backupDir}");
 
             // edl.py rl <directory> --skip=userdata,cache,cust
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\" --skip=userdata,cache,cust", "Dumping Normal ROM...");
-            if (PythonOpSucceeded(res))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\" --skip=userdata,cache,cust", "Dumping Normal ROM...");
+            if (_processRunner.PythonOpSucceeded(res))
             {
                 _firmwareService.GenerateQualcommRawprogram(partitions, backupDir);
                 LogSuccess($"✅ Qualcomm Normal Firmware backed up successfully! (Small & Fast Size)");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -2237,7 +2004,7 @@ namespace WinFormsApp1
             LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
 
             // mtk.py rl <dir> --skip userdata,cache
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\" --skip userdata,cache", "Dumping Normal ROM...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\" --skip userdata,cache", "Dumping Normal ROM...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 var allParts = partitions.Where(p => !p.Name.Equals("userdata", StringComparison.OrdinalIgnoreCase) && !p.Name.Equals("cache", StringComparison.OrdinalIgnoreCase)).Select(p => p.Name).ToArray();
@@ -2246,7 +2013,7 @@ namespace WinFormsApp1
                 LogSuccess("📄 Generated MTK Scatter file successfully!");
 
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device rebooted successfully!\n");
             }
         }
@@ -2276,48 +2043,18 @@ namespace WinFormsApp1
         // ================= Force Stop All Running Operations =================
         private void btnStop_Click(object sender, EventArgs e)
         {
-            try
-            {
-                cts?.Cancel();
+            // process kill/cancel core က ProcessRunnerService ထဲ (CancelAllOperations)
+            _processRunner.CancelAllOperations();
 
-                if (currentProcess != null && !currentProcess.HasExited)
-                {
-                    currentProcess.Kill(entireProcessTree: true);
-                }
-
-                string[] processNames = { "python", "pythonw", "adb", "fastboot", "QSaharaServer", "fh_loader" };
-                foreach (var pName in processNames)
-                {
-                    var running = Process.GetProcessesByName(pName);
-                    foreach (var p in running)
-                    {
-                        try { p.Kill(); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
-                    }
-                }
-            }
-            catch (Exception) { /* Operation already stopped or process exited — safe to ignore */ }
-            finally
-            {
-                currentProcess = null;
-                cts = null;
-                SetOperationState(false);
-                SetStatus("Ready");
-                UpdateGlobalProgress(0, "Stopped");
-                Log("🛑 [STOPPED] Operation forcefully cancelled.", colorError);
-            }
+            SetOperationState(false);
+            SetStatus("Ready");
+            UpdateGlobalProgress(0, "Stopped");
+            Log("🛑 [STOPPED] Operation forcefully cancelled.", colorError);
         }
 
         // ================= Qualcomm Handlers (Native + EDL Hybrid) =================
         // python EDL op success စစ်ဆေးချက် — exit code 0 + fail-phrases မပါရင် အောင်
         // (အရင်က "error:" ပဲ ရှာတာမို့ "Couldn't erase..." လိုမျိုး မှားပြီး success ပြခဲ့တာ ပြင်ပါတယ်)
-        private bool PythonOpSucceeded(string outp)
-        {
-            if (outp == null) return false;
-            if (outp.Contains("Traceback")) return false;
-            if (lastPythonExitCode == 0) return true;
-            if (Regex.IsMatch(outp, @"(?i)(couldn|failed|not found|doesn'?t exist|no gpt partition|usage:)")) return false;
-            return true;
-        }
 
         // GPT output ထဲမှာ partition rows ပါမပါ စစ်ပြီး grid ထဲ ဖြည့်ခြင်း
         private bool TryParseGptResult(string outp)
@@ -2333,13 +2070,6 @@ namespace WinFormsApp1
             return false;
         }
 
-        private void KillCurrentPython()
-        {
-            if (currentProcess != null && !currentProcess.HasExited)
-            {
-                try { currentProcess.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
-            }
-        }
 
         // USB mode GPT read — Auto-Detect အပြည့်အစုံ:
         // loader မရွေးထားရင် ဖုန်း identity (HWID+PK_HASH) ကို အရင်စုံစမ်းပြီး
@@ -2349,27 +2079,27 @@ namespace WinFormsApp1
             // loader ရှိပြီးသားဆို တစ်ခါတည်း စမ်း
             if (CurrentLoaderPath().Length > 0)
             {
-                string r = await RunProcessCommand(pythonPath, $"\"{gptScript}\" {GetEdlLoaderArg()}printgpt", "Reading GPT (USB)...", true);
+                string r = await _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" {GetEdlLoaderArg()}printgpt", "Reading GPT (USB)...", true);
                 return TryParseGptResult(r);
             }
 
             LogQualcomm("🔍 Auto-Detect: python will match loader by phone ID (HWID)...");
-            detectedHwid = ""; detectedPkhash = ""; detectedLoaderMissing = false;
+            _processRunner.DetectedHwid = ""; _processRunner.DetectedPkhash = ""; _processRunner.DetectedLoaderMissing = false;
 
             // python က session တစ်ခုတည်းမှာ loader ရှာ → upload → auth → GPT အကုန်လုပ်တယ်
             // (loader ကို edlclient/Loaders ထဲမှာ hwid နာမည်နဲ့ မှတ်ထားလို့ loader မရွေးရဘဲ ရတယ်)
-            var probe = RunProcessCommand(pythonPath, $"\"{gptScript}\" --memory={currentMemoryType} printgpt", "Reading GPT (USB auto)...", true);
+            var probe = _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" --memory={currentMemoryType} printgpt", "Reading GPT (USB auto)...", true);
 
             for (int i = 0; i < 120; i++)
             {
                 if (probe.IsCompleted) break;
-                if (detectedLoaderMissing && i >= 10) break; // loader မရှိ — ဆက်စောင့်နေစရာမလို
+                if (_processRunner.DetectedLoaderMissing && i >= 10) break; // loader မရှိ — ဆက်စောင့်နေစရာမလို
                 await Task.Delay(500);
             }
 
             if (!probe.IsCompleted)
             {
-                KillCurrentPython();
+                _processRunner.KillCurrentPython();
                 try { await probe; } catch (Exception) { /* probe failed — loader-missing path က အောက်မှာ ကိုယ်တိုင် သတိပေးပြီးသား */ }
                 LogWarning("⚠️ ဒီဖုန်းအတွက် loader မမှတ်ရသေးပါ — Brand/Model ရွေးပြီး တစ်ခါ လုပ်ပေးပါ (နောက်ကစ auto မှတ်မိပါမယ်)");
                 return false;
@@ -2402,7 +2132,7 @@ namespace WinFormsApp1
             // Native C++ Execution
             if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && IOFile.Exists(loader))
             {
-                bool sOk = await RunNativeSaharaLoader(port, loader);
+                bool sOk = await _processRunner.RunNativeSaharaLoader(port, loader);
                 if (sOk)
                 {
                     LogQualcomm("🔄 Waiting for Firehose mode switch...");
@@ -2422,7 +2152,7 @@ namespace WinFormsApp1
                         string[] ports = SerialPort.GetPortNames();
                         if (ports.Length > 0) gptArgs += $"--portname={ports[0]} ";
                     }
-                    string gptRes = await RunProcessCommand(pythonPath, $"\"{gptScript}\" {gptArgs}printgpt", "Reading GPT via Firehose...", true);
+                    string gptRes = await _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" {gptArgs}printgpt", "Reading GPT via Firehose...", true);
 
                     if (!string.IsNullOrWhiteSpace(gptRes))
                     {
@@ -2447,7 +2177,7 @@ namespace WinFormsApp1
             string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
 
-            string output = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}printgpt", "Connecting Qualcomm 9008...");
+            string output = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}printgpt", "Connecting Qualcomm 9008...");
             if (!string.IsNullOrWhiteSpace(output))
             {
                 // GPT rows ပါရင် အောင် (auth phase ရဲ့ "ERROR:" notice တွေကို fail အဖြစ် မမှတ်ဘူး)
@@ -2480,7 +2210,7 @@ namespace WinFormsApp1
             foreach (var p in efsParts)
             {
                 string outImg = Path.Combine(backupDir, $"{p}.img");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}r {p} \"{outImg}\"", $"Reading {p}...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}r {p} \"{outImg}\"", $"Reading {p}...", false);
                 LogQualcomm($"  • Read {p} -> OK");
             }
             LogSuccess($"✅ EFS Backup completed! Saved to: {backupDir}");
@@ -2502,13 +2232,13 @@ namespace WinFormsApp1
                 string inImg = Path.Combine(folderDlg.SelectedPath, $"{p}.img");
                 if (IOFile.Exists(inImg))
                 {
-                    await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}w {p} \"{inImg}\"", $"Writing {p}...", false);
+                    await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}w {p} \"{inImg}\"", $"Writing {p}...", false);
                     LogQualcomm($"  • Written {p} -> OK");
                 }
             }
             LogSuccess("✅ EFS Restore completed!");
             LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-            await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
             LogSuccess("📱 Phone rebooted successfully!\n");
         }
 
@@ -2523,14 +2253,14 @@ namespace WinFormsApp1
             // Native C++ Execution
             if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && IOFile.Exists(loader))
             {
-                bool sOk = await RunNativeSaharaLoader(port, loader);
+                bool sOk = await _processRunner.RunNativeSaharaLoader(port, loader);
                 if (sOk)
                 {
                     await Task.Delay(1000);
                     LogQualcomm("\n🔑 [Firehose] Safe Formatting Metadata...");
-                    await RunNativeFhLoader(port, "--erase=metadata");
+                    await _processRunner.RunNativeFhLoader(port, "--erase=metadata");
                     LogSuccess("✅ Safe Format executed successfully!");
-                    await RunNativeFhLoader(port, "--reset");
+                    await _processRunner.RunNativeFhLoader(port, "--reset");
                     return;
                 }
             }
@@ -2540,13 +2270,13 @@ namespace WinFormsApp1
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm("\n🔑 [Qualcomm] Safe Formatting Metadata & User Keys...");
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e metadata", "Erasing metadata...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e metadata", "Erasing metadata...", true);
 
-            if (PythonOpSucceeded(res))
+            if (_processRunner.PythonOpSucceeded(res))
             {
                 LogSuccess("✅ Safe Format executed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -2560,7 +2290,7 @@ namespace WinFormsApp1
             string port = GetActiveComPort();
             if (IOFile.Exists(Path.Combine(qualcommCorePath, "fh_loader.exe")))
             {
-                await RunNativeFhLoader(port, "--reset");
+                await _processRunner.RunNativeFhLoader(port, "--reset");
                 LogSuccess("✅ Reboot command sent via Native Engine!");
                 return;
             }
@@ -2568,7 +2298,7 @@ namespace WinFormsApp1
             string script = AppConfig.EdlScript;
             string loaderArg = GetEdlLoaderArg();
             LogQualcomm("\n🔄 [Qualcomm] Sending Reset command to 9008 Port...");
-            await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting Device...");
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting Device...");
             LogSuccess("✅ Device is rebooting!");
         }
 
@@ -2715,8 +2445,8 @@ namespace WinFormsApp1
             try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ RunPhoneDirectModemPatchAsync temp cleanup warning: {ex.Message}"); }
 
             string rArgs = GetEdlLoaderArg();
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {rArgs}r modem \"{dumpPath}\"", "Reading modem...", true);
-            if (!PythonOpSucceeded(res) || !IOFile.Exists(dumpPath))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {rArgs}r modem \"{dumpPath}\"", "Reading modem...", true);
+            if (!_processRunner.PythonOpSucceeded(res) || !IOFile.Exists(dumpPath))
             {
                 LogError("❌ modem partition ဖတ်လို့ မရပါ — device connection/loader စစ်ပါ။");
                 SetOperationState(false);
@@ -2740,8 +2470,8 @@ namespace WinFormsApp1
             UpdateGlobalProgress(50, "Writing modem...");
 
             string wArgs = GetEdlLoaderArg();
-            string res2 = await RunProcessCommand(pythonPath, $"\"{script}\" {wArgs}w modem \"{patched}\"", "Writing modem...", true);
-            if (!PythonOpSucceeded(res2))
+            string res2 = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {wArgs}w modem \"{patched}\"", "Writing modem...", true);
+            if (!_processRunner.PythonOpSucceeded(res2))
             {
                 LogError("❌ Patched modem ပြန်ရေးလို့ မရပါ — patched ဖိုင်ကတော့ အသင့်ရှိတယ် (နောက်မှ ရေးလို့ရတယ်): " + patched);
                 SetOperationState(false);
@@ -2751,7 +2481,7 @@ namespace WinFormsApp1
 
             UpdateGlobalProgress(90, "Rebooting...");
             LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-            await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
             UpdateGlobalProgress(100, "Done");
             SetOperationState(false);
             SetStatus("Ready");
@@ -2842,13 +2572,13 @@ namespace WinFormsApp1
             else wArgs = $"--serial --memory={currentMemoryType} --portname={port} ";
             if (!string.IsNullOrEmpty(loader) && IOFile.Exists(loader)) wArgs += $"--loader=\"{loader}\" ";
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {wArgs}w modem \"{outPath}\"", "Writing modem...", true);
-            if (PythonOpSucceeded(res))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {wArgs}w modem \"{outPath}\"", "Writing modem...", true);
+            if (_processRunner.PythonOpSucceeded(res))
             {
                 UpdateGlobalProgress(100, "Done");
                 LogSuccess("✅ Patched modem flashed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting — Mi Account bypass active!\n");
             }
             else
@@ -2871,16 +2601,16 @@ namespace WinFormsApp1
             // Native C++ Execution
             if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && IOFile.Exists(loader))
             {
-                bool sOk = await RunNativeSaharaLoader(port, loader);
+                bool sOk = await _processRunner.RunNativeSaharaLoader(port, loader);
                 if (sOk)
                 {
                     await Task.Delay(1000);
                     LogQualcomm("\n🔓 [Firehose] Erasing FRP Partition via Native Engine...");
-                    string res = await RunNativeFhLoader(port, "--erase=frp");
+                    string res = await _processRunner.RunNativeFhLoader(port, "--erase=frp");
                     if (res != null && (res.Contains("All Finished Successfully") || res.Contains("0") || !res.Contains("failed", StringComparison.OrdinalIgnoreCase)))
                     {
                         LogSuccess("✅ FRP partition erased successfully!");
-                        await RunNativeFhLoader(port, "--reset");
+                        await _processRunner.RunNativeFhLoader(port, "--reset");
                         return;
                     }
                 }
@@ -2922,9 +2652,9 @@ namespace WinFormsApp1
             foreach (var part in frpCandidates)
             {
                 LogQualcomm($"🗑️ Erasing [{part}] partition...");
-                string resP = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e {part}", $"Erasing {part}...");
+                string resP = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e {part}", $"Erasing {part}...");
 
-                if (PythonOpSucceeded(resP))
+                if (_processRunner.PythonOpSucceeded(resP))
                 {
                     if (part.Equals("config", StringComparison.OrdinalIgnoreCase))
                         LogSuccess($"✅ [{part}] (persistent block — FRP state ပါ) erased successfully!");
@@ -2939,7 +2669,7 @@ namespace WinFormsApp1
             if (frpDone)
             {
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting to Welcome Screen!\n");
             }
             else
@@ -2959,16 +2689,16 @@ namespace WinFormsApp1
             // Native C++ Execution
             if (IOFile.Exists(Path.Combine(qualcommCorePath, "QSaharaServer.exe")) && IOFile.Exists(loader))
             {
-                bool sOk = await RunNativeSaharaLoader(port, loader);
+                bool sOk = await _processRunner.RunNativeSaharaLoader(port, loader);
                 if (sOk)
                 {
                     await Task.Delay(1000);
                     LogQualcomm("\n🔒 [Firehose] Formatting Userdata Partition via Native Engine...");
-                    string res = await RunNativeFhLoader(port, "--erase=userdata");
+                    string res = await _processRunner.RunNativeFhLoader(port, "--erase=userdata");
                     if (res != null && (res.Contains("All Finished Successfully") || res.Contains("0") || !res.Contains("failed", StringComparison.OrdinalIgnoreCase)))
                     {
                         LogSuccess("✅ Factory reset completed successfully!");
-                        await RunNativeFhLoader(port, "--reset");
+                        await _processRunner.RunNativeFhLoader(port, "--reset");
                         return;
                     }
                 }
@@ -2979,13 +2709,13 @@ namespace WinFormsApp1
             string loaderArg = GetEdlLoaderArg();
 
             LogQualcomm("\n🔒 [Qualcomm] Formatting userdata...");
-            string resP = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e userdata", "Formatting Userdata...");
+            string resP = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e userdata", "Formatting Userdata...");
 
-            if (PythonOpSucceeded(resP))
+            if (_processRunner.PythonOpSucceeded(resP))
             {
                 LogSuccess("✅ Factory reset completed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting to Factory State!\n");
             }
             else
@@ -3010,14 +2740,14 @@ namespace WinFormsApp1
             LogQualcomm($"\n💾 [Qualcomm] Starting Full Firmware Backup (All Partitions including userdata)...");
             LogQualcomm($"📁 Destination: {backupDir}");
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\"", "Dumping Full ROM...");
-            if (PythonOpSucceeded(res))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}rl \"{backupDir}\"", "Dumping Full ROM...");
+            if (_processRunner.PythonOpSucceeded(res))
             {
                 _firmwareService.GenerateQualcommRawprogram(partitions, backupDir);
                 LogSuccess($"✅ Qualcomm Full Firmware dumped successfully!");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -3040,7 +2770,7 @@ namespace WinFormsApp1
 
             string customDaArg = (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text)) ? $"--loader \"{txtFirmwarePath.Text.Trim()}\" " : "";
 
-            string output = await RunMtkSleekCommand($"\"{script}\" {customDaArg}printgpt", "Connecting MTK Device...");
+            string output = await _processRunner.RunMtkSleekCommand($"\"{script}\" {customDaArg}printgpt", "Connecting MTK Device...");
             if (!string.IsNullOrWhiteSpace(output))
             {
                 ShowGptPartitions(output);
@@ -3069,7 +2799,7 @@ namespace WinFormsApp1
             string filePathsArg = string.Join(",", nvPartitions.Select(p => Path.Combine(backupDir, $"{p}.img")));
 
             UpdateGlobalProgress(10, "Starting...");
-            string res = await RunMtkSleekCommand($"\"{script}\" r {partNamesArg} \"{filePathsArg}\"", "Backing up NV Partitions...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" r {partNamesArg} \"{filePathsArg}\"", "Backing up NV Partitions...");
 
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
@@ -3081,7 +2811,7 @@ namespace WinFormsApp1
                 LogMTK($"📁 Saved Folder: {backupDir}");
 
                 LogMTK("🔄 [Auto Reboot] Restarting phone to System...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device rebooted successfully!\n");
             }
             else
@@ -3112,12 +2842,12 @@ namespace WinFormsApp1
             LogMTK($"\n✏️ Writing [{partitionName}] to device...");
             LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {daArg}w {partitionName} \"{inputFile}\"", $"Writing {partitionName}...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}w {partitionName} \"{inputFile}\"", $"Writing {partitionName}...", true);
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess($"✅ {partitionName} written successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device rebooted successfully!\n");
             }
         }
@@ -3135,12 +2865,12 @@ namespace WinFormsApp1
             LogMTK("\n🔓 [MTK] Formatting FRP partition...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {daArg}e frp", "Formatting FRP...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {daArg}e frp", "Formatting FRP...", true);
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ FRP partition formatted successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Phone is restarting to Welcome Screen!\n");
             }
         }
@@ -3164,7 +2894,7 @@ namespace WinFormsApp1
             LogMTK($"📁 Destination: {backupDir}");
             LogMTK("📱 Connect device in BROM mode (Hold Vol+ & Vol- -> Insert USB)");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\"", "Dumping Full ROM...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}rl \"{backupDir}\"", "Dumping Full ROM...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 var allParts = partitions.Select(p => p.Name).ToArray();
@@ -3173,7 +2903,7 @@ namespace WinFormsApp1
                 LogSuccess("📄 Generated MTK Scatter file successfully!");
 
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device rebooted successfully!\n");
             }
         }
@@ -3191,12 +2921,12 @@ namespace WinFormsApp1
             LogMTK("\n🔓 [MTK] Unlocking Bootloader (seccfg)...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg unlock", "Unlocking Bootloader...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg unlock", "Unlocking Bootloader...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Bootloader Unlocked successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device is rebooting to Unlocked State!\n");
             }
         }
@@ -3209,12 +2939,12 @@ namespace WinFormsApp1
             LogMTK("\n🔒 [MTK] Relocking Bootloader...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg lock", "Relocking Bootloader...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}da seccfg lock", "Relocking Bootloader...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Bootloader Relocked successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device is rebooting to Locked State!\n");
             }
         }
@@ -3230,12 +2960,12 @@ namespace WinFormsApp1
             LogMTK("\n🔑 [MTK] Resetting Userlock (Formatting userdata & metadata)...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}e userdata,metadata", "Formatting Userlock...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e userdata,metadata", "Formatting Userlock...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Screen lock removed successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Phone is restarting to Factory Setup!\n");
             }
         }
@@ -3251,13 +2981,13 @@ namespace WinFormsApp1
             LogMTK("\n☁️ [Xiaomi] Resetting Mi Account Lock...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}e persist,frp", "Resetting Mi Account...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e persist,frp", "Resetting Mi Account...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Mi Account Reset completed!");
                 LogWarning("⚠️ Disable OTA update after booting to prevent relocking.");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device is rebooting!\n");
             }
         }
@@ -3270,12 +3000,12 @@ namespace WinFormsApp1
             LogMTK("\n📱 [MTK] Removing Demo Mode (Oppo/Realme/Vivo)...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}e opporeserve2,demo,devinfo", "Removing Demo Mode...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e opporeserve2,demo,devinfo", "Removing Demo Mode...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Demo Mode removed successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Device is rebooting to Normal Mode!\n");
             }
         }
@@ -3291,12 +3021,12 @@ namespace WinFormsApp1
             LogMTK("\n🛡️ [Samsung] Resetting KG Lock / Persistent...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}e persistent,param,steady", "Resetting Samsung KG...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e persistent,param,steady", "Resetting Samsung KG...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ Samsung KG / Persistent cleared successfully!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Phone is rebooting!\n");
             }
         }
@@ -3312,12 +3042,12 @@ namespace WinFormsApp1
             LogMTK("\n📶 [MTK] Resetting NV Data & Sec Partitions...");
             LogMTK("📱 Power OFF -> Hold (Vol+ & Vol-) -> Insert USB Cable");
 
-            string res = await RunMtkSleekCommand($"\"{script}\" {daArg}e nvdata,nvcfg", "Fixing NVRAM...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}e nvdata,nvcfg", "Fixing NVRAM...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("✅ NVRAM Error cleared!");
                 LogMTK("🔄 [Auto Reboot] Restarting phone...");
-                await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
+                await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting...");
                 LogSuccess("📱 Phone is rebooting!\n");
             }
         }
@@ -3326,263 +3056,13 @@ namespace WinFormsApp1
         {
             string script = AppConfig.MtkScript;
             LogMTK("\n🔄 [MTK] Sending Reset/Reboot command to device...");
-            await RunMtkSleekCommand($"\"{script}\" reset", "Rebooting Device...");
+            await _processRunner.RunMtkSleekCommand($"\"{script}\" reset", "Rebooting Device...");
             LogSuccess("✅ Reboot command sent!");
         }
 
         // ================= Sleek MTK Output Processor =================
-        private async Task<string> RunMtkSleekCommand(string fullArgs, string statusText)
-        {
-            using CancellationTokenSource operationCts = new CancellationTokenSource();
-            using Process process = new Process();
-            cts = operationCts;
-            currentProcess = process;
-            SetOperationState(true);
-            SetStatus(statusText);
-            UpdateGlobalProgress(5, "Connecting...");
-
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = pythonPath,
-                Arguments = $"-u {fullArgs}",
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = AppConfig.BaseDir
-            };
-
-            process.StartInfo.EnvironmentVariables["PYTHONUNBUFFERED"] = "1";
-
-            var fullOutput = new System.Text.StringBuilder();
-            string cpu = "";
-            string hwCode = "";
-            string meid = "";
-            string emmcId = "";
-            string emmcSize = "";
-
-            void HandleIncomingLine(string rawLine)
-            {
-                if (string.IsNullOrEmpty(rawLine)) return;
-
-                string cleanLine = Regex.Replace(rawLine, @"\x1B\[[^@-~]*[=@-~]", "").Trim();
-                if (string.IsNullOrEmpty(cleanLine)) return;
-
-                fullOutput.AppendLine(cleanLine);
-
-                this.Invoke(new Action(() =>
-                {
-                    Match pctMatch = Regex.Match(cleanLine, @"(\d{1,3}(?:\.\d+)?)%");
-                    Match speedMatch = Regex.Match(cleanLine, @"(\d+(?:\.\d+)?\s*(?:MB|KB)/s)");
-                    if (pctMatch.Success && double.TryParse(pctMatch.Groups[1].Value, out double pVal))
-                    {
-                        string spd = speedMatch.Success ? speedMatch.Groups[1].Value : "";
-                        UpdateGlobalProgress((int)pVal, spd);
-                    }
-
-                    if (cleanLine.Contains("Port - Device detected", StringComparison.OrdinalIgnoreCase))
-                    {
-                        LogSuccess("⚡ Device Detected on BROM Port!");
-                        UpdateGlobalProgress(15, "Connected");
-                    }
-                    else if (cleanLine.Contains("CPU:", StringComparison.OrdinalIgnoreCase)) cpu = cleanLine.Substring(cleanLine.IndexOf("CPU:") + 4).Trim();
-                    else if (cleanLine.Contains("HW code:", StringComparison.OrdinalIgnoreCase)) hwCode = cleanLine.Substring(cleanLine.IndexOf("HW code:") + 8).Trim();
-                    else if (cleanLine.Contains("ME_ID:", StringComparison.OrdinalIgnoreCase)) meid = cleanLine.Substring(cleanLine.IndexOf("ME_ID:") + 6).Trim();
-                    else if (cleanLine.Contains("EMMC ID:", StringComparison.OrdinalIgnoreCase)) emmcId = cleanLine.Substring(cleanLine.IndexOf("EMMC ID:") + 8).Trim();
-                    else if (cleanLine.Contains("EMMC USER Size:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        string raw = cleanLine.Substring(cleanLine.IndexOf("EMMC USER Size:") + 15).Trim();
-                        try
-                        {
-                            ulong bytes = Convert.ToUInt64(raw.Replace("0x", ""), 16);
-                            emmcSize = $"{bytes / (1024.0 * 1024.0 * 1024.0):F2} GB";
-                        }
-                        catch (Exception ex) { LogWarning($"⚠️ eMMC size parse fallback: {ex.Message}"); emmcSize = raw; }
-                    }
-                    else if (cleanLine.Contains("Bypassing security", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("Done sending payload", StringComparison.OrdinalIgnoreCase))
-                    {
-                        LogSuccess("🔓 Bypassing SLA/DAA Security (Kamakiri Exploit)...");
-                        UpdateGlobalProgress(30, "Exploit OK");
-                    }
-                    else if (cleanLine.Contains("Uploading xflash stage 1", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("Successfully uploaded stage 2", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Log("🚀 Uploading Download Agent (DA V5)...", colorInfo);
-                        UpdateGlobalProgress(45, "Uploading DA");
-                    }
-                    else if (cleanLine.Contains("DRAM setup passed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        LogSuccess($"💾 Memory Initialized: {emmcId} ({emmcSize})");
-                    }
-                    else if (cleanLine.Contains("GPT Table:", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Log("📋 Reading Partition Table (GPT)...", colorInfo);
-                        UpdateGlobalProgress(60, "Reading GPT");
-                    }
-                    else if (cleanLine.StartsWith("Wrote", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("Wrote ", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Match fileMatch = Regex.Match(cleanLine, @"Wrote\s+(?:.*[\\/])?([a-zA-Z0-9_\-\.]+)\.img", RegexOptions.IgnoreCase);
-                        if (fileMatch.Success)
-                        {
-                            string pName = fileMatch.Groups[1].Value;
-                            string fileName = $"{pName}.img";
-                            Log($"  ⚡ [WRITE OK] ➔ Partition: [{pName.PadRight(12)}] ➔ File: {fileName.PadRight(16)}  ✅", Color.FromArgb(0, 230, 118));
-                        }
-                        else
-                        {
-                            Log($"  • {cleanLine}", Color.FromArgb(255, 215, 0));
-                        }
-                    }
-                    else if (cleanLine.Contains("Writing partition", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("DaHandler - Writing", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Match wMatch = Regex.Match(cleanLine, @"partition\s+([a-zA-Z0-9_\-\.]+)", RegexOptions.IgnoreCase);
-                        string pName = wMatch.Success ? wMatch.Groups[1].Value : "Partition";
-                        Log($"\n🔥 [FLASHING] ➔ Writing [{pName}] ...", Color.FromArgb(255, 215, 0));
-                    }
-                    else if (cleanLine.Contains("Dumping partition", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("DaHandler - Dumping", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Match dMatch = Regex.Match(cleanLine, @"partition\s+([a-zA-Z0-9_\-\.]+)", RegexOptions.IgnoreCase);
-                        string pName = dMatch.Success ? dMatch.Groups[1].Value : "Partition";
-                        Log($"\n💾 [READING] ➔ Dumping [{pName}] ...", Color.FromArgb(0, 229, 255));
-                    }
-                    else if (cleanLine.Contains("error:", StringComparison.OrdinalIgnoreCase) || cleanLine.Contains("failed", StringComparison.OrdinalIgnoreCase))
-                    {
-                        Log($"❌ {cleanLine}", colorError);
-                    }
-                }));
-            }
-
-            process.OutputDataReceived += (s, e) => HandleIncomingLine(e.Data);
-            process.ErrorDataReceived += (s, e) => HandleIncomingLine(e.Data);
-
-            try
-            {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                await process.WaitForExitAsync(operationCts.Token);
-
-                string output = fullOutput.ToString().Trim();
-
-                if (!string.IsNullOrEmpty(cpu) || !string.IsNullOrEmpty(hwCode))
-                {
-                    Log("\n------------------------------------------------------------", colorMTK);
-                    Log("              📱 MEDIATEK DEVICE INFORMATION                ", colorMTK);
-                    Log("------------------------------------------------------------", colorMTK);
-                    Log($"  • CPU / Platform   : {cpu} [HW: {hwCode}]", colorSuccess);
-                    Log($"  • Connection Mode  : BROM Mode (Security Bypassed)", colorInfo);
-                    Log($"  • Security Status  : SBC: True | SLA: Bypassed | DAA: Bypassed", colorFastboot);
-                    if (!string.IsNullOrEmpty(meid)) Log($"  • MEID             : {meid}", colorInfo);
-                    if (!string.IsNullOrEmpty(emmcId)) Log($"  • Memory / Storage : eMMC ({emmcId}) [Capacity: {emmcSize}]", colorSuccess);
-                    Log("------------------------------------------------------------", colorMTK);
-                }
-
-                UpdateGlobalProgress(100, "Completed");
-                return output;
-            }
-            catch (Exception ex)
-            {
-                LogError($"❌ {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
-                currentProcess = null;
-                cts = null;
-                SetOperationState(false);
-                SetStatus("Ready");
-            }
-        }
 
         // ================= Generic Process Runner =================
-        private async Task<string> RunProcessCommand(string executablePath, string arguments, string statusText, bool logLive = true)
-        {
-            if (string.IsNullOrWhiteSpace(executablePath)) return null;
-
-            using CancellationTokenSource operationCts = new CancellationTokenSource();
-            using Process process = new Process();
-            cts = operationCts;
-            currentProcess = process;
-            SetOperationState(true);
-            if (!string.IsNullOrEmpty(statusText)) SetStatus(statusText);
-            UpdateGlobalProgress(15, "Running...");
-
-            process.StartInfo = new ProcessStartInfo
-            {
-                FileName = executablePath,
-                Arguments = arguments,
-                UseShellExecute = false,
-                RedirectStandardOutput = true,
-                RedirectStandardError = true,
-                CreateNoWindow = true,
-                WorkingDirectory = AppConfig.BaseDir
-            };
-
-            var fullOutput = new System.Text.StringBuilder();
-
-            process.OutputDataReceived += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    string cleanLine = Regex.Replace(e.Data, @"\x1B\[[^@-~]*[=@-~]", "").Trim();
-                    if (string.IsNullOrEmpty(cleanLine)) return;
-
-                    fullOutput.AppendLine(cleanLine);
-
-                    Match pctMatch = Regex.Match(cleanLine, @"(\d{1,3}(?:\.\d+)?)%");
-                    Match speedMatch = Regex.Match(cleanLine, @"([\d.]+)\s*(MB|KB|GB)/s");
-                    if (pctMatch.Success && double.TryParse(pctMatch.Groups[1].Value, out double pVal))
-                    {
-                        string spd = speedMatch.Success ? speedMatch.Groups[1].Value + " " + speedMatch.Groups[2].Value + "/s" : "";
-                        UpdateGlobalProgress((int)pVal, spd);
-                        return;
-                    }
-
-                    if (logLive)
-                    {
-                        this.Invoke(new Action(() => LogEdlLineSmart(cleanLine)));
-                    }
-                }
-            };
-
-            process.ErrorDataReceived += (s, e) =>
-            {
-                if (!string.IsNullOrEmpty(e.Data))
-                {
-                    string cleanLine = Regex.Replace(e.Data, @"\x1B\[[^@-~]*[=@-~]", "").Trim();
-                    if (string.IsNullOrEmpty(cleanLine)) return;
-
-                    fullOutput.AppendLine(cleanLine);
-                    if (logLive)
-                    {
-                        this.Invoke(new Action(() => LogEdlLineSmart(cleanLine)));
-                    }
-                }
-            };
-
-            try
-            {
-                process.Start();
-                process.BeginOutputReadLine();
-                process.BeginErrorReadLine();
-                await process.WaitForExitAsync(operationCts.Token);
-                UpdateGlobalProgress(100, "Done");
-                return fullOutput.ToString().Trim();
-            }
-            catch (Exception ex)
-            {
-                if (logLive) LogError($"❌ {ex.Message}");
-                return null;
-            }
-            finally
-            {
-                if (!process.HasExited) try { process.Kill(entireProcessTree: true); } catch (Exception) { /* Process already exited or access denied, safe to ignore */ }
-                currentProcess = null;
-                cts = null;
-                SetOperationState(false);
-                SetStatus("Ready");
-            }
-        }
 
         // ================= GPT Parser =================
         // ParseGptOutput (FirmwareService) ရလာတဲ့ partition list ကို grid ထဲ ထည့်ပြီး summary log ထုတ်ပေးခြင်း
@@ -3597,37 +3077,13 @@ namespace WinFormsApp1
             }
             if (partitions.Count > 0)
             {
-                string deviceTxt = !string.IsNullOrEmpty(detectedChipset) ? $"{detectedChipset} — " : "";
+                string deviceTxt = !string.IsNullOrEmpty(_processRunner.DetectedChipset) ? $"{_processRunner.DetectedChipset} — " : "";
                 LogSuccess($"✅ {deviceTxt}{partitions.Count} partitions loaded into table.");
             }
         }
 
         // ================= Active ADB Serial Helper =================
-        private async Task<string> GetActiveAdbSerial()
-        {
-            string output = await RunProcessCommand(adbPath, "devices", "", false);
-            if (string.IsNullOrWhiteSpace(output)) return null;
 
-            string[] lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            foreach (string line in lines)
-            {
-                string t = line.Trim();
-                if (t.StartsWith("List of devices") || t.StartsWith("*") || string.IsNullOrWhiteSpace(t)) continue;
-                if (t.Contains("device"))
-                {
-                    string[] parts = t.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length > 0 && parts[0].Length >= 4) return parts[0];
-                }
-            }
-            return null;
-        }
-
-        private async Task<string> RunAdbTargeted(string subArgs, string statusText = "", bool logLive = true)
-        {
-            string serial = await GetActiveAdbSerial();
-            string targetArg = string.IsNullOrEmpty(serial) ? "" : $"-s {serial} ";
-            return await RunProcessCommand(adbPath, $"{targetArg}{subArgs}", statusText, logLive);
-        }
 
         // ================= Sideload (Recovery ADB Sideload) Handlers =================
         private async void btnSlInfo_Click(object sender, EventArgs e)
@@ -3637,7 +3093,7 @@ namespace WinFormsApp1
             SetStatus("Checking connected devices...");
             try
             {
-                string devOut = await RunProcessCommand(adbPath, "devices -l", "Scanning ADB devices...", false);
+                string devOut = await _processRunner.RunProcessCommand(adbPath, "devices -l", "Scanning ADB devices...", false);
                 bool anyDevice = false;
 
                 if (string.IsNullOrWhiteSpace(devOut))
@@ -3690,7 +3146,7 @@ namespace WinFormsApp1
                             state.Equals("device", StringComparison.OrdinalIgnoreCase))
                         {
                             anyDevice = true;
-                            string props = await RunProcessCommand(adbPath, $"-s {serial} shell getprop", "Reading device properties...", false);
+                            string props = await _processRunner.RunProcessCommand(adbPath, $"-s {serial} shell getprop", "Reading device properties...", false);
                             bool anyProp = false;
                             if (!string.IsNullOrWhiteSpace(props))
                             {
@@ -3792,7 +3248,7 @@ namespace WinFormsApp1
                 if (IOFile.Exists(fbPath))
                 {
                     LogInfo("── Fastboot Devices ──");
-                    string fbOut = await RunProcessCommand(fbPath, "devices -l", "Scanning fastboot devices...", false);
+                    string fbOut = await _processRunner.RunProcessCommand(fbPath, "devices -l", "Scanning fastboot devices...", false);
                     string fbTrim = (fbOut ?? "").Trim();
                     if (string.IsNullOrEmpty(fbTrim) || fbTrim.Contains("no devices"))
                     {
@@ -3810,7 +3266,7 @@ namespace WinFormsApp1
                             if (fparts.Length == 0 || fparts[0] == "List" || fparts[0].StartsWith("*")) continue;
                             string fbSerial = fparts[0];
                             if (fbSerial.Length < 4) continue;
-                            string gv = await RunProcessCommand(fbPath, $"-s {fbSerial} getvar all", $"Reading {fbSerial} fastboot vars...", false);
+                            string gv = await _processRunner.RunProcessCommand(fbPath, $"-s {fbSerial} getvar all", $"Reading {fbSerial} fastboot vars...", false);
                             if (!string.IsNullOrWhiteSpace(gv))
                             {
                                 LogInfo($"── {fbSerial} getvar all ──");
@@ -3840,8 +3296,8 @@ namespace WinFormsApp1
         private async void btnSlRebootRecovery_Click(object sender, EventArgs e)
         {
             LogADB("\n🔄 [Sideload] Rebooting to Recovery...");
-            string res = await RunAdbTargeted("reboot recovery", "Rebooting to Recovery...", false);
-            if (PythonOpSucceeded(res) || string.IsNullOrEmpty(res) || !res.Contains("error", StringComparison.OrdinalIgnoreCase))
+            string res = await _processRunner.RunAdbTargeted("reboot recovery", "Rebooting to Recovery...", false);
+            if (_processRunner.PythonOpSucceeded(res) || string.IsNullOrEmpty(res) || !res.Contains("error", StringComparison.OrdinalIgnoreCase))
             {
                 LogSuccess("📱 Phone က Recovery ကို reboot လုပ်နေပါပြီ။");
                 LogInfo("   ဖုန်းပေါ်မှာ 'Apply update from ADB' (sideload) ကို ရွေးပေးပါ — ပြီးရင် Sideload ZIP ခလုတ် နှိပ်လို့ရပါပြီ။");
@@ -3867,7 +3323,7 @@ namespace WinFormsApp1
             SetStatus("Sideloading package...");
             try
             {
-                string output = await RunProcessCommand(adbPath, $"sideload \"{zip}\"", "Sideloading package...");
+                string output = await _processRunner.RunProcessCommand(adbPath, $"sideload \"{zip}\"", "Sideloading package...");
                 SetOperationState(false);
                 string low = (output ?? "").ToLowerInvariant();
                 if (string.IsNullOrEmpty(low))
@@ -3894,14 +3350,14 @@ namespace WinFormsApp1
         private async void btnSlRebootSystem_Click(object sender, EventArgs e)
         {
             LogADB("\n🔄 [Sideload] Rebooting to System...");
-            await RunAdbTargeted("reboot", "Rebooting System...", false);
+            await _processRunner.RunAdbTargeted("reboot", "Rebooting System...", false);
             LogSuccess("📱 Phone ကို System ထဲ ပြန် boot လုပ်နေပါပြီ။");
         }
 
         // ================= Full Device Info (UFS Checker / INFO CHECKER ပုံစံ — ADB ONLINE လိုအပ်) =================
         private async void btnFullInfo_Click(object sender, EventArgs e)
         {
-            string serial = await GetActiveAdbSerial();
+            string serial = await _processRunner.GetActiveAdbSerial();
             if (string.IsNullOrEmpty(serial))
             {
                 LogWarning("⚠️ ADB device (ONLINE) မတွေ့ပါ — ဖုန်းကို Android ထဲ boot တင်ပြီး USB debugging ဖွင့်ထားပါ (ဒါမှမဟုတ် shell ရတဲ့ recovery menu မှာ ထားပါ)။\n   Sideload screen ပေါ်မှာတော့ ဘယ် tool နဲ့မှ full info မရနိုင်ပါ။");
@@ -3914,7 +3370,7 @@ namespace WinFormsApp1
             {
                 async Task<string> Sh(string cmd)
                 {
-                    string r = await RunProcessCommand(adbPath, $"-s {serial} shell {cmd}", "", false);
+                    string r = await _processRunner.RunProcessCommand(adbPath, $"-s {serial} shell {cmd}", "", false);
                     return (r ?? "").Trim();
                 }
 
@@ -4096,7 +3552,7 @@ namespace WinFormsApp1
         {
             LogADB("\n🔍 [ADB] Scanning Connected Devices...");
 
-            string output = await RunProcessCommand(adbPath, "devices -l", "Scanning ADB Devices...", false);
+            string output = await _processRunner.RunProcessCommand(adbPath, "devices -l", "Scanning ADB Devices...", false);
             if (string.IsNullOrWhiteSpace(output))
             {
                 LogError("❌ ADB daemon not responding or no devices connected.");
@@ -4142,13 +3598,13 @@ namespace WinFormsApp1
 
             async Task<string> GetProp(string prop)
             {
-                string res = await RunProcessCommand(adbPath, $"-s {serial} shell getprop {prop}", "", false);
+                string res = await _processRunner.RunProcessCommand(adbPath, $"-s {serial} shell getprop {prop}", "", false);
                 return string.IsNullOrWhiteSpace(res) ? "N/A" : res.Trim();
             }
 
             async Task<string> RunShell(string cmd)
             {
-                string res = await RunProcessCommand(adbPath, $"-s {serial} shell \"{cmd}\"", "", false);
+                string res = await _processRunner.RunProcessCommand(adbPath, $"-s {serial} shell \"{cmd}\"", "", false);
                 return string.IsNullOrWhiteSpace(res) ? "N/A" : res.Trim();
             }
 
@@ -4197,7 +3653,7 @@ namespace WinFormsApp1
         {
             LogADB("\n🔋 [ADB] Reading Battery & Power Information...");
 
-            string rawDump = await RunAdbTargeted("shell dumpsys battery", "Reading Battery Status...", false);
+            string rawDump = await _processRunner.RunAdbTargeted("shell dumpsys battery", "Reading Battery Status...", false);
             if (string.IsNullOrWhiteSpace(rawDump))
             {
                 LogError("❌ Failed to read battery data. Ensure device is connected.");
@@ -4267,7 +3723,7 @@ namespace WinFormsApp1
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
                 LogADB($"\n📦 Installing APK: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await RunAdbTargeted($"install -r \"{openFileDlg.FileName}\"", "Installing APK...");
+                string res = await _processRunner.RunAdbTargeted($"install -r \"{openFileDlg.FileName}\"", "Installing APK...");
                 if (res != null && res.Contains("Success")) LogSuccess("✅ App installed successfully!");
                 else LogWarning("⚠️ Installation finished. Check output.");
             }
@@ -4280,9 +3736,9 @@ namespace WinFormsApp1
             if (saveFileDlg.ShowDialog() == DialogResult.OK)
             {
                 LogADB("\n📸 Capturing screenshot from device...");
-                await RunAdbTargeted("shell screencap -p /sdcard/temp_screen.png", "Capturing...", false);
-                await RunAdbTargeted($"pull /sdcard/temp_screen.png \"{saveFileDlg.FileName}\"", "Saving...", false);
-                await RunAdbTargeted("shell rm /sdcard/temp_screen.png", "", false);
+                await _processRunner.RunAdbTargeted("shell screencap -p /sdcard/temp_screen.png", "Capturing...", false);
+                await _processRunner.RunAdbTargeted($"pull /sdcard/temp_screen.png \"{saveFileDlg.FileName}\"", "Saving...", false);
+                await _processRunner.RunAdbTargeted("shell rm /sdcard/temp_screen.png", "", false);
                 if (IOFile.Exists(saveFileDlg.FileName)) LogSuccess($"✅ Screenshot saved: {saveFileDlg.FileName}");
                 else LogError("❌ Failed to capture screenshot.");
             }
@@ -4291,16 +3747,16 @@ namespace WinFormsApp1
         private async void btnAdbFRP_Click(object sender, EventArgs e)
         {
             LogADB("\n🔓 [ADB] Universal FRP Reset (SetupWizard Bypass)...");
-            await RunAdbTargeted("shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "Setting complete...", false);
-            await RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing setup wizard...", false);
-            await RunAdbTargeted("reboot", "Rebooting...", false);
+            await _processRunner.RunAdbTargeted("shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "Setting complete...", false);
+            await _processRunner.RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing setup wizard...", false);
+            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
             LogSuccess("✅ FRP command issued! Phone is restarting to Home.");
         }
 
-        private async void btnAdbRebootBootloader_Click(object sender, EventArgs e) => await RunAdbTargeted("reboot bootloader", "Rebooting to Bootloader...");
-        private async void btnAdbRebootRecovery_Click(object sender, EventArgs e) => await RunAdbTargeted("reboot recovery", "Rebooting to Recovery...");
-        private async void btnAdbRebootEdl_Click(object sender, EventArgs e) => await RunAdbTargeted("reboot edl", "Rebooting to EDL...");
-        private async void btnAdbReboot_Click(object sender, EventArgs e) => await RunAdbTargeted("reboot", "Rebooting System...");
+        private async void btnAdbRebootBootloader_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot bootloader", "Rebooting to Bootloader...");
+        private async void btnAdbRebootRecovery_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot recovery", "Rebooting to Recovery...");
+        private async void btnAdbRebootEdl_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot edl", "Rebooting to EDL...");
+        private async void btnAdbReboot_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot", "Rebooting System...");
 
         private async void btnAdbDebloat_Click(object sender, EventArgs e)
         {
@@ -4317,21 +3773,21 @@ namespace WinFormsApp1
             LogADB("\n🗑️ [ADB] Removing bloatware apps...");
             foreach (var pkg in bloatPackages)
             {
-                string res = await RunAdbTargeted($"shell pm uninstall -k --user 0 {pkg}", "", false);
+                string res = await _processRunner.RunAdbTargeted($"shell pm uninstall -k --user 0 {pkg}", "", false);
                 if (res != null && res.Contains("Success")) LogADB($"  • Uninstalled: {pkg}");
             }
             LogSuccess("✅ Debloat operation finished!");
             LogADB("🔄 [Auto Reboot] Restarting phone...");
-            await RunAdbTargeted("reboot", "Rebooting...", false);
+            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
         }
 
         private async void btnAdbEnableLang_Click(object sender, EventArgs e)
         {
             LogADB("\n🇲🇲 [ADB] Granting Language Change Permission (CHANGE_CONFIGURATION)...");
-            await RunAdbTargeted("shell pm grant com.wanam.languageenabler android.permission.CHANGE_CONFIGURATION", "", false);
-            await RunAdbTargeted("shell pm grant com.google.android.apps.translate android.permission.CHANGE_CONFIGURATION", "", false);
-            await RunAdbTargeted("shell setprop persist.sys.locale my-MM", "", false);
-            await RunAdbTargeted("shell am broadcast -a android.intent.action.LOCALE_CHANGED", "", false);
+            await _processRunner.RunAdbTargeted("shell pm grant com.wanam.languageenabler android.permission.CHANGE_CONFIGURATION", "", false);
+            await _processRunner.RunAdbTargeted("shell pm grant com.google.android.apps.translate android.permission.CHANGE_CONFIGURATION", "", false);
+            await _processRunner.RunAdbTargeted("shell setprop persist.sys.locale my-MM", "", false);
+            await _processRunner.RunAdbTargeted("shell am broadcast -a android.intent.action.LOCALE_CHANGED", "", false);
             LogSuccess("✅ All Languages Enabled! Please check phone language settings.");
         }
 
@@ -4355,7 +3811,7 @@ namespace WinFormsApp1
         private async void btnFbDevices_Click(object sender, EventArgs e)
         {
             LogFastboot("\n⚡ [Fastboot] Checking Connected Devices...");
-            string output = await RunProcessCommand(fastbootPath, "devices", "Checking Fastboot...", false);
+            string output = await _processRunner.RunProcessCommand(fastbootPath, "devices", "Checking Fastboot...", false);
             if (string.IsNullOrWhiteSpace(output))
             {
                 LogWarning("⚠️ No fastboot device detected.");
@@ -4385,7 +3841,7 @@ namespace WinFormsApp1
             UpdateGlobalProgress(15, "Checking Device...");
 
             // 1. Device ချိတ်ဆက်မှု စစ်ဆေးခြင်း
-            string devCheck = await RunProcessCommand(fastbootPath, "devices", "", false);
+            string devCheck = await _processRunner.RunProcessCommand(fastbootPath, "devices", "", false);
             if (string.IsNullOrWhiteSpace(devCheck))
             {
                 LogError("❌ No fastboot device detected. Connect phone in Fastboot Mode!");
@@ -4396,7 +3852,7 @@ namespace WinFormsApp1
             }
 
             // 2. Bootloader Lock/Unlock အခြေအနေ နှင့် Model ဖတ်ယူခြင်း
-            string varCheck = await RunProcessCommand(fastbootPath, "getvar all", "", false);
+            string varCheck = await _processRunner.RunProcessCommand(fastbootPath, "getvar all", "", false);
             bool isUnlocked = varCheck.Contains("unlocked:yes", StringComparison.OrdinalIgnoreCase) ||
                               varCheck.Contains("unlocked: yes", StringComparison.OrdinalIgnoreCase) ||
                               varCheck.Contains("unlocked: 1", StringComparison.OrdinalIgnoreCase);
@@ -4416,10 +3872,10 @@ namespace WinFormsApp1
             if (product.Contains("river") || product.Contains("ocean") || product.Contains("potter") || product.Contains("moto", StringComparison.OrdinalIgnoreCase))
             {
                 LogFastboot("\n🛡️ [Motorola Protocol] Setting Factory Fastboot Mode...");
-                await RunProcessCommand(fastbootPath, "oem fb_mode_set", "", false);
-                await RunProcessCommand(fastbootPath, "erase config", "", false);
-                await RunProcessCommand(fastbootPath, "erase frp", "", false);
-                await RunProcessCommand(fastbootPath, "oem fb_mode_clear", "", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "oem fb_mode_set", "", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "erase config", "", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "erase frp", "", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "oem fb_mode_clear", "", false);
                 frpSuccess = true;
             }
 
@@ -4429,7 +3885,7 @@ namespace WinFormsApp1
             foreach (var part in frpPartitions)
             {
                 LogFastboot($"⚡ Erasing [{part}] partition...");
-                string res = await RunProcessCommand(fastbootPath, $"erase {part}", "", false);
+                string res = await _processRunner.RunProcessCommand(fastbootPath, $"erase {part}", "", false);
 
                 if (res != null && (res.Contains("OKAY") || res.Contains("finished")))
                 {
@@ -4448,7 +3904,7 @@ namespace WinFormsApp1
                 LogSuccess("\n🎉 Fastboot FRP Reset Executed Successfully!");
                 LogFastboot("🔄 [Auto Reboot] Restarting phone to System...");
 
-                await RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting to Welcome Screen without Google Lock!\n");
             }
             else
@@ -4463,7 +3919,7 @@ namespace WinFormsApp1
         private async void btnFbGetvar_Click(object sender, EventArgs e)
         {
             LogFastboot("\n⚡ [Fastboot] Reading Device Variables...");
-            string output = await RunProcessCommand(fastbootPath, "getvar all", "Reading Variables...", false);
+            string output = await _processRunner.RunProcessCommand(fastbootPath, "getvar all", "Reading Variables...", false);
             if (string.IsNullOrWhiteSpace(output))
             {
                 LogError("❌ No fastboot device detected or command failed.");
@@ -4502,12 +3958,12 @@ namespace WinFormsApp1
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
                 LogFastboot($"\n🔥 Flashing Boot image: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await RunProcessCommand(fastbootPath, $"flash boot \"{openFileDlg.FileName}\"", "Flashing Boot...");
+                string res = await _processRunner.RunProcessCommand(fastbootPath, $"flash boot \"{openFileDlg.FileName}\"", "Flashing Boot...");
                 if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
                 {
                     LogSuccess("✅ Boot image flashed successfully!");
                     LogFastboot("🔄 [Auto Reboot] Restarting phone to System...");
-                    await RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
+                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
                     LogSuccess("📱 Phone rebooted successfully!\n");
                 }
             }
@@ -4519,12 +3975,12 @@ namespace WinFormsApp1
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
                 LogFastboot($"\n🔧 Flashing Recovery image: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await RunProcessCommand(fastbootPath, $"flash recovery \"{openFileDlg.FileName}\"", "Flashing Recovery...");
+                string res = await _processRunner.RunProcessCommand(fastbootPath, $"flash recovery \"{openFileDlg.FileName}\"", "Flashing Recovery...");
                 if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
                 {
                     LogSuccess("✅ Recovery image flashed successfully!");
                     LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                    await RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
+                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
                     LogSuccess("📱 Phone rebooted successfully!\n");
                 }
             }
@@ -4535,23 +3991,23 @@ namespace WinFormsApp1
             if (MessageBox.Show("Unlock Bootloader? (Will wipe user data)", "Fastboot OEM Unlock", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
                 LogFastboot("\n🔓 Unlocking bootloader...");
-                string res = await RunProcessCommand(fastbootPath, "flashing unlock", "Unlocking Bootloader...");
+                string res = await _processRunner.RunProcessCommand(fastbootPath, "flashing unlock", "Unlocking Bootloader...");
                 if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
                 {
                     LogSuccess("✅ Bootloader Unlocked!");
                     LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                    await RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
+                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
                     LogSuccess("📱 Phone is rebooting!\n");
                 }
             }
         }
 
-        private async void btnFbReboot_Click(object sender, EventArgs e) => await RunProcessCommand(fastbootPath, "reboot", "Rebooting...");
+        private async void btnFbReboot_Click(object sender, EventArgs e) => await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...");
 
         private async void btnFbCheckArb_Click(object sender, EventArgs e)
         {
             LogFastboot("\n🛡️ [Fastboot] Checking Xiaomi Anti-Rollback (ARB) Index...");
-            string output = await RunProcessCommand(fastbootPath, "getvar anti", "Checking ARB...", false);
+            string output = await _processRunner.RunProcessCommand(fastbootPath, "getvar anti", "Checking ARB...", false);
 
             Match m = Regex.Match(output, @"anti:\s*(\d+)");
             if (m.Success)
@@ -4571,16 +4027,16 @@ namespace WinFormsApp1
 
         private async void btnFbSwitchSlot_Click(object sender, EventArgs e)
         {
-            string currentSlot = await RunProcessCommand(fastbootPath, "getvar current-slot", "", false);
+            string currentSlot = await _processRunner.RunProcessCommand(fastbootPath, "getvar current-slot", "", false);
             string targetSlot = currentSlot.Contains("_a") || currentSlot.Contains("a") ? "b" : "a";
 
             if (MessageBox.Show($"Switch active boot slot to [{targetSlot.ToUpper()}]?", "Confirm Slot Switch", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
                 LogFastboot($"\n🔀 Switching active slot to: [{targetSlot}]...");
-                await RunProcessCommand(fastbootPath, $"--set-active={targetSlot}", $"Switching to Slot {targetSlot}...");
+                await _processRunner.RunProcessCommand(fastbootPath, $"--set-active={targetSlot}", $"Switching to Slot {targetSlot}...");
                 LogSuccess($"✅ Active Slot set to [{targetSlot.ToUpper()}]!");
                 LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted to switched slot!\n");
             }
         }
@@ -4591,7 +4047,7 @@ namespace WinFormsApp1
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
                 LogFastboot($"\n🚀 Temporary Booting image: {Path.GetFileName(openFileDlg.FileName)}...");
-                await RunProcessCommand(fastbootPath, $"boot \"{openFileDlg.FileName}\"", "Temporary Booting...");
+                await _processRunner.RunProcessCommand(fastbootPath, $"boot \"{openFileDlg.FileName}\"", "Temporary Booting...");
                 LogSuccess("✅ Boot payload sent! Device is booting into temporary recovery.");
             }
         }
@@ -4599,16 +4055,16 @@ namespace WinFormsApp1
         private async void btnFbToFastbootd_Click(object sender, EventArgs e)
         {
             LogFastboot("\n⚡ Switching to Fastbootd Mode (Super / Dynamic Partitions)...");
-            await RunProcessCommand(fastbootPath, "reboot fastboot", "Entering Fastbootd...");
+            await _processRunner.RunProcessCommand(fastbootPath, "reboot fastboot", "Entering Fastbootd...");
         }
 
         // ================= Spreadtrum & Samsung Handlers =================
         private async void btnSpdDetect_Click(object sender, EventArgs e)
         {
             LogSPD("\n📱 [SPD] Reading Spreadtrum Device Hardware Info...");
-            string platform = await RunAdbTargeted("shell getprop ro.board.platform", "", false);
-            string chip = await RunAdbTargeted("shell getprop ro.hardware", "", false);
-            string model = await RunAdbTargeted("shell getprop ro.product.model", "", false);
+            string platform = await _processRunner.RunAdbTargeted("shell getprop ro.board.platform", "", false);
+            string chip = await _processRunner.RunAdbTargeted("shell getprop ro.hardware", "", false);
+            string model = await _processRunner.RunAdbTargeted("shell getprop ro.product.model", "", false);
 
             Log("╔══════════════════════════════════════════════════════════╗", colorSPD);
             Log("║             📱 SPREADTRUM / UNISOC INFO                  ║", colorSPD);
@@ -4622,18 +4078,18 @@ namespace WinFormsApp1
         private async void btnSpdReadPart_Click(object sender, EventArgs e)
         {
             LogSPD("\n🔓 [SPD] Resetting Spreadtrum FRP...");
-            await RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing SetupWizard...", false);
-            await RunAdbTargeted("reboot", "Rebooting...", false);
+            await _processRunner.RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing SetupWizard...", false);
+            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
             LogSuccess("✅ SPD FRP Reset command sent! Phone is restarting.");
         }
 
         private async void btnSamInfo_Click(object sender, EventArgs e)
         {
             LogSamsung("\n📱 [Samsung] Reading Samsung Device Info (MTP / ADB)...");
-            string model = await RunAdbTargeted("shell getprop ro.product.model", "", false);
-            string csc = await RunAdbTargeted("shell getprop ro.csc.sales_code", "", false);
-            string build = await RunAdbTargeted("shell getprop ro.build.display.id", "", false);
-            string oneui = await RunAdbTargeted("shell getprop ro.build.version.oneui", "", false);
+            string model = await _processRunner.RunAdbTargeted("shell getprop ro.product.model", "", false);
+            string csc = await _processRunner.RunAdbTargeted("shell getprop ro.csc.sales_code", "", false);
+            string build = await _processRunner.RunAdbTargeted("shell getprop ro.build.display.id", "", false);
+            string oneui = await _processRunner.RunAdbTargeted("shell getprop ro.build.version.oneui", "", false);
 
             Log("╔══════════════════════════════════════════════════════════╗", colorSamsung);
             Log("║             📱 SAMSUNG DEVICE INFORMATION                ║", colorSamsung);
@@ -4648,13 +4104,13 @@ namespace WinFormsApp1
         private async void btnSamRebootDownload_Click(object sender, EventArgs e)
         {
             LogSamsung("\n⚡ Rebooting Samsung device to Download Mode...");
-            await RunAdbTargeted("reboot download", "To Download Mode...");
+            await _processRunner.RunAdbTargeted("reboot download", "To Download Mode...");
         }
 
         private async void btnSamRebootNormal_Click(object sender, EventArgs e)
         {
             LogSamsung("\n🔄 Rebooting Samsung device to System...");
-            await RunAdbTargeted("reboot", "Rebooting...");
+            await _processRunner.RunAdbTargeted("reboot", "Rebooting...");
         }
 
         private async void btnSamReadPit_Click(object sender, EventArgs e)
@@ -4734,16 +4190,16 @@ namespace WinFormsApp1
                 for (int i = 1; i <= 15; i++)
                 {
                     this.Invoke(new Action(() => SetStatus($"Waiting for ADB Authorization ({i}/15)...")));
-                    string dev = await RunProcessCommand(adbPath, "devices", "", false);
+                    string dev = await _processRunner.RunProcessCommand(adbPath, "devices", "", false);
                     if (dev != null && dev.Contains("\tdevice"))
                     {
                         this.Invoke(new Action(() => LogSuccess("✅ ADB Device Authorized! Resetting FRP...")));
                         this.Invoke(new Action(() => UpdateGlobalProgress(85, "Resetting FRP...")));
 
-                        await RunProcessCommand(adbPath, "shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "", false);
-                        await RunProcessCommand(adbPath, "shell pm clear com.sec.android.app.SecSetupWizard", "", false);
-                        await RunProcessCommand(adbPath, "shell pm clear com.google.android.setupwizard", "", false);
-                        await RunProcessCommand(adbPath, "reboot", "", false);
+                        await _processRunner.RunProcessCommand(adbPath, "shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "", false);
+                        await _processRunner.RunProcessCommand(adbPath, "shell pm clear com.sec.android.app.SecSetupWizard", "", false);
+                        await _processRunner.RunProcessCommand(adbPath, "shell pm clear com.google.android.setupwizard", "", false);
+                        await _processRunner.RunProcessCommand(adbPath, "reboot", "", false);
 
                         this.Invoke(new Action(() =>
                         {
@@ -5187,191 +4643,6 @@ namespace WinFormsApp1
 
         // အောင်မြင်တဲ့ loader upload ရဲ့ hwid+pkhash → loader path ကို မှတ်ထားတယ် (နောက် Auto Detect အတွက်)
 
-        private void LogEdlLineSmart(string rawLine)
-        {
-            string line = (rawLine ?? "").Trim();
-            if (line.Length == 0) return;
-
-            // --- noise / banner / debug စာကြောင်းတွေကို ဖျောက်တယ် ---
-            if (line.StartsWith("Qualcomm Sahara / Firehose Client")) return;
-            if (line.StartsWith("Binary build date") || line.StartsWith("QSAHARASERVER CALLED LIKE THIS") ||
-                line.StartsWith("Current working dir") || line.StartsWith("Sahara mappings:") ||
-                line.StartsWith("Supported functions:") || line.StartsWith("Protocol version:") ||
-                line.StartsWith("Trying to connect to firehose")) return;
-            if (Regex.IsMatch(line, @"^\d+: [a-zA-Z0-9_]+\.mbn")) return;   // QSaharaServer mapping rows
-            if (Regex.IsMatch(line, @"^[\-=_]{5,}")) return;                 // separator lines
-            if (Regex.IsMatch(line, @"^[a-zA-Z0-9_]+:\s+Offset 0x")) return; // GPT row — grid ထဲမှာပဲ ပြမယ်
-            if (line.StartsWith("Parsing Lun") || line.StartsWith("GPT Table:") || line.StartsWith("Version 0x")) return;
-            // HWID / PK_HASH — auto-loader learning (ဖုန်းတစ်လုံးစီရဲ့ ID) အတွက် ဖမ်းပြီး log မှာ မပြဘူး
-            if (line.Contains("HWID:"))
-            {
-                Match hm = Regex.Match(line, @"HWID:\s+(0x[0-9A-Fa-f]+)");
-                if (hm.Success) detectedHwid = hm.Groups[1].Value;
-                return;
-            }
-            if (line.Contains("PK_HASH:"))
-            {
-                Match pm = Regex.Match(line, @"PK_HASH:\s+(0x[0-9A-Fa-f]+)");
-                if (pm.Success) detectedPkhash = pm.Groups[1].Value;
-                return;
-            }
-            if (line.StartsWith("Serial:")) return;
-            if (line.StartsWith("boottodwnload") || line.StartsWith("Version 0x")) return;
-
-            // device စောင့်နေတုန်း python ရဲ့ dots/hints တွေ — app ဘက်က ကိုယ်ပိုင် message ရှိပြီးသား
-            if (Regex.IsMatch(line, @"^\.+$")) return;
-            if (line.StartsWith("Hint:") || line.StartsWith("Xiaomi:") || line.StartsWith("Other:") ||
-                line.StartsWith("Run ") || line.Contains("fastpwn")) return;
-
-            // logger prefix (main - / sahara - / firehose_client - / [LIB]: ...) ဖြုတ်တယ် (အရှည်ဆုံးကစ စီစဉ်)
-            string body = Regex.Replace(line, @"^(firehose_client|DeviceClass|main|sahara|firehose)(\s*-\s*)?", "");
-            body = Regex.Replace(body, @"^\[LIB\]:\s*", "").Trim();
-            if (body.Length == 0) return;
-
-            // prefix ဖြုတ်ပြီးမှ ပေါ်လာတဲ့ noise တွေကိုပါ ဖျောက်တယ်
-            if (body.StartsWith("Protocol version:") || body.StartsWith("Trying to connect to firehose") ||
-                body.StartsWith("Supported functions:") || body.StartsWith("Version 0x") ||
-                body.StartsWith("[LIB]") || body.StartsWith("32-Bit mode detected") || body.StartsWith("64-Bit mode detected") ||
-                Regex.IsMatch(body, @"^\.+$") || body.StartsWith("Hint:") || body.StartsWith("Xiaomi:") ||
-                body.StartsWith("Other:") || body.Contains("fastpwn"))
-                return;
-
-            string display = "";
-            Color col = colorInfo;
-
-            if (body.StartsWith("Using loader", StringComparison.OrdinalIgnoreCase))
-            {
-                Match lm = Regex.Match(body, @"([^\\/]+\.(?:elf|mbn|bin))", RegexOptions.IgnoreCase);
-                display = lm.Success ? $"🚀 Loader: {lm.Groups[1].Value}" : body;
-                col = colorInfo;
-            }
-            else if (body.Contains("Trying with no loader given", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "🔍 Loader auto-detect mode (no loader file selected)";
-                col = colorWarning;
-            }
-            else if (body.Contains("Only nop and sig tag"))
-            {
-                display = "🔑 Xiaomi EDL auth required — sending signature...";
-                col = colorWarning;
-            }
-            else if (body.Contains("Xiaomi EDL Auth detected"))
-            {
-                display = "🔑 Xiaomi EDL Auth detected — authenticating...";
-                col = colorWarning;
-            }
-            else if (body.Contains("Authenticated successfully", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "🔓 EDL Authenticated successfully";
-                col = colorSuccess;
-            }
-            else if (body.Contains("Loader successfully uploaded", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "✅ Firehose Loader uploaded — switching to Firehose";
-                col = colorSuccess;
-                _loaderService.PersistAutoLoaderMap(detectedHwid, detectedPkhash, CurrentLoaderPath()); // hwid+pkhash → loader ကို မှတ်ထား (နောက် Auto Detect အတွက်)
-            }
-            else if (body.Contains("Mode detected: sahara"))
-            {
-                display = "🔌 Mode: Sahara (EDL)";
-                col = Color.FromArgb(128, 216, 255);
-            }
-            else if (body.Contains("Mode detected: firehose"))
-            {
-                display = "🔌 Mode: Firehose (loader running)";
-                col = Color.FromArgb(128, 216, 255);
-            }
-            else if (body.Contains("Device detected", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "✅ Device connected";
-                col = colorSuccess;
-            }
-            else if (body.Contains("Waiting for the device", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "⏳ Waiting for device...";
-                col = colorInfo;
-            }
-            else if (body.Contains("CPU detected", StringComparison.OrdinalIgnoreCase))
-            {
-                Match m = Regex.Match(body, @"""([^""]+)""");
-                if (m.Success)
-                {
-                    detectedChipset = m.Groups[1].Value;
-                    display = $"📱 Phone detected: {detectedChipset}";
-                    col = Color.FromArgb(255, 179, 71);
-                }
-            }
-            else if (body.StartsWith("Total disk size", StringComparison.OrdinalIgnoreCase))
-            {
-                Match m = Regex.Match(body, @"0x([0-9A-Fa-f]+)");
-                if (m.Success)
-                {
-                    try
-                    {
-                        ulong bytes = Convert.ToUInt64(m.Groups[1].Value, 16);
-                        display = $"💾 Total disk: {(bytes / (1024.0 * 1024.0 * 1024.0)):F2} GB";
-                        col = colorSuccess;
-                    }
-                    catch (Exception ex) { LogWarning($"⚠️ LogEdlLineSmart size parse fallback: {ex.Message}"); return; }
-                }
-                else return;
-            }
-            else if (body.Contains("Uploading loader", StringComparison.OrdinalIgnoreCase))
-            {
-                display = "🚀 Uploading Firehose Loader...";
-                col = colorInfo;
-            }
-            else if (body.Contains("32-Bit mode detected") || body.Contains("64-Bit mode detected"))
-            {
-                return; // အသေးစိတ် မလို
-            }
-            else if (body.Contains("Couldn't find a loader", StringComparison.OrdinalIgnoreCase))
-            {
-                detectedLoaderMissing = true;
-                display = "⚠️ Loader for this phone not in auto-database yet";
-                col = colorWarning;
-            }
-            else if (body.StartsWith("ERROR", StringComparison.OrdinalIgnoreCase) ||
-                     body.StartsWith("Error:", StringComparison.OrdinalIgnoreCase) ||
-                     body.Contains("Traceback") ||
-                     body.Contains("error:", StringComparison.OrdinalIgnoreCase) ||
-                     body.Contains("failed", StringComparison.OrdinalIgnoreCase))
-            {
-                // QSaharaServer COM port error spam → တစ်ကြောင်းတည်း ရှင်းပြ
-                if (body.Contains("Failed to open com port") || body.Contains("Could not connect"))
-                {
-                    display = "❌ Cannot open COM port — device not in EDL or port busy (try USB mode / Zadig)";
-                }
-                else
-                {
-                    display = "❌ " + (body.Length > 160 ? body.Substring(0, 160) : body);
-                }
-                col = colorError;
-            }
-            else if (body.StartsWith("[LIB]") || body.StartsWith("Warning") || body == "main" || body == "sahara" || body == "firehose")
-            {
-                return;
-            }
-            else
-            {
-                display = body; // အခြား output တွေ (adb getprop စသည်) ကို မပြောင်းဘဲ ပြတယ်
-                col = colorInfo;
-            }
-
-            // ထပ်ခါတလဲလဲ တူညီတဲ့ စာကြောင်းတွေကို ချုံ့တယ် (QSaharaServer ERROR spam လိုမျိုး)
-            if (display == lastSmartLine)
-            {
-                lastSmartRepeat++;
-                if (lastSmartRepeat > 3) return;
-            }
-            else
-            {
-                lastSmartLine = display;
-                lastSmartRepeat = 0;
-            }
-
-            Log(display, col);
-        }
         private void Log(string message, Color color)
         {
             if (this.InvokeRequired) { this.Invoke(new Action<string, Color>(Log), message, color); return; }
@@ -5408,15 +4679,15 @@ namespace WinFormsApp1
         {
             try
             {
-                cts?.Cancel();
-                if (currentProcess != null && !currentProcess.HasExited) currentProcess.Kill(entireProcessTree: true);
+                _processRunner.Cts?.Cancel();
+                if (_processRunner.CurrentProcess != null && !_processRunner.CurrentProcess.HasExited) _processRunner.CurrentProcess.Kill(entireProcessTree: true);
             }
             catch (Exception ex) { LogWarning($"⚠️ Form1_FormClosing error: {ex.Message}"); }
             finally
             {
                 portTimer?.Stop();
                 portTimer?.Dispose();
-                cts?.Dispose();
+                _processRunner.Cts?.Dispose();
             }
         }
 
@@ -5522,10 +4793,10 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus($"Dumping {part}...");
             LogQualcomm($"\n🔍 [Hex Edit] Dumping partition [{part}] ({pinfo.Length} bytes)...");
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r {part} \"{dumpPath}\"", $"Reading {part}...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r {part} \"{dumpPath}\"", $"Reading {part}...", true);
 
             byte[] data = null;
-            if (PythonOpSucceeded(res) && IOFile.Exists(dumpPath))
+            if (_processRunner.PythonOpSucceeded(res) && IOFile.Exists(dumpPath))
             {
                 try { data = IOFile.ReadAllBytes(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ btnQcHexEdit_Click fallback: {ex.Message}"); }
             }
@@ -5556,12 +4827,12 @@ namespace WinFormsApp1
 
             SetStatus($"Writing {part}...");
             LogQualcomm($"\n🔥 Writing edited [{part}] back to phone...");
-            string res2 = await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w {part} \"{editPath}\"", $"Writing {part}...", true);
-            if (PythonOpSucceeded(res2))
+            string res2 = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w {part} \"{editPath}\"", $"Writing {part}...", true);
+            if (_processRunner.PythonOpSucceeded(res2))
             {
                 LogSuccess($"✅ [{part}] ပြန်ရေးပြီးပါပြီ!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting!\n");
             }
             else
@@ -5584,8 +4855,8 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus("Backing up persist...");
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r persist \"{saveFileDlg.FileName}\"", "Reading persist...", true);
-            if (PythonOpSucceeded(res) && IOFile.Exists(saveFileDlg.FileName))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r persist \"{saveFileDlg.FileName}\"", "Reading persist...", true);
+            if (_processRunner.PythonOpSucceeded(res) && IOFile.Exists(saveFileDlg.FileName))
             {
                 long sz = new FileInfo(saveFileDlg.FileName).Length;
                 LogSuccess($"✅ persist backup ပြီးပါပြီ: {(sz / (1024.0 * 1024.0)):F1} MB → {saveFileDlg.FileName}");
@@ -5611,12 +4882,12 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus("Restoring persist...");
 
-            string res = await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w persist \"{openFileDlg.FileName}\"", "Writing persist...", true);
-            if (PythonOpSucceeded(res))
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w persist \"{openFileDlg.FileName}\"", "Writing persist...", true);
+            if (_processRunner.PythonOpSucceeded(res))
             {
                 LogSuccess("✅ persist restore ပြီးပါပြီ!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting!\n");
             }
             else
