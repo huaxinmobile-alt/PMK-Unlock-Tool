@@ -656,17 +656,19 @@ namespace WinFormsApp1
                 using (var line = new SolidBrush(Color.FromArgb(80, 210, 255, 255)))
                     g.FillRectangle(line, 0, Height - 3, Width, 3);
 
-                // Main title
+                // Main title + ဘေးမှာ version (နာမည်နဲ့ ကပ်ပြီး)
                 using (var titleFont = new Font("Segoe UI", 13.5F, FontStyle.Bold))
                 using (var titleBrush = new SolidBrush(Color.White))
                 using (var subBrush = new SolidBrush(Color.FromArgb(190, 225, 255)))
-                using (var verFont = new Font("Segoe UI", 8.5F))
+                using (var verFont = new Font("Segoe UI", 9F, FontStyle.Regular))
                 {
-                    g.DrawString("PMK MOBILE SERVICE TOOL", titleFont, titleBrush, 16, (Height - g.MeasureString("PMK MOBILE SERVICE TOOL", titleFont).Height) / 2);
+                    string title = "PMK MOBILE SERVICE TOOL";
+                    var titleSize = g.MeasureString(title, titleFont);
+                    float yCenter = (Height - titleSize.Height) / 2;
+                    g.DrawString(title, titleFont, titleBrush, 16, yCenter);
 
                     string ver = "v" + (Assembly.GetExecutingAssembly().GetName().Version?.ToString(2) ?? "4.0");
-                    var verSize = g.MeasureString(ver, verFont);
-                    g.DrawString(ver, verFont, subBrush, Width - verSize.Width - 16, (Height - verSize.Height) / 2);
+                    g.DrawString(ver, verFont, subBrush, 16 + titleSize.Width + 10, yCenter + 4);
                 }
             }
         }
