@@ -577,6 +577,13 @@ namespace WinFormsApp1
             rightPanel.Controls.Add(profilePanel);
             rightPanel.Controls.Add(categoryBar);
 
+            // PROFILE စာတန်းတွေ ဖတ်ရလွယ်အောင် ဖောင့် ပိုကြီး/ထူပေးတယ်
+            foreach (Control c in profilePanel.Controls)
+            {
+                if (c is Label l)
+                    l.Font = new Font("Segoe UI", l.Font.Bold ? 9.5F : 9.25F, FontStyle.Bold);
+            }
+
             mobileSeaShell.Controls.Add(rightPanel);
             mobileSeaShell.Controls.Add(leftPanel);
 
@@ -4798,6 +4805,7 @@ namespace WinFormsApp1
                 Label key = CreateSeaLabel(t, new Point(12, y), false);
                 key.AutoSize = false;
                 key.Size = new Size(190, 22);
+                key.Font = new Font("Segoe UI", 9.5F, FontStyle.Bold); // ဖတ်ရလွယ်အောင် ပိုကြီး/ထူပေးတယ်
                 settingsPanel.Controls.Add(key);
 
                 Label val = new Label
@@ -4805,7 +4813,7 @@ namespace WinFormsApp1
                     Location = new Point(215, y),
                     AutoSize = false,
                     Size = new Size(600, 22),
-                    Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                    Font = new Font("Segoe UI", 9.5F, FontStyle.Regular),
                     ForeColor = Color.FromArgb(220, 230, 245),
                     Text = "…",
                     TextAlign = ContentAlignment.MiddleLeft
@@ -4813,6 +4821,13 @@ namespace WinFormsApp1
                 settingsPanel.Controls.Add(val);
                 pcInfoRows.Add((t, val));
                 y += step;
+            }
+
+            // Section headers (⚙️ SETTINGS / 🖥️ PC INFO) — ပိုကြီးပြီး ထင်ရှားအောင်
+            foreach (Control c in settingsPanel.Controls)
+            {
+                if (c is Label l && l.Font.Bold && l.Font.SizeInPoints < 10.5F)
+                    l.Font = new Font("Segoe UI", 10.5F, FontStyle.Bold);
             }
 
             PopulatePcInfo(); // ပထမဆုံးဝင်ကြည့်ကတည်းက info တွေ ပြပြီးသားဖြစ်အောင်
