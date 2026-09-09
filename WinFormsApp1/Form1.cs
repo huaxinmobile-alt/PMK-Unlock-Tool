@@ -47,6 +47,7 @@ namespace WinFormsApp1
         private ProcessRunnerService _processRunner;
         private QualcommService _qcService;
         private MediaTekService _mtkService;
+        private AdbFastbootService _adbFbService;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
@@ -185,6 +186,14 @@ namespace WinFormsApp1
                 _firmwareService,
                 _processRunner,
                 ShowGptPartitions);
+            _adbFbService = new AdbFastbootService(
+                Log,
+                UpdateGlobalProgress,
+                SetStatus,
+                SetOperationState,
+                _processRunner,
+                () => adbPath,
+                () => fastbootPath);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -2773,48 +2782,9 @@ namespace WinFormsApp1
         }
 
         // ================= ADB Handlers & Functions =================
-        private async void btnAdbDevices_Click(object sender, EventArgs e)
+private async void btnAdbDevices_Click(object sender, EventArgs e)
         {
-            LogADB("\n🔍 [ADB] Scanning Connected Devices...");
-
-            string output = await _processRunner.RunProcessCommand(adbPath, "devices -l", "Scanning ADB Devices...", false);
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                LogError("❌ ADB daemon not responding or no devices connected.");
-                return;
-            }
-
-            string[] lines = output.Split(new[] { "\r\n", "\n" }, StringSplitOptions.RemoveEmptyEntries);
-            List<string> connectedSerials = new List<string>();
-
-            foreach (string line in lines)
-            {
-                string t = line.Trim();
-                if (t.StartsWith("List of devices") || t.StartsWith("*") || string.IsNullOrWhiteSpace(t)) continue;
-
-                if (t.Contains("device") || t.Contains("recovery") || t.Contains("unauthorized"))
-                {
-                    string[] parts = t.Split(new[] { '\t', ' ' }, StringSplitOptions.RemoveEmptyEntries);
-                    if (parts.Length > 0 && parts[0].Length >= 4)
-                    {
-                        connectedSerials.Add(parts[0]);
-                    }
-                }
-            }
-
-            if (connectedSerials.Count == 0)
-            {
-                LogWarning("⚠️ No active ADB device detected.");
-                return;
-            }
-
-            LogSuccess($"✅ Found {connectedSerials.Count} active device(s) connected!\n");
-
-            int deviceIndex = 1;
-            foreach (string serial in connectedSerials)
-            {
-                await DisplayStructuredDeviceInfo(serial, deviceIndex++, connectedSerials.Count);
-            }
+            await _adbFbService.AdbDevicesAsync();
         }
 
         private async Task DisplayStructuredDeviceInfo(string serial, int index, int total)
@@ -2874,340 +2844,86 @@ namespace WinFormsApp1
             Log("────────────────────────────────────────────────────────────\n", colorADB);
         }
 
-        private async void btnAdbBatteryInfo_Click(object sender, EventArgs e)
+private async void btnAdbBatteryInfo_Click(object sender, EventArgs e)
         {
-            LogADB("\n🔋 [ADB] Reading Battery & Power Information...");
-
-            string rawDump = await _processRunner.RunAdbTargeted("shell dumpsys battery", "Reading Battery Status...", false);
-            if (string.IsNullOrWhiteSpace(rawDump))
-            {
-                LogError("❌ Failed to read battery data. Ensure device is connected.");
-                return;
-            }
-
-            string GetValue(string key)
-            {
-                Match m = Regex.Match(rawDump, $@"{key}:\s*([^\r\n]+)", RegexOptions.IgnoreCase);
-                return m.Success ? m.Groups[1].Value.Trim() : "N/A";
-            }
-
-            string level = GetValue("level");
-            string statusRaw = GetValue("status");
-            string healthRaw = GetValue("health");
-            string voltageRaw = GetValue("voltage");
-            string tempRaw = GetValue("temperature");
-            string tech = GetValue("technology");
-            string usbPowered = GetValue("USB powered");
-            string acPowered = GetValue("AC powered");
-            string wirelessPowered = GetValue("Wireless powered");
-
-            string status = statusRaw switch
-            {
-                "2" => "⚡ Charging",
-                "3" => "🔋 Discharging",
-                "4" => "🔌 Not Charging",
-                "5" => "✅ Full (100%)",
-                _ => "Unknown"
-            };
-
-            string powerSource = "Battery Only";
-            if (acPowered.Equals("true", StringComparison.OrdinalIgnoreCase)) powerSource = "🔌 AC Fast Charge";
-            else if (usbPowered.Equals("true", StringComparison.OrdinalIgnoreCase)) powerSource = "🔌 USB Connected";
-            else if (wirelessPowered.Equals("true", StringComparison.OrdinalIgnoreCase)) powerSource = "⚡ Wireless";
-
-            string health = healthRaw switch
-            {
-                "2" => "💚 Good",
-                "3" => "🔥 Overheat Warning",
-                "4" => "💀 Dead / Replace",
-                _ => "Normal"
-            };
-
-            string voltage = voltageRaw;
-            if (double.TryParse(voltageRaw, out double vVal)) voltage = $"{vVal / 1000.0:F3} V";
-
-            string temp = tempRaw;
-            if (double.TryParse(tempRaw, out double tVal)) temp = $"🌡️ {tVal / 10.0:F1} °C";
-
-            Log("╔══════════════════════════════════════════════════════════╗", Color.FromArgb(0, 188, 212));
-            Log("║               🔋 BATTERY & POWER STATUS                  ║", Color.FromArgb(0, 188, 212));
-            Log("╚══════════════════════════════════════════════════════════╝", Color.FromArgb(0, 188, 212));
-            Log($"  • Battery Level    : {level}%", colorSuccess);
-            Log($"  • Charging Status  : {status}", statusRaw == "2" || statusRaw == "5" ? colorSuccess : colorWarning);
-            Log($"  • Power Source     : {powerSource}", colorInfo);
-            Log($"  • Battery Health   : {health}", healthRaw == "2" ? colorSuccess : colorError);
-            Log($"  • Current Voltage  : {voltage}", colorInfo);
-            Log($"  • Temperature      : {temp}", colorFastboot);
-            Log($"  • Battery Tech     : {tech}", colorInfo);
-            Log("────────────────────────────────────────────────────────────\n", Color.FromArgb(0, 188, 212));
+            await _adbFbService.AdbBatteryInfoAsync();
         }
 
-        private async void btnAdbInstall_Click(object sender, EventArgs e)
+private async void btnAdbInstall_Click(object sender, EventArgs e)
         {
             openFileDlg.Filter = "APK Files (*.apk)|*.apk";
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
-                LogADB($"\n📦 Installing APK: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await _processRunner.RunAdbTargeted($"install -r \"{openFileDlg.FileName}\"", "Installing APK...");
-                if (res != null && res.Contains("Success")) LogSuccess("✅ App installed successfully!");
-                else LogWarning("⚠️ Installation finished. Check output.");
+            await _adbFbService.AdbInstallAsync(openFileDlg.FileName);
             }
         }
 
-        private async void btnAdbScreenshot_Click(object sender, EventArgs e)
+private async void btnAdbScreenshot_Click(object sender, EventArgs e)
         {
             saveFileDlg.Filter = "PNG Image (*.png)|*.png";
             saveFileDlg.FileName = $"Screen_{DateTime.Now:yyyyMMdd_HHmmss}.png";
             if (saveFileDlg.ShowDialog() == DialogResult.OK)
             {
-                LogADB("\n📸 Capturing screenshot from device...");
-                await _processRunner.RunAdbTargeted("shell screencap -p /sdcard/temp_screen.png", "Capturing...", false);
-                await _processRunner.RunAdbTargeted($"pull /sdcard/temp_screen.png \"{saveFileDlg.FileName}\"", "Saving...", false);
-                await _processRunner.RunAdbTargeted("shell rm /sdcard/temp_screen.png", "", false);
-                if (IOFile.Exists(saveFileDlg.FileName)) LogSuccess($"✅ Screenshot saved: {saveFileDlg.FileName}");
-                else LogError("❌ Failed to capture screenshot.");
+            await _adbFbService.AdbScreenshotAsync(saveFileDlg.FileName);
             }
         }
 
-        private async void btnAdbFRP_Click(object sender, EventArgs e)
+private async void btnAdbFRP_Click(object sender, EventArgs e)
         {
-            LogADB("\n🔓 [ADB] Universal FRP Reset (SetupWizard Bypass)...");
-            await _processRunner.RunAdbTargeted("shell content insert --uri content://settings/secure --bind name:s:user_setup_complete --bind value:s:1", "Setting complete...", false);
-            await _processRunner.RunAdbTargeted("shell pm clear com.google.android.setupwizard", "Clearing setup wizard...", false);
-            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
-            LogSuccess("✅ FRP command issued! Phone is restarting to Home.");
+            await _adbFbService.AdbFrpResetAsync();
         }
 
-        private async void btnAdbRebootBootloader_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot bootloader", "Rebooting to Bootloader...");
-        private async void btnAdbRebootRecovery_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot recovery", "Rebooting to Recovery...");
-        private async void btnAdbRebootEdl_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot edl", "Rebooting to EDL...");
-        private async void btnAdbReboot_Click(object sender, EventArgs e) => await _processRunner.RunAdbTargeted("reboot", "Rebooting System...");
+        private async void btnAdbRebootBootloader_Click(object sender, EventArgs e) => await _adbFbService.AdbRebootBootloaderAsync();
+        private async void btnAdbRebootRecovery_Click(object sender, EventArgs e) => await _adbFbService.AdbRebootRecoveryAsync();
+        private async void btnAdbRebootEdl_Click(object sender, EventArgs e) => await _adbFbService.AdbRebootEdlAsync();
+        private async void btnAdbReboot_Click(object sender, EventArgs e) => await _adbFbService.AdbRebootSystemAsync();
 
-        private async void btnAdbDebloat_Click(object sender, EventArgs e)
+private async void btnAdbDebloat_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Uninstall common carrier bloatware and analytics apps?", "Confirm Debloat", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes)
                 return;
 
-            string[] bloatPackages = {
-                "com.facebook.katana", "com.facebook.system", "com.facebook.appmanager", "com.facebook.services",
-                "com.google.android.apps.tachyon", "com.google.android.feedback",
-                "com.miui.analytics", "com.miui.msa.global", "com.miui.bugreport",
-                "com.cleanmaster.mguard", "com.aura.oobe.samsung"
-            };
-
-            LogADB("\n🗑️ [ADB] Removing bloatware apps...");
-            foreach (var pkg in bloatPackages)
-            {
-                string res = await _processRunner.RunAdbTargeted($"shell pm uninstall -k --user 0 {pkg}", "", false);
-                if (res != null && res.Contains("Success")) LogADB($"  • Uninstalled: {pkg}");
-            }
-            LogSuccess("✅ Debloat operation finished!");
-            LogADB("🔄 [Auto Reboot] Restarting phone...");
-            await _processRunner.RunAdbTargeted("reboot", "Rebooting...", false);
+            await _adbFbService.AdbDebloatAsync();
         }
 
-        private async void btnAdbEnableLang_Click(object sender, EventArgs e)
+private async void btnAdbEnableLang_Click(object sender, EventArgs e)
         {
-            LogADB("\n🇲🇲 [ADB] Granting Language Change Permission (CHANGE_CONFIGURATION)...");
-            await _processRunner.RunAdbTargeted("shell pm grant com.wanam.languageenabler android.permission.CHANGE_CONFIGURATION", "", false);
-            await _processRunner.RunAdbTargeted("shell pm grant com.google.android.apps.translate android.permission.CHANGE_CONFIGURATION", "", false);
-            await _processRunner.RunAdbTargeted("shell setprop persist.sys.locale my-MM", "", false);
-            await _processRunner.RunAdbTargeted("shell am broadcast -a android.intent.action.LOCALE_CHANGED", "", false);
-            LogSuccess("✅ All Languages Enabled! Please check phone language settings.");
+            await _adbFbService.AdbEnableLangAsync();
         }
 
-        private void btnAdbScrcpy_Click(object sender, EventArgs e)
-        {
-            string scrcpyPath = AppConfig.ScrcpyExe;
-            if (!IOFile.Exists(scrcpyPath)) scrcpyPath = AppConfig.ScrcpyExeRootFallback;
-
-            if (IOFile.Exists(scrcpyPath))
-            {
-                LogADB("\n🖥️ Launching Scrcpy Screen Mirror...");
-                Process.Start(new ProcessStartInfo(scrcpyPath) { UseShellExecute = true });
-            }
-            else
-            {
-                LogError("❌ scrcpy.exe not found in tool folder. Please put scrcpy in tool directory.");
-            }
-        }
+        private void btnAdbScrcpy_Click(object sender, EventArgs e) => _adbFbService.LaunchScrcpy();
 
         // ================= Fastboot Handlers =================
-        private async void btnFbDevices_Click(object sender, EventArgs e)
+private async void btnFbDevices_Click(object sender, EventArgs e)
         {
-            LogFastboot("\n⚡ [Fastboot] Checking Connected Devices...");
-            string output = await _processRunner.RunProcessCommand(fastbootPath, "devices", "Checking Fastboot...", false);
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                LogWarning("⚠️ No fastboot device detected.");
-                return;
-            }
-
-            Log("╔══════════════════════════════════════════════════════════╗", colorFastboot);
-            Log("║             ⚡ FASTBOOT CONNECTED DEVICE                 ║", colorFastboot);
-            Log("╚══════════════════════════════════════════════════════════╝", colorFastboot);
-            foreach (var line in output.Split(new[] { '\r', '\n' }, StringSplitOptions.RemoveEmptyEntries))
-            {
-                Log($"  • {line.Trim()}", colorSuccess);
-            }
-            Log("────────────────────────────────────────────────────────────\n", colorFastboot);
+            await _adbFbService.FastbootDevicesAsync();
         }
 
         // ================= Fastboot Multi-Brand FRP Reset (Unlocked Bootloader) =================
-        private async void btnFbFrp_Click(object sender, EventArgs e)
+private async void btnFbFrp_Click(object sender, EventArgs e)
         {
-            LogFastboot("\n╔══════════════════════════════════════════════════════════╗");
-            LogFastboot("║       🔓 FASTBOOT UNIVERSAL FRP RESET (MULTI-BRAND)      ║");
-            LogFastboot("╚══════════════════════════════════════════════════════════╝");
-            LogFastboot("⚡ Checking device connection & Bootloader status...");
-
-            SetOperationState(true);
-            SetStatus("Resetting Fastboot FRP...");
-            UpdateGlobalProgress(15, "Checking Device...");
-
-            // 1. Device ချိတ်ဆက်မှု စစ်ဆေးခြင်း
-            string devCheck = await _processRunner.RunProcessCommand(fastbootPath, "devices", "", false);
-            if (string.IsNullOrWhiteSpace(devCheck))
-            {
-                LogError("❌ No fastboot device detected. Connect phone in Fastboot Mode!");
-                SetOperationState(false);
-                SetStatus("Ready");
-                UpdateGlobalProgress(0);
-                return;
-            }
-
-            // 2. Bootloader Lock/Unlock အခြေအနေ နှင့် Model ဖတ်ယူခြင်း
-            string varCheck = await _processRunner.RunProcessCommand(fastbootPath, "getvar all", "", false);
-            bool isUnlocked = varCheck.Contains("unlocked:yes", StringComparison.OrdinalIgnoreCase) ||
-                              varCheck.Contains("unlocked: yes", StringComparison.OrdinalIgnoreCase) ||
-                              varCheck.Contains("unlocked: 1", StringComparison.OrdinalIgnoreCase);
-
-            string product = "Unknown";
-            Match mProd = Regex.Match(varCheck, @"product:\s*([^\r\n]+)", RegexOptions.IgnoreCase);
-            if (mProd.Success) product = mProd.Groups[1].Value.Trim();
-
-            LogSuccess($"📱 Connected Device : [{product.ToUpper()}]");
-            LogSuccess($"🔓 Bootloader Status: {(isUnlocked ? "UNLOCKED (Ready to Reset)" : "⚠️ LOCKED (May fail on some partitions)")}");
-
-            UpdateGlobalProgress(35, "Erasing FRP Partitions...");
-
-            bool frpSuccess = false;
-
-            // 3. Motorola သီးသန့် FRP Bypass Protocol (ဥပမာ- Moto G7 river စသည့် မော်ဒယ်များအတွက်)
-            if (product.Contains("river") || product.Contains("ocean") || product.Contains("potter") || product.Contains("moto", StringComparison.OrdinalIgnoreCase))
-            {
-                LogFastboot("\n🛡️ [Motorola Protocol] Setting Factory Fastboot Mode...");
-                await _processRunner.RunProcessCommand(fastbootPath, "oem fb_mode_set", "", false);
-                await _processRunner.RunProcessCommand(fastbootPath, "erase config", "", false);
-                await _processRunner.RunProcessCommand(fastbootPath, "erase frp", "", false);
-                await _processRunner.RunProcessCommand(fastbootPath, "oem fb_mode_clear", "", false);
-                frpSuccess = true;
-            }
-
-            // 4. Universal Partition Erase Sequence (Standard Android / Qualcomm / MTK / Pixel / Xiaomi)
-            string[] frpPartitions = { "frp", "config", "persistent" };
-
-            foreach (var part in frpPartitions)
-            {
-                LogFastboot($"⚡ Erasing [{part}] partition...");
-                string res = await _processRunner.RunProcessCommand(fastbootPath, $"erase {part}", "", false);
-
-                if (res != null && (res.Contains("OKAY") || res.Contains("finished")))
-                {
-                    LogSuccess($"  ✅ [{part}] Partition Cleared Successfully!");
-                    frpSuccess = true;
-                }
-            }
-
-            // 5. Userdata Lock & Format Verification
-            UpdateGlobalProgress(80, "Finalizing...");
-            await Task.Delay(500);
-
-            if (frpSuccess)
-            {
-                UpdateGlobalProgress(100, "Done");
-                LogSuccess("\n🎉 Fastboot FRP Reset Executed Successfully!");
-                LogFastboot("🔄 [Auto Reboot] Restarting phone to System...");
-
-                await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
-                LogSuccess("📱 Phone is restarting to Welcome Screen without Google Lock!\n");
-            }
-            else
-            {
-                LogError("\n❌ Failed to erase FRP. Make sure Bootloader is Unlocked or use EDL/BROM Mode.");
-                UpdateGlobalProgress(0);
-            }
-
-            SetOperationState(false);
-            SetStatus("Ready");
+            await _adbFbService.FastbootFrpResetAsync();
         }
-        private async void btnFbGetvar_Click(object sender, EventArgs e)
+private async void btnFbGetvar_Click(object sender, EventArgs e)
         {
-            LogFastboot("\n⚡ [Fastboot] Reading Device Variables...");
-            string output = await _processRunner.RunProcessCommand(fastbootPath, "getvar all", "Reading Variables...", false);
-            if (string.IsNullOrWhiteSpace(output))
-            {
-                LogError("❌ No fastboot device detected or command failed.");
-                return;
-            }
-
-            string GetVarValue(string varName)
-            {
-                Match m = Regex.Match(output, $@"\({varName}\):\s*([^\r\n]+)", RegexOptions.IgnoreCase);
-                if (!m.Success) m = Regex.Match(output, $@"{varName}:\s*([^\r\n]+)", RegexOptions.IgnoreCase);
-                return m.Success ? m.Groups[1].Value.Trim() : "N/A";
-            }
-
-            string product = GetVarValue("product");
-            string unlocked = GetVarValue("unlocked");
-            string secure = GetVarValue("secure");
-            string serial = GetVarValue("serialno");
-            string hwVersion = GetVarValue("hw-revision");
-            string baseband = GetVarValue("version-baseband");
-
-            Log("╔══════════════════════════════════════════════════════════╗", colorFastboot);
-            Log("║             ⚡ FASTBOOT INFORMATION                      ║", colorFastboot);
-            Log("╚══════════════════════════════════════════════════════════╝", colorFastboot);
-            Log($"  • Serial Number    : {serial}", colorSuccess);
-            Log($"  • Product Name     : {product}", colorSuccess);
-            Log($"  • Bootloader Lock  : {(unlocked.ToLower() == "yes" ? "🔓 Unlocked" : "🔒 Locked")}", unlocked.ToLower() == "yes" ? colorSuccess : colorError);
-            Log($"  • Secure Boot      : {secure}", colorInfo);
-            Log($"  • Hardware Rev     : {hwVersion}", colorInfo);
-            Log($"  • Baseband Version : {baseband}", colorInfo);
-            Log("────────────────────────────────────────────────────────────\n", colorFastboot);
+            await _adbFbService.FastbootGetvarAsync();
         }
 
-        private async void btnFbFlashBoot_Click(object sender, EventArgs e)
+private async void btnFbFlashBoot_Click(object sender, EventArgs e)
         {
             openFileDlg.Filter = "IMG (*.img)|*.img";
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
-                LogFastboot($"\n🔥 Flashing Boot image: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await _processRunner.RunProcessCommand(fastbootPath, $"flash boot \"{openFileDlg.FileName}\"", "Flashing Boot...");
-                if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    LogSuccess("✅ Boot image flashed successfully!");
-                    LogFastboot("🔄 [Auto Reboot] Restarting phone to System...");
-                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
-                    LogSuccess("📱 Phone rebooted successfully!\n");
-                }
+            await _adbFbService.FastbootFlashBootAsync(openFileDlg.FileName);
             }
         }
 
-        private async void btnFbFlashRecovery_Click(object sender, EventArgs e)
+private async void btnFbFlashRecovery_Click(object sender, EventArgs e)
         {
             openFileDlg.Filter = "IMG (*.img)|*.img";
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
-                LogFastboot($"\n🔧 Flashing Recovery image: {Path.GetFileName(openFileDlg.FileName)}...");
-                string res = await _processRunner.RunProcessCommand(fastbootPath, $"flash recovery \"{openFileDlg.FileName}\"", "Flashing Recovery...");
-                if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    LogSuccess("✅ Recovery image flashed successfully!");
-                    LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
-                    LogSuccess("📱 Phone rebooted successfully!\n");
-                }
+            await _adbFbService.FastbootFlashRecoveryAsync(openFileDlg.FileName);
             }
         }
 
@@ -3215,39 +2931,15 @@ namespace WinFormsApp1
         {
             if (MessageBox.Show("Unlock Bootloader? (Will wipe user data)", "Fastboot OEM Unlock", MessageBoxButtons.YesNo, MessageBoxIcon.Warning) == DialogResult.Yes)
             {
-                LogFastboot("\n🔓 Unlocking bootloader...");
-                string res = await _processRunner.RunProcessCommand(fastbootPath, "flashing unlock", "Unlocking Bootloader...");
-                if (res != null && !res.Contains("FAILED", StringComparison.OrdinalIgnoreCase))
-                {
-                    LogSuccess("✅ Bootloader Unlocked!");
-                    LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                    await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
-                    LogSuccess("📱 Phone is rebooting!\n");
-                }
+                await _adbFbService.FastbootUnlockAsync();
             }
         }
 
-        private async void btnFbReboot_Click(object sender, EventArgs e) => await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...");
+        private async void btnFbReboot_Click(object sender, EventArgs e) => await _adbFbService.FastbootRebootAsync();
 
-        private async void btnFbCheckArb_Click(object sender, EventArgs e)
+private async void btnFbCheckArb_Click(object sender, EventArgs e)
         {
-            LogFastboot("\n🛡️ [Fastboot] Checking Xiaomi Anti-Rollback (ARB) Index...");
-            string output = await _processRunner.RunProcessCommand(fastbootPath, "getvar anti", "Checking ARB...", false);
-
-            Match m = Regex.Match(output, @"anti:\s*(\d+)");
-            if (m.Success)
-            {
-                string index = m.Groups[1].Value;
-                Log("╔══════════════════════════════════════════════════════════╗", colorFastboot);
-                Log($"║          🛡️ ANTI-ROLLBACK INDEX : [ {index} ]                   ║", colorFastboot);
-                Log("╚══════════════════════════════════════════════════════════╝", colorFastboot);
-                Log($"  • ARB Level: {index}", colorSuccess);
-                Log("  • Warning: Never flash firmware with ARB lower than this number!", colorWarning);
-            }
-            else
-            {
-                LogWarning("⚠️ ARB Index not supported on this model or device locked.");
-            }
+            await _adbFbService.FastbootCheckArbAsync();
         }
 
         private async void btnFbSwitchSlot_Click(object sender, EventArgs e)
@@ -3257,30 +2949,22 @@ namespace WinFormsApp1
 
             if (MessageBox.Show($"Switch active boot slot to [{targetSlot.ToUpper()}]?", "Confirm Slot Switch", MessageBoxButtons.YesNo, MessageBoxIcon.Question) == DialogResult.Yes)
             {
-                LogFastboot($"\n🔀 Switching active slot to: [{targetSlot}]...");
-                await _processRunner.RunProcessCommand(fastbootPath, $"--set-active={targetSlot}", $"Switching to Slot {targetSlot}...");
-                LogSuccess($"✅ Active Slot set to [{targetSlot.ToUpper()}]!");
-                LogFastboot("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(fastbootPath, "reboot", "Rebooting...", false);
-                LogSuccess("📱 Phone rebooted to switched slot!\n");
+                await _adbFbService.FastbootSwitchSlotAsync(targetSlot);
             }
         }
 
-        private async void btnFbTempBoot_Click(object sender, EventArgs e)
+private async void btnFbTempBoot_Click(object sender, EventArgs e)
         {
             openFileDlg.Filter = "Boot / Recovery Image (*.img)|*.img";
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
-                LogFastboot($"\n🚀 Temporary Booting image: {Path.GetFileName(openFileDlg.FileName)}...");
-                await _processRunner.RunProcessCommand(fastbootPath, $"boot \"{openFileDlg.FileName}\"", "Temporary Booting...");
-                LogSuccess("✅ Boot payload sent! Device is booting into temporary recovery.");
+            await _adbFbService.FastbootTempBootAsync(openFileDlg.FileName);
             }
         }
 
-        private async void btnFbToFastbootd_Click(object sender, EventArgs e)
+private async void btnFbToFastbootd_Click(object sender, EventArgs e)
         {
-            LogFastboot("\n⚡ Switching to Fastbootd Mode (Super / Dynamic Partitions)...");
-            await _processRunner.RunProcessCommand(fastbootPath, "reboot fastboot", "Entering Fastbootd...");
+            await _adbFbService.FastbootToFastbootdAsync();
         }
 
         // ================= Spreadtrum & Samsung Handlers =================
