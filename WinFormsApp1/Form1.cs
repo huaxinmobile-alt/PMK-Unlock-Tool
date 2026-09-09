@@ -2245,7 +2245,6 @@ namespace WinFormsApp1
             switch (category)
             {
                 case "Qualcomm":
-                    AddActionBtn("📡 Detect 9008", Color.FromArgb(239, 83, 80), btnQcDetect_Click);
                     AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { flasherHubPanel.Visible = false; mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
                     AddActionBtn("💾 Backup EFS", Color.FromArgb(156, 39, 176), btnQcBackupEfs_Click);
                     AddActionBtn("✏️ Restore EFS", Color.FromArgb(120, 50, 140), btnQcRestoreEfs_Click);
@@ -2279,7 +2278,6 @@ namespace WinFormsApp1
                     break;
 
                 case "MediaTek":
-                    AddActionBtn("🔍 Detect MTK", Color.FromArgb(102, 187, 106), btnMtkDetect_Click);
                     AddActionBtn("ℹ️ MTK Info", Color.FromArgb(76, 175, 80), btnMtkInfo_Click);
                     AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { flasherHubPanel.Visible = false; mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
                     AddActionBtn("🔓 BL Unlock", Color.FromArgb(255, 152, 0), btnMtkUnlockBL_Click);

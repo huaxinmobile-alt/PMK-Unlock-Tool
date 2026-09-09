@@ -29,7 +29,8 @@ Requires .NET 9 SDK (`net9.0-windows`) and Python on PATH at runtime.
 
 ## Features (v4.0)
 
-- Qualcomm EDL: Detect 9008 / Read GPT / full partition backup / Safe Format /
+- Qualcomm EDL: auto-detect on operation / Read GPT / full partition backup /
+  Safe Format /
   Factory Reset / FRP reset / loader auto-detect (USB & serial transports)
 - Qualcomm fast flash engine (QFil XML protocol, per-file progress, MB/s speed)
 - Xiaomi helpers (shown when Brand = Xiaomi/Redmi/POCO): Mi Account bypass
