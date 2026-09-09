@@ -1,7 +1,7 @@
 {
-  "version": "4.0.1",
-  "notes": "PMK Unlock Tool v4.0.1 \u2014 member gate added.\n\n- App opens with a LOGIN screen (offline, no internet needed)\n- First run: admin account (ask PMK for credentials) \u2014 password must be changed on first login\n- Settings \u2192 USERS & ACCESS: add/remove staff, reset passwords\n- Settings \u2192 Logout returns to the login screen\n- Update feature keeps each PC's own user list (users.dat never overwritten)",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.1/PMK-Unlock-Tool-v4.0.1.zip",
-  "sha256": "b8158da73dbbfe45cacd3fbc64b927593bd730bc40957b7b47b1c49fca367cea",
-  "size": 588105908
+  "version": "4.0.2",
+  "notes": "PMK Unlock Tool v4.0.2 \u2014 per-PC license activation.\n\n- First launch shows ACTIVATION screen with this PC's Installation ID\n- Send the ID to PMK to receive a license key (one key per PC \u2014 copying the\n  folder to another PC will not work)\n- After activation, normal login (admin account + staff management) works offline\n- Optional license expiry (renew by contacting PMK)\n- Gmail-register + update features remain available where configured",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.2/PMK-Unlock-Tool-v4.0.2.zip",
+  "sha256": "8a1df2cecdcd7f8e748c1a3e20e7856155e698fa44e36864e4f04779ade3d231",
+  "size": 588120683
 }
