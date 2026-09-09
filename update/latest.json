@@ -1,7 +1,7 @@
 {
-  "version": "4.0.2",
-  "notes": "PMK Unlock Tool v4.0.2 \u2014 per-PC license activation.\n\n- First launch shows ACTIVATION screen with this PC's Installation ID\n- Send the ID to PMK to receive a license key (one key per PC \u2014 copying the\n  folder to another PC will not work)\n- After activation, normal login (admin account + staff management) works offline\n- Optional license expiry (renew by contacting PMK)\n- Gmail-register + update features remain available where configured",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.2/PMK-Unlock-Tool-v4.0.2.zip",
-  "sha256": "8a1df2cecdcd7f8e748c1a3e20e7856155e698fa44e36864e4f04779ade3d231",
-  "size": 588120683
+  "version": "4.0.3",
+  "notes": "PMK Unlock Tool v4.0.3 \u2014 login session remember.\n\n- Log in once \u2192 closing/reopening the tool no longer asks for username/password\n- Settings \u2192 Logout \u2192 next start asks for login again\n- Existing licenses, user lists and update settings are untouched",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.3/PMK-Unlock-Tool-v4.0.3.zip",
+  "sha256": "cabc00f962abce593919620e884936507c8636555ee1fb51579f713622e1751d",
+  "size": 588121312
 }
