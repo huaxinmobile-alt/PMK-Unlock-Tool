@@ -1,4 +1,3 @@
-#nullable disable
 using System;
 using System.Collections.Generic;
 using System.Drawing;
@@ -15,9 +14,9 @@ namespace WinFormsApp1
     // Remote loader index entry (loaders/index.json) — p = repo/app-relative path ("Loaders/...")
     public sealed class LoaderIndexEntry
     {
-        public string p { get; set; }
+        public string p { get; set; } = "";
         public long s { get; set; }
-        public string h { get; set; }
+        public string h { get; set; } = "";
     }
 
     // Loader management / device database / auto-detect (HWID+PK_HASH → loader) service
@@ -38,7 +37,7 @@ namespace WinFormsApp1
 
         public bool IndexLoaded => _indexLoaded;
         public int IndexCount => _index.Count;
-        public event Action IndexRefreshed;
+        public event Action? IndexRefreshed;
 
         public LoaderService(LogHandler logHandler)
         {
@@ -50,7 +49,7 @@ namespace WinFormsApp1
         {
             try
             {
-                string json = await IndexHttp.GetStringAsync(LoaderIndexUrl).ConfigureAwait(false);
+                string json = await IndexHttp.GetStringAsync(LoaderIndexUrl).ConfigureAwait(false) ?? "";
                 if (ParseIndex(json))
                 {
                     try
@@ -73,7 +72,10 @@ namespace WinFormsApp1
             try
             {
                 if (IOFile.Exists(IndexCachePath))
-                    ParseIndex(IOFile.ReadAllText(IndexCachePath));
+                {
+                    string cached = IOFile.ReadAllText(IndexCachePath) ?? "";
+                    if (cached.Length > 0) ParseIndex(cached);
+                }
             }
             catch { }
         }
@@ -88,13 +90,13 @@ namespace WinFormsApp1
                 _index.Clear();
                 foreach (var el in arr.EnumerateArray())
                 {
-                    string p = el.TryGetProperty("p", out var pv) ? pv.GetString() : "";
+                    string p = el.TryGetProperty("p", out var pv) ? pv.GetString() ?? "" : "";
                     if (string.IsNullOrEmpty(p)) continue;
                     _index.Add(new LoaderIndexEntry
                     {
                         p = p,
                         s = el.TryGetProperty("s", out var sv) ? sv.GetInt64() : 0,
-                        h = el.TryGetProperty("h", out var hv) ? hv.GetString() : ""
+                        h = el.TryGetProperty("h", out var hv) ? hv.GetString() ?? "" : ""
                     });
                 }
                 _indexLoaded = _index.Count > 0;
