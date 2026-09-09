@@ -45,11 +45,10 @@ namespace WinFormsApp1
         private FirmwareService _firmwareService;
         private LoaderService _loaderService;
         private ProcessRunnerService _processRunner;
+        private QualcommService _qcService;
         private string currentCategory = "Qualcomm";
         private string selectedPartitionName = "boot";
         internal string currentMemoryType = "emmc";
-        private bool usb9008Available = false;   // WinUSB (QHSUSB__BULK) transport ရှိမရှိ — USB mode က serial ထက် 3x မြန်ပါတယ်
-        private DateTime usbProbeTime = DateTime.MinValue;
 
 
 
@@ -168,6 +167,13 @@ namespace WinFormsApp1
                 () => pythonPath,
                 () => adbPath,
                 a => this.Invoke(a));
+            _qcService = new QualcommService(
+                Log,
+                _processRunner,
+                _loaderService,
+                () => mobilePortCombo.SelectedItem?.ToString() ?? "",
+                CurrentLoaderPath,
+                () => currentMemoryType);
 
             this.WindowState = FormWindowState.Normal;
             this.Size = new Size(1280, 750);
@@ -580,15 +586,6 @@ namespace WinFormsApp1
 
         // ================= Hybrid Qualcomm Execution Handler =================
         // patch0.xml မရှိရင် အလွတ် patch ဖိုင်ဆောက်ပြီး filename ပြန်ပေးခြင်း (qfil က patch positional လိုလို့)
-        private string EnsureQcPatchFile(string romDir, string patchXml)
-        {
-            if (!string.IsNullOrEmpty(patchXml) && IOFile.Exists(Path.Combine(romDir, patchXml)))
-                return patchXml;
-            string empty = Path.Combine(romDir, "_pmk_empty_patch.xml");
-            if (!IOFile.Exists(empty))
-                IOFile.WriteAllText(empty, "<?xml version=\"1.0\" ?>\n<patches>\n</patches>");
-            return Path.GetFileName(empty);
-        }
 
         // Qualcomm Flash Engine:
         //   1) Native QSaharaServer နဲ့ loader upload (fast, stable)
@@ -609,7 +606,7 @@ namespace WinFormsApp1
                 }
             }
 
-            bool usbMode = UseUsbTransport(); // USB (WinUSB) mode - serial ထက် ~3.5x မြန်ပါတယ်
+            bool usbMode = _qcService.UseUsbTransport(); // USB (WinUSB) mode - serial ထက် ~3.5x မြန်ပါတယ်
 
             if (usbMode)
             {
@@ -643,7 +640,7 @@ namespace WinFormsApp1
             if (IOFile.Exists(edlScript))
             {
                 string loaderArg = (!string.IsNullOrEmpty(loader) && IOFile.Exists(loader)) ? $"--loader=\"{loader}\" " : "";
-                string patchName = EnsureQcPatchFile(romDir, patchXml);
+                string patchName = _qcService.EnsureQcPatchFile(romDir, patchXml);
                 string transportArgs = usbMode
                     ? $"--memory={currentMemoryType} "
                     : $"--serial --memory={currentMemoryType} --portname={port} ";
@@ -835,7 +832,7 @@ namespace WinFormsApp1
                 {
                     LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
                     string edlScript = AppConfig.EdlScript;
-                    await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                    await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                     LogSuccess("📱 Phone is rebooting!\n");
                 }
             }
@@ -949,7 +946,7 @@ namespace WinFormsApp1
                     {
                         LogQualcomm("🔄 [Auto Reboot] Resetting device to System...");
                         string edlScript2 = AppConfig.EdlScript;
-                        await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript2}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                        await _processRunner.RunProcessCommand(pythonPath, $"\"{edlScript2}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                         LogSuccess("📱 Phone is rebooting!\n");
                     }
                 }
@@ -1216,7 +1213,7 @@ namespace WinFormsApp1
 
                 // Fallback Python EDL Path
                 string script = AppConfig.EdlScript;
-                string loaderArg = GetEdlLoaderArg();
+                string loaderArg = _qcService.GetEdlLoaderArg();
 
                 switch (action)
                 {
@@ -1264,103 +1261,17 @@ namespace WinFormsApp1
 
         // Transport ရွေးချယ်ခြင်း — USB (WinUSB) ကို ဦးစားပေးပြီး python က device ချိတ်တာကို စောင့်ပေးနိုင်တယ်
         // (Read GPT ကို ဖုန်းမချိတ်ခင် နှိပ်ထားရင်တောင် USB mode ကျန်နေအောင်: COM port မရှိရင် USB mode)
-        private bool UseUsbTransport()
-        {
-            if (IsUsb9008Available()) return true; // device က libusb ကနေ မြင်ရပြီးသား
-            try
-            {
-                if (SerialPort.GetPortNames().Length == 0) return true; // COM port မရှိ = WinUSB driver setup
-            }
-            catch (Exception ex) { LogWarning($"⚠️ UseUsbTransport warning: {ex.Message}"); }
-            return false;
-        }
 
         // USB (WinUSB bulk) transport ရှိမရှိ စစ်ဆေးခြင်း — USB mode က serial ထက် ~3.5x မြန်ပါတယ်
         // (probe ကို ခဏတိုင်း ပြန်မလုပ်ဖို့ 3 စက္ကန့် cache ထားပါတယ်)
-        private bool IsUsb9008Available()
-        {
-            if ((DateTime.Now - usbProbeTime).TotalSeconds < 3) return usb9008Available;
-            usbProbeTime = DateTime.Now;
-            try
-            {
-                // device ကို မြင်ရုံနဲ့ မလုံလောက် — libusb က တကယ် OPEN လို့ရမှ USB mode မှန်တယ်
-                // (usbser driver နဲ့ ချိတ်ထားရင် find က YES ပြန်ပေမဲ့ open မရတတ်လို့)
-                string probe = _processRunner.RunPythonOneShot("-c \"import usb.core\nok=False\ntry:\n d=usb.core.find(idVendor=0x05c6,idProduct=0x9008)\n if d is not None:\n  d.get_active_configuration()\n  ok=True\nexcept Exception:\n pass\nprint('YES' if ok else 'NO')\"", 12);
-                usb9008Available = probe != null && probe.Contains("YES");
-            }
-            catch (Exception ex) { LogWarning($"⚠️ IsUsb9008Available warning: {ex.Message}"); usb9008Available = false; }
-            return usb9008Available;
-        }
 
         // Python one-shot command (probe လိုမျိုး မြန်မြန်ဆန်ဆန်) အတွက် — log မထုတ်ဘူး
 
-        private string GetEdlLoaderArg()
-        {
-            // Memory type (eMMC/UFS) ကို ထည့်ပေးပါ — မထည့်ရင် stock edl က UFS (4096 sector) လို့ မှတ်ယူလို့ eMMC (512) ဖုန်းတွေမှာ sector error တက်ပါတယ်
-            // USB (WinUSB bulk) transport ရှိရင် USB mode သုံးမယ် - serial ထက် ~3.5x မြန်ပါတယ်
-            bool usbMode = UseUsbTransport();
-            string args = usbMode
-                ? $"--memory={currentMemoryType} "
-                : $"--serial --memory={currentMemoryType} ";
-
-            if (!usbMode)
-            {
-                string selectedPort = mobilePortCombo.SelectedItem?.ToString() ?? "";
-                string targetPort = "";
-
-                if (selectedPort.StartsWith("COM", StringComparison.OrdinalIgnoreCase))
-                    targetPort = selectedPort;
-                else
-                {
-                    string[] ports = SerialPort.GetPortNames();
-                    if (ports.Length > 0)
-                        targetPort = ports.FirstOrDefault(p => p.StartsWith("COM", StringComparison.OrdinalIgnoreCase));
-                }
-
-                if (!string.IsNullOrEmpty(targetPort))
-                    args += $"--portname={targetPort} ";
-            }
-
-            if (!string.IsNullOrWhiteSpace(txtFirmwarePath.Text) && IOFile.Exists(txtFirmwarePath.Text))
-                args += $"--loader=\"{txtFirmwarePath.Text.Trim()}\" ";
-            else if (txtSlot1 != null && !string.IsNullOrWhiteSpace(txtSlot1.Text) && IOFile.Exists(txtSlot1.Text))
-                args += $"--loader=\"{txtSlot1.Text.Trim()}\" ";
-
-            // Xiaomi Signature Bypass ကို Auto တွဲပေးခြင်း
-            // (edl.py က --sig option ကို ထောက်ခံမှသာ ထည့်ပေးပါ)
-            string sigFile = _loaderService.FindXiaomiSigFile();
-            if (!string.IsNullOrEmpty(sigFile) && EdlSupportsSig())
-            {
-                args += $"--sig=\"{sigFile}\" ";
-            }
-
-            return args;
-        }
 
         // reset/reboot command အတွက် transport args — reset က --memory flag မလက်ခံလို့ (docopt usage error)
         // memory/loader flag တွေ မပါဘဲ transport သက်သက်ပဲ ပြန်ပေးတယ်
-        private string GetEdlResetArgs()
-        {
-            if (UseUsbTransport()) return "";
-            try
-            {
-                string[] ports = SerialPort.GetPortNames();
-                if (ports.Length > 0) return $"--serial --portname={ports[0]} ";
-            }
-            catch (Exception ex) { LogWarning($"⚠️ GetEdlResetArgs warning: {ex.Message}"); }
-            return "--serial ";
-        }
 
         // Bundled edl.py မှာ --sig (Xiaomi auth-bypass) option ပါမပါ စစ်ဆေးခြင်း
-        private bool EdlSupportsSig()
-        {
-            try
-            {
-                return IOFile.Exists(edlScriptPath) &&
-                       IOFile.ReadAllText(edlScriptPath).Contains("--sig", StringComparison.OrdinalIgnoreCase);
-            }
-            catch (Exception ex) { LogWarning($"⚠️ EdlSupportsSig fallback: {ex.Message}"); return false; }
-        }
 
         // ================= Category Switching =================
         internal void SwitchCategory(string category)
@@ -1603,7 +1514,7 @@ namespace WinFormsApp1
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             LogQualcomm($"\n💾 [Qualcomm] Starting Normal ROM Backup (Skipping userdata/cache for fast speed)...");
             LogQualcomm($"📁 Destination: {backupDir}");
@@ -1616,7 +1527,7 @@ namespace WinFormsApp1
                 LogSuccess($"✅ Qualcomm Normal Firmware backed up successfully! (Small & Fast Size)");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -1720,7 +1631,7 @@ namespace WinFormsApp1
             // loader ရှိပြီးသားဆို တစ်ခါတည်း စမ်း
             if (CurrentLoaderPath().Length > 0)
             {
-                string r = await _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" {GetEdlLoaderArg()}printgpt", "Reading GPT (USB)...", true);
+                string r = await _processRunner.RunProcessCommand(pythonPath, $"\"{gptScript}\" {_qcService.GetEdlLoaderArg()}printgpt", "Reading GPT (USB)...", true);
                 return TryParseGptResult(r);
             }
 
@@ -1758,7 +1669,7 @@ namespace WinFormsApp1
             string loader = txtFirmwarePath.Text.Trim();
 
             // USB (WinUSB) transport ရှိရင် — Python EDL က loader upload + auth + GPT အကုန်လုပ်ပါတယ် (serial ထက် 3.5x မြန်)
-            if (UseUsbTransport())
+            if (_qcService.UseUsbTransport())
             {
                 LogQualcomm("\n⚡ [USB Mode] Fast transport detected — connecting & reading GPT...");
                 string gptScript = AppConfig.EdlScript;
@@ -1816,7 +1727,7 @@ namespace WinFormsApp1
 
             // Fallback Python EDL Path (With Auto SIG Bypass)
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             string output = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}printgpt", "Connecting Qualcomm 9008...");
             if (!string.IsNullOrWhiteSpace(output))
@@ -1844,7 +1755,7 @@ namespace WinFormsApp1
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
             string[] efsParts = { "modemst1", "modemst2", "fsg", "fsc" };
 
             LogQualcomm("\n💾 [Qualcomm] Backing up EFS/Network Partitions...");
@@ -1864,7 +1775,7 @@ namespace WinFormsApp1
             if (folderDlg.ShowDialog() != DialogResult.OK) return;
 
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
             string[] efsParts = { "modemst1", "modemst2", "fsg", "fsc" };
 
             LogQualcomm("\n✏️ [Qualcomm] Restoring EFS Partitions...");
@@ -1879,7 +1790,7 @@ namespace WinFormsApp1
             }
             LogSuccess("✅ EFS Restore completed!");
             LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
             LogSuccess("📱 Phone rebooted successfully!\n");
         }
 
@@ -1908,7 +1819,7 @@ namespace WinFormsApp1
 
             // Fallback Python EDL Path
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             LogQualcomm("\n🔑 [Qualcomm] Safe Formatting Metadata & User Keys...");
             string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e metadata", "Erasing metadata...", true);
@@ -1917,7 +1828,7 @@ namespace WinFormsApp1
             {
                 LogSuccess("✅ Safe Format executed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -1937,139 +1848,10 @@ namespace WinFormsApp1
             }
 
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
             LogQualcomm("\n🔄 [Qualcomm] Sending Reset command to 9008 Port...");
-            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting Device...");
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting Device...");
             LogSuccess("✅ Device is rebooting!");
-        }
-
-        // CARDAPP → PMKDAPP patch core — patched ဖိုင် ထုတ်ပေးပြီး path ပြန်တယ် (မအောင်ရင် null)
-        // ================= CARDAPP → PMKDAPP streaming patch (memory-safe) =================
-        // NON-HLOS modem ဖိုင်က 100-300MB+ ဖြစ်နိုင်လို့ file တစ်ခုလုံး RAM ထဲ တင်ပြီး Latin1 string
-        // ပြောင်းတာကို ရှောင်ပြီး 4MB chunk နဲ့ byte-level ရှာ/ပြင်တယ်။
-        private static readonly byte[] CardAppFind = { 0x43, 0x41, 0x52, 0x44, 0x41, 0x50, 0x50 }; // "CARDAPP"
-        private static readonly byte[] PmkdAppRepl = { 0x50, 0x4D, 0x4B, 0x44, 0x41, 0x50, 0x50 }; // "PMKDAPP"
-        private const int PatchChunkSize = 4 * 1024 * 1024;
-
-        // ဖတ်ရမဲ့ bytes တွေ အကုန် ရအောင် ဖတ်တယ် (stream က နည်းနည်းချင်း ပြန်ပေးရင်လည်း)
-        private static void ReadExact(Stream s, byte[] buffer, int count)
-        {
-            int offset = 0;
-            while (offset < count)
-            {
-                int n = s.Read(buffer, offset, count - offset);
-                if (n <= 0) break;
-                offset += n;
-            }
-        }
-
-        // CARDAPP နေရာတွေ + PMKDAPP ရှိပြီးသားလားဆိုတာ streaming ရှာတယ်။
-        // Chunk စပ်မှာ 7-byte pattern ပြတ်နေရင် မလွတ်အောင် chunk ရဲ့ နောက်ဆုံး (pattern-1) bytes
-        // ကို overlap ပြန်ထည့်ဖတ်ပြီး (pattern က tail ထဲမှာ စလို့ မရတဲ့အတွက်) hit တိုင်းကို တစ်ခါတည်း တွေ့တယ်။
-        private static (List<long> Offsets, bool AlreadyPmkd) ScanCardAppOffsets(string src)
-        {
-            var offsets = new List<long>();
-            bool alreadyPmkd = false;
-            using var fs = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.Read, PatchChunkSize, FileOptions.SequentialScan);
-            long len = fs.Length;
-            if (len < CardAppFind.Length) return (offsets, false);
-
-            int tail = CardAppFind.Length - 1;
-            byte[] buf = new byte[PatchChunkSize + tail];
-            long abs = 0;
-            long remaining = len;
-            while (remaining > 0)
-            {
-                int want = (int)Math.Min(buf.Length, remaining);
-                fs.Position = abs;
-                ReadExact(fs, buf, want);
-
-                var span = buf.AsSpan(0, want);
-                if (!alreadyPmkd && span.IndexOf(PmkdAppRepl) >= 0) alreadyPmkd = true;
-                int consumed = 0;
-                int j = span.IndexOf(CardAppFind);
-                while (j >= 0)
-                {
-                    offsets.Add(abs + consumed + j);
-                    consumed += j + CardAppFind.Length;
-                    span = span.Slice(j + CardAppFind.Length);
-                    j = span.IndexOf(CardAppFind);
-                }
-
-                abs += PatchChunkSize;
-                remaining -= PatchChunkSize;
-            }
-            return (offsets, alreadyPmkd);
-        }
-
-        // Scan ရလာတဲ့ offsets တွေအတိုင်း src → dst streaming ပုံတူဖိုင် ရေးတယ်။
-        // Hit တစ်ခုရောက်တိုင်း အဲ့ဒီ 7 bytes ကို မူရင်းကနေ မဖတ်ဘဲ REPL နဲ့ ချရေးပြီး ရှေ့ဆက်တယ်
-        // → chunk စပ်မှာ ပြတ်နေတဲ့ hit တွေပါ မပျက်၊ memory က constant ပဲ။
-        private static void WritePatchedFile(string src, string dst, List<long> offsets)
-        {
-            using var inFs = new FileStream(src, FileMode.Open, FileAccess.Read, FileShare.Read, PatchChunkSize, FileOptions.SequentialScan);
-            using var outFs = new FileStream(dst, FileMode.Create, FileAccess.Write, FileShare.None, PatchChunkSize, FileOptions.SequentialScan);
-            byte[] buf = new byte[PatchChunkSize];
-            long fileLen = inFs.Length;
-            long pos = 0; // output/input stream မှာ ရောက်နေတဲ့ absolute position
-            int oi = 0;
-            while (pos < fileLen)
-            {
-                long nextHit = oi < offsets.Count ? offsets[oi] : long.MaxValue;
-                long segEnd = Math.Min(nextHit, fileLen);
-
-                // hit မရောက်ခင် segment တွေကို ပုံမှန် copy
-                while (pos < segEnd)
-                {
-                    int want = (int)Math.Min(buf.Length, segEnd - pos);
-                    ReadExact(inFs, buf, want);
-                    outFs.Write(buf, 0, want);
-                    pos += want;
-                }
-                if (pos >= fileLen) break;
-
-                // offset ကျတဲ့ 7 bytes နေရာမှာ PMKDAPP ရေးတယ် (input ထဲက မူရင်း 7 bytes ကို skip)
-                if (inFs.Position != pos + CardAppFind.Length) inFs.Position = pos + CardAppFind.Length;
-                outFs.Write(PmkdAppRepl, 0, PmkdAppRepl.Length);
-                pos += PmkdAppRepl.Length;
-                oi++;
-            }
-        }
-
-        private string PatchModemFileCore(string src)
-        {
-            try
-            {
-                var (offsets, alreadyPmkd) = ScanCardAppOffsets(src);
-
-                if (offsets.Count == 0)
-                {
-                    if (alreadyPmkd)
-                        LogInfo("ℹ️ 'PMKDAPP' ရှိနေပြီးသား — patch လုပ်ပြီးသားပါ။");
-                    else
-                        LogError("❌ 'CARDAPP' မတွေ့ပါ — ဒီ device/build အတွက် ဒီနည်း မသက်ဆိုင်တာ ဖြစ်နိုင်တယ်။");
-                    return null;
-                }
-
-                string dir = Path.GetDirectoryName(src);
-                string baseName = Path.GetFileNameWithoutExtension(src);
-                string backupPath = Path.Combine(dir, baseName + "_original.bak");
-                string outPath = Path.Combine(dir, baseName + "_PMK_bypass.bin");
-
-                try { if (!IOFile.Exists(backupPath)) IOFile.Copy(src, backupPath); } catch (Exception ex) { LogWarning($"⚠️ Original backup (.bak) ကူးရာမှာ မအောင်မြင်ပါ: {ex.Message}"); }
-
-                WritePatchedFile(src, outPath, offsets);
-                foreach (long off in offsets)
-                    LogSuccess($"  ✏️ Offset 0x{off:X8}: CARDAPP → PMKDAPP");
-                LogSuccess($"✅ Patch ပြီးပါပြီ — {offsets.Count} နေရာ အစားထိုးပြီး။");
-                LogSuccess($"📁 Patched file : {outPath}");
-                return outPath;
-            }
-            catch (Exception ex)
-            {
-                LogError("❌ Patch error: " + ex.Message);
-                return null;
-            }
         }
 
         // ဖုန်းထဲက modem (NON-HLOS) partition ကို တိုက်ရိုက် dump → patch → ပြန်ရေးခြင်း
@@ -2085,7 +1867,7 @@ namespace WinFormsApp1
 
             try { if (IOFile.Exists(dumpPath)) IOFile.Delete(dumpPath); } catch (Exception ex) { LogWarning($"⚠️ RunPhoneDirectModemPatchAsync temp cleanup warning: {ex.Message}"); }
 
-            string rArgs = GetEdlLoaderArg();
+            string rArgs = _qcService.GetEdlLoaderArg();
             string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {rArgs}r modem \"{dumpPath}\"", "Reading modem...", true);
             if (!_processRunner.PythonOpSucceeded(res) || !IOFile.Exists(dumpPath))
             {
@@ -2098,7 +1880,7 @@ namespace WinFormsApp1
             long sz = new FileInfo(dumpPath).Length;
             LogSuccess($"✅ Modem partition dumped: {(sz / (1024.0 * 1024.0)):F1} MB");
 
-            string patched = PatchModemFileCore(dumpPath);
+            string patched = _qcService.PatchModemFileCore(dumpPath);
             if (patched == null)
             {
                 SetOperationState(false);
@@ -2110,7 +1892,7 @@ namespace WinFormsApp1
             SetStatus("Writing patched modem...");
             UpdateGlobalProgress(50, "Writing modem...");
 
-            string wArgs = GetEdlLoaderArg();
+            string wArgs = _qcService.GetEdlLoaderArg();
             string res2 = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {wArgs}w modem \"{patched}\"", "Writing modem...", true);
             if (!_processRunner.PythonOpSucceeded(res2))
             {
@@ -2122,7 +1904,7 @@ namespace WinFormsApp1
 
             UpdateGlobalProgress(90, "Rebooting...");
             LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+            await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
             UpdateGlobalProgress(100, "Done");
             SetOperationState(false);
             SetStatus("Ready");
@@ -2152,7 +1934,7 @@ namespace WinFormsApp1
 
             List<long> offsets;
             bool alreadyPmkd;
-            try { (offsets, alreadyPmkd) = ScanCardAppOffsets(src); }
+            try { (offsets, alreadyPmkd) = QualcommService.ScanCardAppOffsets(src); }
             catch (Exception ex) { LogError("❌ Cannot read file: " + ex.Message); return; }
 
             LogQualcomm("\n☁️ [Mi Account Bypass] Patching modem file: " + Path.GetFileName(src));
@@ -2180,7 +1962,7 @@ namespace WinFormsApp1
 
             try
             {
-                WritePatchedFile(src, outPath, offsets);
+                QualcommService.WritePatchedFile(src, outPath, offsets);
             }
             catch (Exception ex) { LogError($"❌ Patch write failed: {ex.Message}"); return; }
 
@@ -2209,7 +1991,7 @@ namespace WinFormsApp1
 
             LogQualcomm("\n🔥 Flashing patched modem → NON-HLOS (modem partition)...");
             string wArgs = $"--memory={currentMemoryType} ";
-            if (UseUsbTransport()) { }
+            if (_qcService.UseUsbTransport()) { }
             else wArgs = $"--serial --memory={currentMemoryType} --portname={port} ";
             if (!string.IsNullOrEmpty(loader) && IOFile.Exists(loader)) wArgs += $"--loader=\"{loader}\" ";
 
@@ -2219,7 +2001,7 @@ namespace WinFormsApp1
                 UpdateGlobalProgress(100, "Done");
                 LogSuccess("✅ Patched modem flashed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting — Mi Account bypass active!\n");
             }
             else
@@ -2259,7 +2041,7 @@ namespace WinFormsApp1
 
             // Fallback Python EDL Path
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             // FRP သိမ်းတဲ့ partition ကို auto ရှာဖွေခြင်း:
             // - ပုံမှန်: "frp" partition (အများစု)
@@ -2310,7 +2092,7 @@ namespace WinFormsApp1
             if (frpDone)
             {
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting to Welcome Screen!\n");
             }
             else
@@ -2347,7 +2129,7 @@ namespace WinFormsApp1
 
             // Fallback Python EDL Path
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             LogQualcomm("\n🔒 [Qualcomm] Formatting userdata...");
             string resP = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {loaderArg}e userdata", "Formatting Userdata...");
@@ -2356,7 +2138,7 @@ namespace WinFormsApp1
             {
                 LogSuccess("✅ Factory reset completed successfully!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting to Factory State!\n");
             }
             else
@@ -2376,7 +2158,7 @@ namespace WinFormsApp1
             if (!Directory.Exists(backupDir)) Directory.CreateDirectory(backupDir);
 
             string script = AppConfig.EdlScript;
-            string loaderArg = GetEdlLoaderArg();
+            string loaderArg = _qcService.GetEdlLoaderArg();
 
             LogQualcomm($"\n💾 [Qualcomm] Starting Full Firmware Backup (All Partitions including userdata)...");
             LogQualcomm($"📁 Destination: {backupDir}");
@@ -2388,7 +2170,7 @@ namespace WinFormsApp1
                 LogSuccess($"✅ Qualcomm Full Firmware dumped successfully!");
                 LogSuccess($"📄 Generated XML: rawprogram0.xml & patch0.xml");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone rebooted successfully!\n");
             }
             else
@@ -4423,7 +4205,7 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus($"Dumping {part}...");
             LogQualcomm($"\n🔍 [Hex Edit] Dumping partition [{part}] ({pinfo.Length} bytes)...");
-            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r {part} \"{dumpPath}\"", $"Reading {part}...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlLoaderArg()}r {part} \"{dumpPath}\"", $"Reading {part}...", true);
 
             byte[] data = null;
             if (_processRunner.PythonOpSucceeded(res) && IOFile.Exists(dumpPath))
@@ -4457,12 +4239,12 @@ namespace WinFormsApp1
 
             SetStatus($"Writing {part}...");
             LogQualcomm($"\n🔥 Writing edited [{part}] back to phone...");
-            string res2 = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w {part} \"{editPath}\"", $"Writing {part}...", true);
+            string res2 = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlLoaderArg()}w {part} \"{editPath}\"", $"Writing {part}...", true);
             if (_processRunner.PythonOpSucceeded(res2))
             {
                 LogSuccess($"✅ [{part}] ပြန်ရေးပြီးပါပြီ!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting!\n");
             }
             else
@@ -4485,7 +4267,7 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus("Backing up persist...");
 
-            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}r persist \"{saveFileDlg.FileName}\"", "Reading persist...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlLoaderArg()}r persist \"{saveFileDlg.FileName}\"", "Reading persist...", true);
             if (_processRunner.PythonOpSucceeded(res) && IOFile.Exists(saveFileDlg.FileName))
             {
                 long sz = new FileInfo(saveFileDlg.FileName).Length;
@@ -4512,12 +4294,12 @@ namespace WinFormsApp1
             SetOperationState(true);
             SetStatus("Restoring persist...");
 
-            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlLoaderArg()}w persist \"{openFileDlg.FileName}\"", "Writing persist...", true);
+            string res = await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlLoaderArg()}w persist \"{openFileDlg.FileName}\"", "Writing persist...", true);
             if (_processRunner.PythonOpSucceeded(res))
             {
                 LogSuccess("✅ persist restore ပြီးပါပြီ!");
                 LogQualcomm("🔄 [Auto Reboot] Restarting phone...");
-                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {GetEdlResetArgs()}reset", "Rebooting...", false);
+                await _processRunner.RunProcessCommand(pythonPath, $"\"{script}\" {_qcService.GetEdlResetArgs()}reset", "Rebooting...", false);
                 LogSuccess("📱 Phone is restarting!\n");
             }
             else
