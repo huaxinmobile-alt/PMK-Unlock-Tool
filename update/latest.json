@@ -1,7 +1,7 @@
 {
-  "version": "4.0.8",
-  "notes": "PMK Unlock Tool v4.0.8 \u2014 loader picker works on slim installs.\n\n- Brand/Model lists now load from a remote loader index, so fresh installs show all models even before any loader is downloaded\n- Picking a model automatically downloads its loader in the background (first use only)\n- Index refreshes automatically when new loaders are added (no re-release needed)",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.8/PMK-Unlock-Tool-v4.0.8.zip",
-  "sha256": "5d9637e259ddb944410d7c60204fe0eefaaf9ee81c23c8d58693bc70427b1aa5",
-  "size": 135005607
+  "version": "4.0.9",
+  "notes": "PMK Unlock Tool v4.0.9 \u2014 all 17 brands show their full model lists even on fresh slim installs.\n\n- Every brand in the loader DB (Xiaomi, Vivo, Oppo, Samsung, Huawei, Honor, Oneplus, Realme, Iqoo, Lenovo, Motorola, ZTE, Nothing, Meizu, LG, Infinix, Nexus) lists its models from the remote index\n- Selecting a model downloads ONLY that model's single loader file \u2014 no bulk downloads\n- Verified on a slim install: Huawei 29, Honor 20, Oneplus 57, ZTE 4 models shown with zero local loaders",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.9/PMK-Unlock-Tool-v4.0.9.zip",
+  "sha256": "a9b6e57adf80813e3981d0c14e3ea1a6cb00aecd549e3e3126d0f40036d77557",
+  "size": 135005700
 }
