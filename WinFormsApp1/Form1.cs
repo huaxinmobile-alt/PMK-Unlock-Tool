@@ -10,6 +10,8 @@ using System.Drawing;
 using System.Collections.Generic;
 using System.Text.RegularExpressions;
 using System.Linq;
+using System.Runtime.InteropServices;
+using System.Reflection;
 
 using IOFile = System.IO.File;
 
@@ -253,6 +255,28 @@ namespace WinFormsApp1
         private ComboBox cboTheme = null;
         private string ThemeFilePath => Path.Combine(Application.StartupPath, "theme.txt");
 
+        // Settings tab — PC info value labels (title → value label)
+        private Panel settingsPanel = null;
+        private readonly List<(string title, Label valLbl)> pcInfoRows = new List<(string, Label)>();
+
+        // RAM info (GlobalMemoryStatusEx)
+        [StructLayout(LayoutKind.Sequential, CharSet = CharSet.Auto)]
+        private struct MEMORYSTATUSEX
+        {
+            public uint dwLength;
+            public uint dwMemoryLoad;
+            public ulong ullTotalPhys;
+            public ulong ullAvailPhys;
+            public ulong ullTotalPageFile;
+            public ulong ullAvailPageFile;
+            public ulong ullTotalVirtual;
+            public ulong ullAvailVirtual;
+            public ulong ullAvailExtendedVirtual;
+        }
+        [DllImport("kernel32.dll", CharSet = CharSet.Auto, SetLastError = true)]
+        [return: MarshalAs(UnmanagedType.Bool)]
+        private static extern bool GlobalMemoryStatusEx(ref MEMORYSTATUSEX lpBuffer);
+
         // ================= Constructor =================
         public Form1()
         {
@@ -383,7 +407,7 @@ namespace WinFormsApp1
             Panel rightPanel = new Panel { Dock = DockStyle.Fill, BackColor = Color.FromArgb(22, 29, 39), Padding = new Padding(8) };
             FlowLayoutPanel categoryBar = new FlowLayoutPanel { Dock = DockStyle.Top, Height = 48, BackColor = Color.FromArgb(31, 41, 55), Padding = new Padding(4), WrapContents = false, AutoScroll = true };
 
-            string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Spreadtrum", "Samsung" };
+            string[] categories = { "Qualcomm", "MediaTek", "ADB", "Fastboot", "Spreadtrum", "Samsung", "Settings" };
             categoryTabButtons.Clear();
             foreach (string category in categories)
             {
@@ -392,8 +416,8 @@ namespace WinFormsApp1
                 categoryBar.Controls.Add(catBtn);
             }
 
-            // 🎨 Theme selector (category bar ရဲ့ ညာဘက်စွန်း)
-            InitThemeSelector(categoryBar);
+            // 🎨 Settings tab panel (theme + PC info) — theme selector က အခု Settings ထဲမှာပဲ
+            BuildSettingsPanel(rightPanel);
 
             // ===== Profile Panel with TP Pinout Button =====
             profilePanel = new Panel { Dock = DockStyle.Top, Height = 75, BackColor = Color.FromArgb(27, 36, 48), BorderStyle = BorderStyle.FixedSingle };
@@ -547,6 +571,7 @@ namespace WinFormsApp1
 
             rightPanel.Controls.Add(mobilePartitionGrid);
             rightPanel.Controls.Add(flasherHubPanel);
+            if (settingsPanel != null) rightPanel.Controls.Add(settingsPanel);
             rightPanel.Controls.Add(footerBar);
             rightPanel.Controls.Add(dynamicActionPanel);
             rightPanel.Controls.Add(profilePanel);
@@ -2165,6 +2190,22 @@ namespace WinFormsApp1
                 else { btn.BackColor = Color.FromArgb(47, 72, 101); btn.FlatAppearance.BorderSize = 0; }
             }
 
+            // ===== Settings tab — theme + PC info (action buttons / hub / profile မလို) =====
+            if (category == "Settings")
+            {
+                if (dynamicActionPanel != null) dynamicActionPanel.Visible = false;
+                if (profilePanel != null) profilePanel.Visible = false; // PROFILE/loader row မပြစေရ
+                if (flasherHubPanel != null) flasherHubPanel.Visible = false;
+                if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = false;
+                if (settingsPanel != null)
+                {
+                    settingsPanel.Visible = true;
+                    PopulatePcInfo(); // ဝင်တိုင်း PC info အသစ်ပြဖို့ refresh
+                }
+                return;
+            }
+            if (settingsPanel != null) settingsPanel.Visible = false;
+
             if (profilePanel != null)
             {
                 bool isChipsetCategory = (category == "MediaTek" || category == "Qualcomm" || category == "Spreadtrum" || category == "Samsung");
@@ -2228,6 +2269,7 @@ namespace WinFormsApp1
             }
 
             if (dynamicActionPanel == null) return;
+            dynamicActionPanel.Visible = true; // Settings က ပြန်ထွက်လာရင် action buttons တွေ ပြန်ပြဖို့
             dynamicActionPanel.Controls.Clear();
             dynamicButtons.Clear();
 
@@ -4704,22 +4746,177 @@ namespace WinFormsApp1
             if (lblStatus != null && statusStrip != null)
                 lblStatus.ForeColor = ThemeManager.TextFor(statusStrip.BackColor);
 
+            // Settings tab — theme နဲ့ လိုက်အောင် ချိန်
+            if (settingsPanel != null) settingsPanel.BackColor = ThemeManager.Slot(3);
+
             RestyleGrid();
 
             // Layout တည်ငြိမ်ပြီးမှ action buttons တွေကို ပြန်စီပေးတယ် (constructor မှာ စောစောစီးစီး ဖြစ်ရင် gap ကျန်နိုင်လို့)
             ReflowActionButtons();
         }
 
-        private void InitThemeSelector(FlowLayoutPanel parentBar)
+        // ============ Settings tab — theme selector + PC info ============
+        private void BuildSettingsPanel(Panel host)
+        {
+            settingsPanel = new Panel
+            {
+                Dock = DockStyle.Fill,
+                BackColor = Color.FromArgb(22, 29, 39),
+                Padding = new Padding(12),
+                AutoScroll = true,
+                Visible = false
+            };
+
+            settingsPanel.Controls.Add(CreateSeaLabel("⚙️ SETTINGS", new Point(12, 10), true));
+
+            // --- Theme section ---
+            settingsPanel.Controls.Add(CreateSeaLabel("🎨 Theme", new Point(12, 58), false));
+            InitThemeSelector(settingsPanel); // combo ကို (150, 54) မှာ ထည့်ပေးမယ်
+
+            Button btnRefreshInfo = CreateSeaButton("🔄 Refresh Info", new Point(340, 52), 110, 26, (s, e) =>
+            {
+                PopulatePcInfo();
+                SetStatus("PC info refreshed");
+            });
+            btnRefreshInfo.BackColor = Color.FromArgb(33, 150, 243);
+            settingsPanel.Controls.Add(btnRefreshInfo);
+
+            // --- PC Info section ---
+            settingsPanel.Controls.Add(CreateSeaLabel("🖥️ PC INFO", new Point(12, 104), true));
+
+            string[] titles =
+            {
+                "Operating System", "PC Name", "User", "CPU", "CPU Cores / Threads",
+                "Memory (RAM)", "C: Drive", "System Uptime", ".NET Runtime",
+                "Tool Version", "App Folder", "Loader DB", "edl engine", "mtk engine", "Python"
+            };
+
+            int y = 146;
+            const int step = 26;
+            foreach (string t in titles)
+            {
+                Label key = CreateSeaLabel(t, new Point(12, y), false);
+                key.AutoSize = false;
+                key.Size = new Size(190, 22);
+                settingsPanel.Controls.Add(key);
+
+                Label val = new Label
+                {
+                    Location = new Point(215, y),
+                    AutoSize = false,
+                    Size = new Size(600, 22),
+                    Font = new Font("Segoe UI", 9F, FontStyle.Regular),
+                    ForeColor = Color.FromArgb(220, 230, 245),
+                    Text = "…",
+                    TextAlign = ContentAlignment.MiddleLeft
+                };
+                settingsPanel.Controls.Add(val);
+                pcInfoRows.Add((t, val));
+                y += step;
+            }
+
+            PopulatePcInfo(); // ပထမဆုံးဝင်ကြည့်ကတည်းက info တွေ ပြပြီးသားဖြစ်အောင်
+        }
+
+        private string _FmtGB(ulong bytes) => bytes >= 1073741824UL ? $"{bytes / 1073741824.0:0.0} GB" : $"{bytes / 1048576.0:0.0} MB";
+
+        private void PopulatePcInfo()
+        {
+            if (settingsPanel == null || pcInfoRows.Count == 0) return;
+            void Set(string title, string value)
+            {
+                var row = pcInfoRows.FirstOrDefault(r => r.title == title);
+                if (row.valLbl != null && !row.valLbl.IsDisposed) row.valLbl.Text = value;
+            }
+
+            // RAM
+            ulong ramTotal = 0, ramAvail = 0;
+            try
+            {
+                var ms = new MEMORYSTATUSEX();
+                ms.dwLength = (uint)Marshal.SizeOf(typeof(MEMORYSTATUSEX));
+                if (GlobalMemoryStatusEx(ref ms)) { ramTotal = ms.ullTotalPhys; ramAvail = ms.ullAvailPhys; }
+            }
+            catch { }
+
+            // CPU name (registry)
+            string cpuName = "";
+            try
+            {
+                using var key = Microsoft.Win32.Registry.LocalMachine.OpenSubKey(@"HARDWARE\DESCRIPTION\System\CentralProcessor\0");
+                cpuName = key?.GetValue("ProcessorNameString")?.ToString()?.Trim() ?? "";
+            }
+            catch { }
+
+            // Drive C:
+            string driveInfo = "";
+            try
+            {
+                var drv = new DriveInfo("C");
+                if (drv.IsReady)
+                    driveInfo = $"{_FmtGB((ulong)drv.TotalFreeSpace)} free / {_FmtGB((ulong)drv.TotalSize)}";
+                else driveInfo = "C: not ready";
+            }
+            catch (Exception ex) { driveInfo = ex.Message; }
+
+            // Runtime engines
+            string startUp = Application.StartupPath;
+            bool edlOk = IOFile.Exists(Path.Combine(startUp, "edl", "edl.py"));
+            bool mtkOk = IOFile.Exists(Path.Combine(startUp, "mtkclient", "mtk.py")) || IOFile.Exists(Path.Combine(startUp, "mtk", "mtk.py"));
+            int loaderBrands = 0;
+            try { loaderBrands = Directory.GetDirectories(Path.Combine(startUp, "Loaders")).Length; } catch { }
+
+            // Python version (fast hidden check)
+            string pyVer = "";
+            try
+            {
+                var psi = new ProcessStartInfo(pythonPath, "--version")
+                {
+                    RedirectStandardOutput = true,
+                    RedirectStandardError = true,
+                    CreateNoWindow = true,
+                    UseShellExecute = false
+                };
+                using var p = Process.Start(psi);
+                if (p != null)
+                {
+                    string outp = p.StandardError.ReadToEnd() + p.StandardOutput.ReadToEnd();
+                    if (!p.WaitForExit(3000)) { try { p.Kill(); } catch { } pyVer = "timeout"; }
+                    else pyVer = outp.Trim();
+                }
+                else pyVer = "cannot start";
+            }
+            catch (Exception ex) { pyVer = "not found: " + ex.Message; }
+
+            TimeSpan up = TimeSpan.FromMilliseconds(Environment.TickCount64);
+
+            Set("Operating System", $"{Environment.OSVersion.VersionString}  ({(Environment.Is64BitOperatingSystem ? "64-bit" : "32-bit")})");
+            Set("PC Name", Environment.MachineName);
+            Set("User", Environment.UserName);
+            Set("CPU", string.IsNullOrEmpty(cpuName) ? "N/A" : cpuName);
+            Set("CPU Cores / Threads", Environment.ProcessorCount.ToString());
+            Set("Memory (RAM)", ramTotal > 0 ? $"{_FmtGB(ramTotal)} total / {_FmtGB(ramAvail)} free" : "N/A");
+            Set("C: Drive", driveInfo);
+            Set("System Uptime", $"{(int)up.TotalDays}d {up.Hours}h {up.Minutes}m");
+            Set(".NET Runtime", $".NET {Environment.Version} ({RuntimeInformation.ProcessArchitecture})");
+            Set("Tool Version", Assembly.GetExecutingAssembly().GetName().Version?.ToString() ?? "?");
+            Set("App Folder", startUp);
+            Set("Loader DB", loaderBrands > 0 ? $"{loaderBrands} brand folder(s) in Loaders\\" : "not found");
+            Set("edl engine", edlOk ? "✅ edl\\edl.py present" : "❌ missing");
+            Set("mtk engine", mtkOk ? "✅ mtkclient/mtk.py present" : "❌ missing");
+            Set("Python", string.IsNullOrEmpty(pyVer) ? "not found" : pyVer);
+        }
+
+        private void InitThemeSelector(Panel host)
         {
             cboTheme = new ComboBox
             {
+                Location = new Point(150, 54),
+                Size = new Size(170, 25),
                 DropDownStyle = ComboBoxStyle.DropDownList,
-                Width = 118,
                 BackColor = Color.FromArgb(35, 45, 58),
                 ForeColor = Color.White,
-                FlatStyle = FlatStyle.Flat,
-                Margin = new Padding(10, 6, 0, 0)
+                FlatStyle = FlatStyle.Flat
             };
             cboTheme.Items.AddRange(ThemeManager.ThemeNames);
             cboTheme.SelectedIndex = 0;
@@ -4731,7 +4928,7 @@ namespace WinFormsApp1
                 try { IOFile.WriteAllText(ThemeFilePath, cboTheme.Text); } catch { }
                 Log($"🎨 Theme changed: {cboTheme.Text}", colorInfo);
             };
-            parentBar.Controls.Add(cboTheme);
+            host.Controls.Add(cboTheme);
 
             // save ထားတဲ့ theme ကို ပြန်ဖတ်ပြီး သုံးတယ်
             try
