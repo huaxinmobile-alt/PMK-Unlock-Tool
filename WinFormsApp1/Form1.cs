@@ -83,6 +83,9 @@ namespace WinFormsApp1
 
         // Dedicated Multi-Flashing Hub Panel
         internal Panel flasherHubPanel = null;
+        // Hub ရဲ့ ရည်ရွယ်ထားတဲ့ visibility — Control.Visible getter က parent chain ကိုပါ ထည့်တွက်တာမို့
+        // Form မ ပေါ်သေးချိန် (ctor) မှာ flasherHubPanel.Visible က false ပြန်တယ်; ဒါကို မှီခိုလို့မရဘူး
+        private bool flasherHubShown = false;
         internal Label lblFlasherTitle = null;
 
         // Slot Controls
@@ -569,6 +572,27 @@ namespace WinFormsApp1
                 chkSlot4.Visible = false; txtSlot4.Visible = false; btnBrowseSlot4.Visible = false;
                 chkSlot5.Visible = false; txtSlot5.Visible = false; btnBrowseSlot5.Visible = false;
             }
+
+            // Hub ပေါ်သွားရင် PROFILE ရဲ့ loader row (Browse) ကို ဖျောက် — Browse ၂ ခု တစ်ပြိုင်နက် မမြင်ရအောင်
+            SyncLoaderRowVisibility();
+        }
+
+        // Hub ကို ဖွင့်/ပိတ်တဲ့ တစ်ခုတည်းသော လမ်း — loader row ကိုပါ အလိုအလျောက် ချိန်ပေးတယ်
+        private void SetFlasherHubVisible(bool visible)
+        {
+            flasherHubShown = visible;
+            if (flasherHubPanel != null) flasherHubPanel.Visible = visible;
+            SyncLoaderRowVisibility();
+        }
+
+        // PROFILE ရဲ့ loader row (label + textbox + Browse) — Flasher Hub ပေါ်နေရင် ဖျောက်တယ်၊
+        // Hub ပြန်ကွယ်ရင် (Read GPT / Backup စတဲ့ ရိုးရှင်းတဲ့ ops) ပြန်ပြတယ်
+        private void SyncLoaderRowVisibility()
+        {
+            bool hub = flasherHubShown;
+            if (lblLoaderTitle != null) lblLoaderTitle.Visible = !hub;
+            if (txtFirmwarePath != null) txtFirmwarePath.Visible = !hub;
+            if (btnBrowseLoader != null) btnBrowseLoader.Visible = !hub;
         }
 
         internal void ResetFlasherSlots()
@@ -748,7 +772,7 @@ namespace WinFormsApp1
 
                 qcFirmwarePreviewMode = true;
                 mobilePartitionGrid.ContextMenuStrip = null; // device partition menu ကို preview mode မှာ ပိတ်
-                flasherHubPanel.Visible = false;
+                SetFlasherHubVisible(false);
                 mobilePartitionGrid.Visible = true;
                 if (btnQcFlashSelected != null) btnQcFlashSelected.Visible = true;
                 UpdateFlashSelButtonText();
@@ -793,7 +817,7 @@ namespace WinFormsApp1
             ReflowActionButtons();
             if (flasherHubPanel != null && currentCategory == "Qualcomm")
             {
-                flasherHubPanel.Visible = true;
+                SetFlasherHubVisible(true);
                 mobilePartitionGrid.Visible = false;
             }
         }
@@ -1211,7 +1235,7 @@ namespace WinFormsApp1
             {
                 if (dynamicActionPanel != null) dynamicActionPanel.Visible = false;
                 if (profilePanel != null) profilePanel.Visible = false; // PROFILE/loader row မပြစေရ
-                if (flasherHubPanel != null) flasherHubPanel.Visible = false;
+                SetFlasherHubVisible(false);
                 if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = false;
                 if (sideloadPanel != null) sideloadPanel.Visible = false;
                 if (settingsPanel != null)
@@ -1268,7 +1292,7 @@ namespace WinFormsApp1
             bool showFlasherHub = (category == "Samsung" || category == "Qualcomm" || category == "MediaTek" || category == "Spreadtrum");
             if (flasherHubPanel != null && mobilePartitionGrid != null)
             {
-                flasherHubPanel.Visible = showFlasherHub;
+                SetFlasherHubVisible(showFlasherHub); // Hub ပေါ်/ကွယ် နဲ့အညီ PROFILE loader row ကိုပါ ချိန်တယ်
                 mobilePartitionGrid.Visible = !showFlasherHub;
                 if (category == "Sideload") mobilePartitionGrid.Visible = false; // sideload မှာ grid မလို
                 if (showFlasherHub) ConfigureFlasherHubForCategory(category);
@@ -1282,7 +1306,7 @@ namespace WinFormsApp1
             else if (qcFirmwarePreviewMode && flasherHubPanel != null && mobilePartitionGrid != null)
             {
                 // Qualcomm tab ပြန်နှိပ်ရင်လည်း preview grid view ပဲ ပြနေစေမယ်
-                flasherHubPanel.Visible = false;
+                SetFlasherHubVisible(false);
                 mobilePartitionGrid.Visible = true;
             }
 
@@ -1307,7 +1331,7 @@ namespace WinFormsApp1
             switch (category)
             {
                 case "Qualcomm":
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { flasherHubPanel.Visible = false; mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { SetFlasherHubVisible(false); mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
                     AddActionBtn("💾 Backup EFS", Color.FromArgb(156, 39, 176), btnQcBackupEfs_Click);
                     AddActionBtn("✏️ Restore EFS", Color.FromArgb(120, 50, 140), btnQcRestoreEfs_Click);
                     AddActionBtn("🔓 Reset FRP", Color.FromArgb(244, 67, 54), btnQcResetFrp_Click);
@@ -1334,14 +1358,14 @@ namespace WinFormsApp1
                     if (qcFirmwarePreviewMode)
                     {
                         btnQcFlashSelected.Visible = true;
-                        flasherHubPanel.Visible = false;
+                        SetFlasherHubVisible(false);
                         mobilePartitionGrid.Visible = true;
                     }
                     break;
 
                 case "MediaTek":
                     AddActionBtn("ℹ️ MTK Info", Color.FromArgb(76, 175, 80), btnMtkInfo_Click);
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { flasherHubPanel.Visible = false; mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { SetFlasherHubVisible(false); mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
                     AddActionBtn("🔓 BL Unlock", Color.FromArgb(255, 152, 0), btnMtkUnlockBL_Click);
                     AddActionBtn("🔒 BL Relock", Color.FromArgb(200, 120, 0), btnMtkRelockBL_Click);
                     AddActionBtn("🔓 Format FRP", Color.FromArgb(244, 67, 54), btnMtkFormatFrp_Click);
