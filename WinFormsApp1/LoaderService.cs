@@ -367,8 +367,7 @@ namespace WinFormsApp1
                 string[] searchPaths = {
                     AppConfig.LoadersDir,
                     AppConfig.QualcommFirehosesDir,
-                    AppConfig.EdlLoadersDir,
-                    @"C:\Users\PMK\Downloads\Qualcomm-firehoses-main\Qualcomm-firehoses-main"
+                    AppConfig.EdlLoadersDir
                 };
 
                 Match codeMatch = Regex.Match(model, @"\((.*?)\)");
