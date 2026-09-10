@@ -92,14 +92,33 @@ def write_manifest(version, notes, size, sha, asset_name):
     return path
 
 
+def check_publish_matches_version(version: str) -> None:
+    """Publish folder က csproj version နဲ့ ကိုက်မကိုက် စစ် (stale payload နဲ့ release တင်မိမှာ ကာကွယ်)"""
+    dll = os.path.join(PUBLISH, "WinFormsApp1.dll")
+    if not os.path.isfile(dll):
+        sys.exit(f"[ERROR] Publish folder မရှိပါ: {dll} — အရင် dotnet publish (သို့) release.bat run ပါ")
+    with open(dll, "rb") as f:
+        blob = f.read()
+    if version.encode() not in blob:
+        sys.exit(
+            f"[ERROR] Publish ထဲက build က v{version} မဟုတ်ပါ (csproj v{version}) —\n"
+            "        dotnet publish WinFormsApp1\\WinFormsApp1.csproj -c Release -r win-x64 --self-contained true -o Publish\\win-x64\n"
+            "        ကို အရင် run ပါ (သို့) python tools/make_installer.py နဲ့ publish လုပ်ပါ"
+        )
+    print(f"[OK] Publish payload version = v{version}")
+
+
 def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--notes", default="")
+    ap.add_argument("--skip-publish-check", action="store_true", help="publish version စစ်တာ ကျော်")
     ap.add_argument("--git", action="store_true", help="commit + push update/latest.json")
     ap.add_argument("--release", action="store_true", help="--git + create GitHub release + upload")
     args = ap.parse_args()
 
     version = read_version()
+    if not getattr(args, "skip_publish_check", False):
+        check_publish_matches_version(version)
     print(f"Version: {version}")
     asset_name = f"PMK-Unlock-Tool-v{version}.zip"
     zip_path, size, sha, nfiles = build_zip(version)
