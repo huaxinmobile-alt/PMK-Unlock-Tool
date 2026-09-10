@@ -1,7 +1,7 @@
 {
-  "version": "4.0.19",
-  "notes": "Login/Activation \u1021\u101e\u1005\u103a: Remember Me + Auto-Login (password \u1000\u102d\u102f Windows DPAPI \u1014\u1032\u1037 encrypt \u101e\u102d\u1019\u103a\u1038), session \u101b\u1000\u103a \u1043\u1040 (Logout \u1014\u103e\u102d\u1015\u103a\u1019\u103e \u1015\u103c\u1014\u103a\u1019\u1031\u1038), \u1019\u103e\u102c\u1038 \u1043 \u1001\u102b \u2192 \u1045 \u1019\u102d\u1014\u1005\u103a lock + attempt log, Activation window \u1019\u103e\u102c Copy ID / Check Status / Deactivate / PC info / expiry \u1015\u103c\u104b",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.19/PMK-Unlock-Tool-v4.0.19.zip",
-  "sha256": "c0861c851616b16f25a9f5276a2fd89d294aea9fbd07ac604faa55e3e828b704",
-  "size": 135073312
+  "version": "4.0.20",
+  "notes": "Auto-Login fix (LOGIN \u1014\u103e\u102d\u1015\u103a\u1005\u101b\u102c \u1019\u101c\u102d\u102f\u1010\u1031\u102c\u1037\u1018\u1030\u1038) + Installer \u1000\u102d\u102f per-user \u1015\u1032 \u1010\u100a\u1037\u103a\u1010\u100a\u1037\u103a install (Program Files \u1019\u103e\u102c \u101b\u1031\u1038\u101c\u102d\u102f\u1037\u1019\u101b\u101c\u102d\u102f\u1037 license/session/auto-login \u1021\u101c\u102f\u1015\u103a\u1019\u101c\u102f\u1015\u103a\u1010\u102c \u1016\u103c\u1031\u101b\u103e\u1004\u103a\u1038)\u104b",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.20/PMK-Unlock-Tool-v4.0.20.zip",
+  "sha256": "e4a2813ba4d7824413fea2454cfd471a7f0ecb1d68af7130b751d070cbfcc064",
+  "size": 135074985
 }
