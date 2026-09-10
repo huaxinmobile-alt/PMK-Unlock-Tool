@@ -1,7 +1,7 @@
 {
-  "version": "4.0.18",
-  "notes": "Distribution: EXE Installer (PMK-Unlock-Tool-Setup-v4.0.18.exe) \u1015\u102b \u1011\u100a\u1037\u103a\u1015\u103c\u102e\u1038\u1015\u102b\u1015\u103c\u102e \u2014 double-click Install \u101b\u102f\u1036\u1015\u102b\u104b App icon, Start Menu/Desktop shortcut, Add/Remove Programs entry \u1014\u1032\u1037 uninstaller \u1015\u102b\u101d\u1004\u103a\u1015\u102b\u1010\u101a\u103a\u104b Portable zip \u101c\u100a\u103a\u1038 \u1015\u102f\u1036\u1019\u103e\u1014\u103a\u1021\u1010\u102d\u102f\u1004\u103a\u1038 \u101b\u1014\u102d\u102f\u1004\u103a\u1015\u102b\u1010\u101a\u103a\u104b",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.18/PMK-Unlock-Tool-v4.0.18.zip",
-  "sha256": "fae51b9cb398d163604b7f7b137da1fd0073b3f5ea9403111ce449a45fa72514",
-  "size": 135060278
+  "version": "4.0.19",
+  "notes": "Login/Activation \u1021\u101e\u1005\u103a: Remember Me + Auto-Login (password \u1000\u102d\u102f Windows DPAPI \u1014\u1032\u1037 encrypt \u101e\u102d\u1019\u103a\u1038), session \u101b\u1000\u103a \u1043\u1040 (Logout \u1014\u103e\u102d\u1015\u103a\u1019\u103e \u1015\u103c\u1014\u103a\u1019\u1031\u1038), \u1019\u103e\u102c\u1038 \u1043 \u1001\u102b \u2192 \u1045 \u1019\u102d\u1014\u1005\u103a lock + attempt log, Activation window \u1019\u103e\u102c Copy ID / Check Status / Deactivate / PC info / expiry \u1015\u103c\u104b",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.19/PMK-Unlock-Tool-v4.0.19.zip",
+  "sha256": "c0861c851616b16f25a9f5276a2fd89d294aea9fbd07ac604faa55e3e828b704",
+  "size": 135073312
 }
