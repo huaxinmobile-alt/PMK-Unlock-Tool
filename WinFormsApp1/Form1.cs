@@ -81,12 +81,14 @@ namespace WinFormsApp1
         internal Panel profilePanel = null;
         internal Panel dynamicActionPanel = null;
 
-        // Dedicated Multi-Flashing Hub Panel
+        // Dedicated Multi-Flashing Hub Panel — အခု unified panel အောက်မှာ ဝှက်ထားပြီး
+        // slot textbox/checkbox တွေကို flash engine အတွက် data bridge အဖြစ်ပဲ သုံးတယ်
         internal Panel flasherHubPanel = null;
-        // Hub ရဲ့ ရည်ရွယ်ထားတဲ့ visibility — Control.Visible getter က parent chain ကိုပါ ထည့်တွက်တာမို့
-        // Form မ ပေါ်သေးချိန် (ctor) မှာ flasherHubPanel.Visible က false ပြန်တယ်; ဒါကို မှီခိုလို့မရဘူး
-        private bool flasherHubShown = false;
         internal Label lblFlasherTitle = null;
+
+        // Unified Firmware Flashing Panel (QC/MTK/SPD/Samsung) + persistent flash options
+        internal UnifiedFlashPanel unifiedFlashPanel = null;
+        private readonly FlashOptions flashOptions = FlashOptions.Load();
 
         // Slot Controls
         internal TextBox txtSlot1 = null, txtSlot2 = null, txtSlot3 = null, txtSlot4 = null, txtSlot5 = null;
@@ -261,6 +263,19 @@ namespace WinFormsApp1
             AppConfig.EnsureCoreDirectories();
 
             UIBuilder.BuildMainLayout(this);
+
+            // Unified flash panel — folder ရွေးလိုက်တာနဲ့ firmware auto-detect + slot ဖြည့် + START
+            if (unifiedFlashPanel != null)
+            {
+                unifiedFlashPanel.FlashRequested += OnUnifiedFlashRequested;
+                unifiedFlashPanel.FolderSelected += OnUnifiedFolderSelected;
+                unifiedFlashPanel.SelectAllRequested += (s, e) => SetAllPartitionChecks(true);
+                unifiedFlashPanel.DeselectAllRequested += (s, e) => SetAllPartitionChecks(false);
+                unifiedFlashPanel.OptionsChanged += OnUnifiedOptionsChanged;
+                unifiedFlashPanel.Options = flashOptions;
+            }
+            if (chkAutoRebootMaster != null) chkAutoRebootMaster.Checked = flashOptions.AutoReboot;
+
             SwitchCategory("Qualcomm");
             InitializePortTimer();
             RefreshPorts();
@@ -573,26 +588,26 @@ namespace WinFormsApp1
                 chkSlot5.Visible = false; txtSlot5.Visible = false; btnBrowseSlot5.Visible = false;
             }
 
-            // Hub ပေါ်သွားရင် PROFILE ရဲ့ loader row (Browse) ကို ဖျောက် — Browse ၂ ခု တစ်ပြိုင်နက် မမြင်ရအောင်
+            // Unified panel ကို category နဲ့ ချိန် (title + detected file role စာရင်း)
+            if (unifiedFlashPanel != null) unifiedFlashPanel.SetCategory(category);
+
             SyncLoaderRowVisibility();
         }
 
-        // Hub ကို ဖွင့်/ပိတ်တဲ့ တစ်ခုတည်းသော လမ်း — loader row ကိုပါ အလိုအလျောက် ချိန်ပေးတယ်
+        // Flash work area (unified panel) ကို ဖွင့်/ပိတ်တဲ့ တစ်ခုတည်းသော လမ်း
         private void SetFlasherHubVisible(bool visible)
         {
-            flasherHubShown = visible;
-            if (flasherHubPanel != null) flasherHubPanel.Visible = visible;
+            if (unifiedFlashPanel != null) unifiedFlashPanel.Visible = visible;
             SyncLoaderRowVisibility();
         }
 
-        // PROFILE ရဲ့ loader row (label + textbox + Browse) — Flasher Hub ပေါ်နေရင် ဖျောက်တယ်၊
-        // Hub ပြန်ကွယ်ရင် (Read GPT / Backup စတဲ့ ရိုးရှင်းတဲ့ ops) ပြန်ပြတယ်
+        // PROFILE ရဲ့ loader row (label + textbox + Browse) — unified panel က firmware ရွေးတာ အကုန်လုပ်တာမို့
+        // အမြဲ ဖျောက်ထားတယ် (Browse ခလုတ် ၂ ခု မပေါ်စေရ)
         private void SyncLoaderRowVisibility()
         {
-            bool hub = flasherHubShown;
-            if (lblLoaderTitle != null) lblLoaderTitle.Visible = !hub;
-            if (txtFirmwarePath != null) txtFirmwarePath.Visible = !hub;
-            if (btnBrowseLoader != null) btnBrowseLoader.Visible = !hub;
+            if (lblLoaderTitle != null) lblLoaderTitle.Visible = false;
+            if (txtFirmwarePath != null) txtFirmwarePath.Visible = false;
+            if (btnBrowseLoader != null) btnBrowseLoader.Visible = false;
         }
 
         internal void ResetFlasherSlots()
@@ -602,6 +617,8 @@ namespace WinFormsApp1
             if (txtSlot3 != null) txtSlot3.Text = "";
             if (txtSlot4 != null) txtSlot4.Text = "";
             if (txtSlot5 != null) txtSlot5.Text = "";
+            // Tab ပြောင်းတိုင်း panel ကိုပါ ရှင်း — category အလိုက် firmware ဖိုင်တွေ ရောမနေရအောင်
+            if (unifiedFlashPanel != null) unifiedFlashPanel.ClearFolder();
         }
 
         internal void BrowseFlasherSlot(int slotIndex)
@@ -772,10 +789,8 @@ namespace WinFormsApp1
 
                 qcFirmwarePreviewMode = true;
                 mobilePartitionGrid.ContextMenuStrip = null; // device partition menu ကို preview mode မှာ ပိတ်
-                SetFlasherHubVisible(false);
-                mobilePartitionGrid.Visible = true;
-                if (btnQcFlashSelected != null) btnQcFlashSelected.Visible = true;
-                UpdateFlashSelButtonText();
+                mobilePartitionGrid.Visible = true;          // partition list — unified panel ရဲ့ အောက်မှာ
+                UpdateFlashSelButtonText();                  // START ခလုတ်ရဲ့ count ကို update (action button မလို)
                 ReflowActionButtons();
 
                 Log("\n╔══════════════════════════════════════════════════════════╗", colorQualcomm);
@@ -802,9 +817,20 @@ namespace WinFormsApp1
 
         internal void UpdateFlashSelButtonText()
         {
-            if (btnQcFlashSelected == null) return;
             int n = CountCheckedFirmwareRows();
+            RefreshUnifiedFlashUi();
+            if (btnQcFlashSelected == null) return;
             btnQcFlashSelected.Text = n > 0 ? $"🔥 Flash Selected ({n})" : "🔥 Flash Selected (0)";
+        }
+
+        // Unified panel ရဲ့ START FLASHING ခလုတ်မှာ partition count ကို QC firmware preview ရှိမှသာ ပြ
+        // (MTK/SPD/Samsung မှာ partition selection မရှိ၊ Read GPT grid က device partition ဖြစ်လို့ မရောရ)
+        private void RefreshUnifiedFlashUi()
+        {
+            if (unifiedFlashPanel == null) return;
+            bool preview = qcFirmwarePreviewMode && currentCategory == "Qualcomm";
+            int total = preview ? (mobilePartitionGrid?.Rows.Count ?? 0) : 0;
+            unifiedFlashPanel.SetPartitionInfo(preview ? CountCheckedFirmwareRows() : 0, total);
         }
 
         // Firmware preview mode ကနေ ထွက်ပြီး ပုံမှန် hub/grid view ပြန်ပြခြင်း
@@ -817,9 +843,148 @@ namespace WinFormsApp1
             ReflowActionButtons();
             if (flasherHubPanel != null && currentCategory == "Qualcomm")
             {
-                SetFlasherHubVisible(true);
                 mobilePartitionGrid.Visible = false;
             }
+        }
+
+        // ================= Unified Flash Panel handlers =================
+
+        // Panel ရဲ့ START FLASHING — QC preview ရှိရင် checked partition တွေပဲ၊ မရှိရင် hub slot အတိုင်း
+        private void OnUnifiedFlashRequested(object sender, EventArgs e)
+        {
+            LogFlashOptionNotes();
+            if (qcFirmwarePreviewMode && currentCategory == "Qualcomm") FlashSelectedFirmware();
+            else ExecuteMasterFlash();
+        }
+
+        // Folder ရွေးလိုက်တာနဲ့ firmware ဖိုင်တွေ auto-detect → legacy slot textbox တွေ ဖြည့် → QC ဆို partition grid ဖွင့်
+        private void OnUnifiedFolderSelected(object sender, string folder)
+        {
+            try
+            {
+                if (!Directory.Exists(folder))
+                {
+                    LogError($"❌ Folder မတွေ့ပါ: {folder}");
+                    return;
+                }
+
+                var set = FirmwareFolderScanner.Scan(folder, currentCategory);
+                ResetFlasherSlots();                                  // အရင် ရှင်း (panel ကိုပါ ရှင်းတယ်)
+                if (unifiedFlashPanel != null) unifiedFlashPanel.SetFiles(set); // ပြီးမှ detected ဖိုင်တွေ ပြ
+
+                switch (currentCategory)
+                {
+                    case "Qualcomm":
+                        txtSlot1.Text = set.Programmer;
+                        txtSlot2.Text = set.RawProgram;
+                        txtSlot3.Text = set.Patch;
+                        if (!string.IsNullOrWhiteSpace(set.Programmer)) txtFirmwarePath.Text = set.Programmer;
+                        if (!string.IsNullOrWhiteSpace(set.RawProgram)) LoadFirmwarePreview(set.RawProgram);
+                        break;
+                    case "MediaTek":
+                        txtSlot1.Text = set.Scatter;
+                        txtSlot2.Text = set.DownloadAgent;
+                        txtSlot3.Text = set.Auth;
+                        break;
+                    case "Spreadtrum":
+                        txtSlot1.Text = set.Pac;
+                        break;
+                    case "Samsung":
+                        txtSlot1.Text = set.SamsungBl;
+                        txtSlot2.Text = set.SamsungAp;
+                        txtSlot3.Text = set.SamsungCp;
+                        txtSlot4.Text = set.SamsungCsc;
+                        txtSlot5.Text = set.SamsungUserData;
+                        break;
+                }
+                SyncSlotChecksFromPaths();
+
+                // QC ဆိုရင် folder ထဲမှာ programmer မပါရင် Brand/Model auto-detect loader ကို ဆက်သုံး
+                if (currentCategory == "Qualcomm" && string.IsNullOrWhiteSpace(txtSlot1.Text))
+                {
+                    string auto = CurrentLoaderPath();
+                    if (!string.IsNullOrWhiteSpace(auto))
+                    {
+                        txtSlot1.Text = auto;
+                        txtFirmwarePath.Text = auto;
+                        if (unifiedFlashPanel != null) unifiedFlashPanel.SetRoleFile(0, auto);
+                        LogInfo($"🎯 Folder ထဲမှာ programmer မပါလို့ auto-detect loader ကို သုံးမယ်: {Path.GetFileName(auto)}");
+                    }
+                }
+
+                if (flashOptions.SkipUserData) ApplySkipUserDataToGrid();
+
+                LogInfo($"📁 Firmware folder ရွေးပြီး: {folder}");
+                if (unifiedFlashPanel != null) unifiedFlashPanel.SetFolder(folder);
+            }
+            catch (Exception ex)
+            {
+                LogError($"❌ Firmware folder ဖတ်ရင်း error: {ex.Message}");
+            }
+        }
+
+        // slot textbox တွေမှာ ဖိုင်ရှိရင် tick၊ မရှိရင် untick (flash engine က tick ထားတာကိုပဲ flash တယ်)
+        private void SyncSlotChecksFromPaths()
+        {
+            if (chkSlot1 != null) chkSlot1.Checked = !string.IsNullOrWhiteSpace(txtSlot1.Text) && IOFile.Exists(txtSlot1.Text.Trim());
+            if (chkSlot2 != null) chkSlot2.Checked = !string.IsNullOrWhiteSpace(txtSlot2.Text) && IOFile.Exists(txtSlot2.Text.Trim());
+            if (chkSlot3 != null) chkSlot3.Checked = !string.IsNullOrWhiteSpace(txtSlot3.Text) && IOFile.Exists(txtSlot3.Text.Trim());
+            if (chkSlot4 != null) chkSlot4.Checked = !string.IsNullOrWhiteSpace(txtSlot4.Text) && IOFile.Exists(txtSlot4.Text.Trim());
+            if (chkSlot5 != null) chkSlot5.Checked = !string.IsNullOrWhiteSpace(txtSlot5.Text) && IOFile.Exists(txtSlot5.Text.Trim());
+        }
+
+        private void SetAllPartitionChecks(bool value)
+        {
+            if (mobilePartitionGrid == null || mobilePartitionGrid.Rows.Count == 0) return;
+            foreach (DataGridViewRow row in mobilePartitionGrid.Rows)
+            {
+                if (row.Cells.Count > 0) row.Cells[0].Value = value;
+            }
+            UpdateFlashSelButtonText();
+        }
+
+        // Options ပြောင်းတိုင်း ဖိုင်မှာ သိမ်း + grid/engine ကို ချိန်
+        private void OnUnifiedOptionsChanged(object sender, EventArgs e)
+        {
+            if (unifiedFlashPanel == null) return;
+            var o = unifiedFlashPanel.Options;
+            flashOptions.EraseBefore = o.EraseBefore;
+            flashOptions.VerifyAfter = o.VerifyAfter;
+            flashOptions.AutoReboot = o.AutoReboot;
+            flashOptions.SkipUserData = o.SkipUserData;
+            flashOptions.Save();
+
+            // legacy checkbox (engine က ဒါကို ဖတ်တယ်) ကို sync
+            if (chkAutoRebootMaster != null) chkAutoRebootMaster.Checked = o.AutoReboot;
+
+            // Skip userdata ဆိုရင် userdata partition တွေကို အလိုအလျောက် untick
+            if (o.SkipUserData) ApplySkipUserDataToGrid();
+        }
+
+        private void ApplySkipUserDataToGrid()
+        {
+            if (!qcFirmwarePreviewMode || mobilePartitionGrid == null) return;
+            foreach (DataGridViewRow row in mobilePartitionGrid.Rows)
+            {
+                if (row.Cells.Count < 2) continue;
+                string name = row.Cells[1].Value?.ToString() ?? "";
+                if (name.StartsWith("userdata", StringComparison.OrdinalIgnoreCase) ||
+                    name.Equals("data", StringComparison.OrdinalIgnoreCase) ||
+                    name.StartsWith("cache", StringComparison.OrdinalIgnoreCase))
+                {
+                    row.Cells[0].Value = false;
+                }
+            }
+            UpdateFlashSelButtonText();
+        }
+
+        // Erase/Verify ကို လက်ရှိ engine တွေမှာ flag မရှိသေးလို့ — အသုံးပြုသူ သိအောင် log မှာ ရှင်းပြ
+        private void LogFlashOptionNotes()
+        {
+            if (flashOptions.EraseBefore)
+                LogWarning("ℹ️ Erase before flash — လက်ရှိ flash engine မှာ မပံ့ပိုးသေးပါ (option ကို သိမ်းထားပြီးပါပြီ)");
+            if (flashOptions.VerifyAfter)
+                LogWarning("ℹ️ Verify after flash — လက်ရှိ flash engine မှာ မပံ့ပိုးသေးပါ (option ကို သိမ်းထားပြီးပါပြီ)");
         }
 
         // checkbox tick ထားတဲ့ partitions နဲ့ filtered rawprogram0.xml ဆောက်ပြီး flash စတင်ခြင်း
@@ -893,7 +1058,13 @@ namespace WinFormsApp1
                 return;
             }
 
-            await _flashCoordinator.ExecuteMasterFlashAsync(currentCategory, slots, GetActiveComPort(), currentMemoryType, chkAutoRebootMaster != null && chkAutoRebootMaster.Checked);
+            await _flashCoordinator.ExecuteMasterFlashAsync(
+                currentCategory,
+                slots,
+                GetActiveComPort(),
+                currentMemoryType,
+                chkAutoRebootMaster != null && chkAutoRebootMaster.Checked,
+                flashOptions.SkipUserData);
         }
 
         // ================= Dynamic Brand & Model Selection Event =================
@@ -1035,6 +1206,8 @@ namespace WinFormsApp1
                     {
                         txtFirmwarePath.Text = dl;
                         if (txtSlot1 != null) txtSlot1.Text = dl;
+                        if (chkSlot1 != null) chkSlot1.Checked = true;
+                        if (unifiedFlashPanel != null) unifiedFlashPanel.SetRoleFile(0, dl); // Programmer row မှာ ✅ ပြ
                         LogSuccess($"✅ Loader ready: {Path.GetFileName(dl)}");
                     }
                 }));
@@ -1292,7 +1465,7 @@ namespace WinFormsApp1
             bool showFlasherHub = (category == "Samsung" || category == "Qualcomm" || category == "MediaTek" || category == "Spreadtrum");
             if (flasherHubPanel != null && mobilePartitionGrid != null)
             {
-                SetFlasherHubVisible(showFlasherHub); // Hub ပေါ်/ကွယ် နဲ့အညီ PROFILE loader row ကိုပါ ချိန်တယ်
+                SetFlasherHubVisible(showFlasherHub); // chipset tab တွေမှာသာ flash panel ပေါ်
                 mobilePartitionGrid.Visible = !showFlasherHub;
                 if (category == "Sideload") mobilePartitionGrid.Visible = false; // sideload မှာ grid မလို
                 if (showFlasherHub) ConfigureFlasherHubForCategory(category);
@@ -1306,9 +1479,9 @@ namespace WinFormsApp1
             else if (qcFirmwarePreviewMode && flasherHubPanel != null && mobilePartitionGrid != null)
             {
                 // Qualcomm tab ပြန်နှိပ်ရင်လည်း preview grid view ပဲ ပြနေစေမယ်
-                SetFlasherHubVisible(false);
                 mobilePartitionGrid.Visible = true;
             }
+            RefreshUnifiedFlashUi(); // START ခလုတ်ရဲ့ partition count ကို category အလိုက် ပြန်ချိန်
 
             if (dynamicActionPanel == null) return;
             dynamicActionPanel.Visible = true; // Settings က ပြန်ထွက်လာရင် action buttons တွေ ပြန်ပြဖို့
@@ -1331,7 +1504,7 @@ namespace WinFormsApp1
             switch (category)
             {
                 case "Qualcomm":
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { SetFlasherHubVisible(false); mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
                     AddActionBtn("💾 Backup EFS", Color.FromArgb(156, 39, 176), btnQcBackupEfs_Click);
                     AddActionBtn("✏️ Restore EFS", Color.FromArgb(120, 50, 140), btnQcRestoreEfs_Click);
                     AddActionBtn("🔓 Reset FRP", Color.FromArgb(244, 67, 54), btnQcResetFrp_Click);
@@ -1354,18 +1527,14 @@ namespace WinFormsApp1
                     AddActionBtn("🔄 Reboot Device", Color.FromArgb(96, 125, 139), btnQcReboot_Click);
                     AddActionBtn("🔥 Flash Selected (0)", Color.FromArgb(230, 60, 60), (s, e) => FlashSelectedFirmware());
                     btnQcFlashSelected = dynamicButtons[dynamicButtons.Count - 1];
+                    // Flash စတင်တာက unified panel ရဲ့ START ခလုတ်ကနေပဲ — ဒီဟာကို မပြတော့ (ခလုတ် ၂ ခု မဖြစ်ရ)
                     btnQcFlashSelected.Visible = false;
-                    if (qcFirmwarePreviewMode)
-                    {
-                        btnQcFlashSelected.Visible = true;
-                        SetFlasherHubVisible(false);
-                        mobilePartitionGrid.Visible = true;
-                    }
+                    if (qcFirmwarePreviewMode) mobilePartitionGrid.Visible = true;
                     break;
 
                 case "MediaTek":
                     AddActionBtn("ℹ️ MTK Info", Color.FromArgb(76, 175, 80), btnMtkInfo_Click);
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { SetFlasherHubVisible(false); mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
                     AddActionBtn("🔓 BL Unlock", Color.FromArgb(255, 152, 0), btnMtkUnlockBL_Click);
                     AddActionBtn("🔒 BL Relock", Color.FromArgb(200, 120, 0), btnMtkRelockBL_Click);
                     AddActionBtn("🔓 Format FRP", Color.FromArgb(244, 67, 54), btnMtkFormatFrp_Click);
@@ -1504,6 +1673,8 @@ namespace WinFormsApp1
                 else
                     lblProgressPercent.Text = $"{percentage}%";
             }
+            // Unified panel ရဲ့ ကိုယ်ပိုင် progress bar/label ကိုပါ တစ်ချိန်တည်း update
+            if (unifiedFlashPanel != null) unifiedFlashPanel.SetProgress(percentage, statusInfo);
         }
 
         // ================= Force Stop All Running Operations =================
@@ -3654,6 +3825,7 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
             isOperationRunning = running;
             if (btnMobileGo != null) btnMobileGo.Enabled = !running;
             foreach (Button b in dynamicButtons) b.Enabled = !running;
+            if (unifiedFlashPanel != null) unifiedFlashPanel.SetBusy(running); // flash လုပ်နေချိန် START ကို ပိတ်
         }
 
         // ================= Form Closing =================

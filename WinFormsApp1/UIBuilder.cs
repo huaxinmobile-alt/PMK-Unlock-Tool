@@ -214,8 +214,10 @@ namespace WinFormsApp1
             form.mobilePartitionGrid.CellValueChanged += (s, e) => { if (form.qcFirmwarePreviewMode && e.RowIndex >= 0 && e.ColumnIndex == 0) form.UpdateFlashSelButtonText(); };
             form.mobilePartitionGrid.CurrentCellDirtyStateChanged += (s, e) => { if (form.mobilePartitionGrid.IsCurrentCellDirty) form.mobilePartitionGrid.CommitEdit(DataGridViewDataErrorContexts.Commit); };
 
-            // Universal Multi-Brand Flasher Panel
-            BuildFlasherHub(form, rightPanel);
+            // Unified Firmware Flashing Panel (QC/MTK/SPD/Samsung) — အဟောင်း hub ကို ဒီထဲမှာ ဝှက်ထားပြီး
+            // slot textbox တွေကို flash engine အတွက် data bridge အဖြစ်ပဲ သုံးတယ်
+            form.unifiedFlashPanel = new UnifiedFlashPanel { Dock = DockStyle.Top, Height = 190 };
+            BuildFlasherHub(form, form.unifiedFlashPanel);
 
             // ===== Sideload Package Row (Sideload tab မှာသာ ပေါ်မယ်) =====
             form.sideloadPanel = new Form1.BevelCardPanel
@@ -288,10 +290,10 @@ namespace WinFormsApp1
             footerBar.Controls.Add(form.cboMemoryType);
 
             rightPanel.Controls.Add(form.mobilePartitionGrid);
-            rightPanel.Controls.Add(form.flasherHubPanel);
             if (form.settingsPanel != null) rightPanel.Controls.Add(form.settingsPanel);
             rightPanel.Controls.Add(footerBar);
             rightPanel.Controls.Add(form.dynamicActionPanel);
+            rightPanel.Controls.Add(form.unifiedFlashPanel); // PROFILE ရဲ့ အောက်၊ action buttons အပေါ်
             if (form.sideloadPanel != null) rightPanel.Controls.Add(form.sideloadPanel);
             rightPanel.Controls.Add(form.profilePanel);
             rightPanel.Controls.Add(categoryBar);
@@ -319,7 +321,7 @@ namespace WinFormsApp1
             form.Controls.Add(banner);
             form.Text = "PMK MOBILE SERVICE TOOL";
         }
-        public static void BuildFlasherHub(Form1 form, Panel parentPanel)
+        public static void BuildFlasherHub(Form1 form, Control parentPanel)
         {
             form.flasherHubPanel = new Form1.BevelCardPanel
             {

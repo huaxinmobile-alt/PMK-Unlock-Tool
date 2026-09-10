@@ -69,7 +69,7 @@ namespace WinFormsApp1
         }
 
         // ================= Master routing (5-slot hub) =================
-        public async Task ExecuteMasterFlashAsync(string category, List<FlashSlotInfo> slots, string activeComPort, string memoryType, bool autoReboot)
+        public async Task ExecuteMasterFlashAsync(string category, List<FlashSlotInfo> slots, string activeComPort, string memoryType, bool autoReboot, bool skipUserData = false)
         {
             if (category == "Samsung")
             {
@@ -81,7 +81,7 @@ namespace WinFormsApp1
             }
             else if (category == "MediaTek")
             {
-                await RunMediaTekAsync(slots, autoReboot);
+                await RunMediaTekAsync(slots, autoReboot, skipUserData);
             }
             else if (category == "Spreadtrum")
             {
@@ -294,7 +294,7 @@ namespace WinFormsApp1
         }
 
         // ================= MediaTek (scatter wl) =================
-        private async Task RunMediaTekAsync(List<FlashSlotInfo> slots, bool autoReboot)
+        private async Task RunMediaTekAsync(List<FlashSlotInfo> slots, bool autoReboot, bool skipUserData = false)
         {
             FlashSlotInfo slot1 = slots.FirstOrDefault(s => s.SlotIndex == 1);
             FlashSlotInfo slot2 = slots.FirstOrDefault(s => s.SlotIndex == 2);
@@ -306,10 +306,14 @@ namespace WinFormsApp1
             string script = AppConfig.MtkScript;
             if (!IOFile.Exists(script)) script = AppConfig.MtkFallbackScript;
 
+            // Skip userdata (fast flash) — mtkclient ရဲ့ --skip နဲ့ userdata/cache partition တွေ ကျော်
+            string skipArg = skipUserData ? "--skip userdata,userdata2,cache " : "";
+
             _log($"\n🔥 [MTK SP Flash] Flashing Scatter Directory: {firmwareFolder}...", MtkColor);
+            if (skipUserData) _log("⚡ [Fast Flash] userdata/cache ကို ကျော်ပြီး flash လုပ်မယ်", WarningColor);
             _log("📱 Power OFF device -> Hold (Vol+ & Vol-) -> Connect USB Cable", MtkColor);
 
-            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}--loglevel INFO wl \"{firmwareFolder}\"", "Flashing MediaTek Scatter...");
+            string res = await _processRunner.RunMtkSleekCommand($"\"{script}\" {daArg}{skipArg}--loglevel INFO wl \"{firmwareFolder}\"", "Flashing MediaTek Scatter...");
             if (res != null && !res.Contains("error:", StringComparison.OrdinalIgnoreCase))
             {
                 _log("✅ MediaTek Scatter Flashing Completed Successfully!", SuccessColor);
