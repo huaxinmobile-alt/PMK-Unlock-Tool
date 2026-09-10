@@ -192,6 +192,12 @@ namespace WinFormsApp1
         internal Button btnClearFolder = null!;
         internal Button btnRescan = null!;
         private readonly ToolTip folderTip = new ToolTip();
+
+        // Loader/DA row (Form1 ရဲ့ lblLoaderTitle/txtFirmwarePath/btnBrowseLoader ကို ဒီ row ထဲ ရွှေ့ထည့်တယ်)
+        internal Panel loaderHost = null!;
+        internal Control? loaderLabel;
+        internal Control? loaderText;
+        internal Control? loaderBrowse;
         internal CheckBox chkErase = null!;
         internal CheckBox chkVerify = null!;
         internal CheckBox chkAutoReboot = null!;
@@ -228,6 +234,9 @@ namespace WinFormsApp1
                 Text = "⚡ FIRMWARE FLASHING"
             };
             Controls.Add(lblTitle);
+
+            loaderHost = new Panel { BackColor = Color.Transparent };
+            Controls.Add(loaderHost);
 
             btnSelectFolder = MakeButton("📁 Select Firmware Folder", Color.FromArgb(33, 150, 243), 200, 28);
             btnSelectFolder.Click += (s, e) => BrowseFolder();
@@ -374,8 +383,39 @@ namespace WinFormsApp1
             lblTitle.Text = title;
             lblTitle.ForeColor = titleColor;
 
+            // Loader/DA row label — category အလိုက်
+            if (loaderLabel != null)
+            {
+                loaderLabel.Text = category switch
+                {
+                    "MediaTek" => "📁 Custom DA/Auth:",
+                    "Spreadtrum" => "📁 Custom PAC Loader:",
+                    "Samsung" => "📁 Custom PIT / File:",
+                    _ => "📁 Firehose Loader:"
+                };
+            }
+
             Relayout();
             RefreshDetectionUi();
+        }
+
+        /// <summary>
+        /// Form1 ရဲ့ loader row (label + textbox + Browse) ကို ဒီ panel ရဲ့ ထိပ်ဆုံး row ထဲ ရွှေ့ထည့်တယ်
+        /// (Browse ခလုတ်ရဲ့ handler က Form1 ရဲ့ BrowseFirmware_Click အတိုင်း — မပြောင်း)
+        /// </summary>
+        internal void AttachLoaderControls(Control label, Control text, Control browse)
+        {
+            loaderLabel = label;
+            loaderText = text;
+            loaderBrowse = browse;
+            loaderHost.Controls.Add(label);
+            loaderHost.Controls.Add(text);
+            loaderHost.Controls.Add(browse);
+            label.Font = new Font("Segoe UI", 9F, FontStyle.Bold); // PROFILE row က ဖောင့်အတိုင်း
+            label.Visible = true;
+            text.Visible = true;
+            browse.Visible = true;
+            Relayout();
         }
 
         internal void SetFolder(string folder)
@@ -612,6 +652,18 @@ namespace WinFormsApp1
 
             lblTitle.Location = new Point(10, y);
             y += 20;
+
+            // ===== Loader / DA row (folder ရွေးတဲ့ row အပေါ်) =====
+            if (loaderText != null && loaderBrowse != null)
+            {
+                const int browseW = 90, lblW = 150;
+                int browseX = w - 14 - browseW;
+                if (loaderLabel != null) loaderLabel.SetBounds(14, y + 4, lblW, 18);
+                loaderBrowse.SetBounds(browseX, y, browseW, 26);
+                loaderText.SetBounds(14 + lblW + 4, y + 2, Math.Max(80, browseX - (14 + lblW + 4) - 8), 24);
+                loaderHost.SetBounds(0, 0, w, y + 30);
+                y += 32;
+            }
 
             const int btnW = 210, btnH = 28, clearW = 30, rescanW = 34, gap = 6;
             int rescanX = w - 10 - clearW - gap - rescanW;

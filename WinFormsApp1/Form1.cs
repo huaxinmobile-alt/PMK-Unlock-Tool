@@ -588,26 +588,15 @@ namespace WinFormsApp1
                 chkSlot5.Visible = false; txtSlot5.Visible = false; btnBrowseSlot5.Visible = false;
             }
 
-            // Unified panel ကို category နဲ့ ချိန် (title + detected file role စာရင်း)
+            // Unified panel ကို category နဲ့ ချိန် (title + loader row label + detected file role စာရင်း)
             if (unifiedFlashPanel != null) unifiedFlashPanel.SetCategory(category);
-
-            SyncLoaderRowVisibility();
         }
 
         // Flash work area (unified panel) ကို ဖွင့်/ပိတ်တဲ့ တစ်ခုတည်းသော လမ်း
         private void SetFlasherHubVisible(bool visible)
         {
+            // Loader/DA row က unified panel ထဲမှာ ပါပြီးသား — panel ကွယ်ရင် row ပါ အလိုအလျောက် ကွယ်တယ်
             if (unifiedFlashPanel != null) unifiedFlashPanel.Visible = visible;
-            SyncLoaderRowVisibility();
-        }
-
-        // PROFILE ရဲ့ loader row (label + textbox + Browse) — unified panel က firmware ရွေးတာ အကုန်လုပ်တာမို့
-        // အမြဲ ဖျောက်ထားတယ် (Browse ခလုတ် ၂ ခု မပေါ်စေရ)
-        private void SyncLoaderRowVisibility()
-        {
-            if (lblLoaderTitle != null) lblLoaderTitle.Visible = false;
-            if (txtFirmwarePath != null) txtFirmwarePath.Visible = false;
-            if (btnBrowseLoader != null) btnBrowseLoader.Visible = false;
         }
 
         internal void ResetFlasherSlots()
@@ -617,6 +606,7 @@ namespace WinFormsApp1
             if (txtSlot3 != null) txtSlot3.Text = "";
             if (txtSlot4 != null) txtSlot4.Text = "";
             if (txtSlot5 != null) txtSlot5.Text = "";
+            if (txtFirmwarePath != null) txtFirmwarePath.Text = ""; // loader/DA field (category တစ်ခုနဲ့တစ်ခု ရောမနေရ)
             // Tab ပြောင်းတိုင်း panel ကိုပါ ရှင်း — category အလိုက် firmware ဖိုင်တွေ ရောမနေရအောင်
             if (unifiedFlashPanel != null) unifiedFlashPanel.ClearFolder();
         }
@@ -901,9 +891,12 @@ namespace WinFormsApp1
                         txtSlot1.Text = set.Scatter;
                         txtSlot2.Text = set.DownloadAgent;
                         txtSlot3.Text = set.Auth;
+                        // "Custom DA/Auth" row မှာ တွေ့တဲ့ DA (မရှိရင် Auth) ကို ပြ
+                        txtFirmwarePath.Text = !string.IsNullOrWhiteSpace(set.DownloadAgent) ? set.DownloadAgent : set.Auth;
                         break;
                     case "Spreadtrum":
                         txtSlot1.Text = set.Pac;
+                        txtFirmwarePath.Text = set.Pac;  // PAC row
                         break;
                     case "Samsung":
                         txtSlot1.Text = set.SamsungBl;
@@ -1490,14 +1483,7 @@ namespace WinFormsApp1
                     }
 
                     mobileBrandCombo.SelectedIndex = 0;
-
-                    if (lblLoaderTitle != null)
-                    {
-                        if (category == "MediaTek") lblLoaderTitle.Text = "📁 Custom DA/Auth:";
-                        else if (category == "Qualcomm") lblLoaderTitle.Text = "📁 Firehose Loader:";
-                        else if (category == "Spreadtrum") lblLoaderTitle.Text = "📁 Custom PAC Loader:";
-                        else if (category == "Samsung") lblLoaderTitle.Text = "📁 Custom PIT / File:";
-                    }
+                    // Loader row label ကို unified panel က SetCategory မှာ ချိန်တယ်
                 }
             }
 
@@ -3894,8 +3880,24 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
 
             if (openFileDlg.ShowDialog() == DialogResult.OK)
             {
-                txtFirmwarePath.Text = openFileDlg.FileName;
-                if (txtSlot1 != null) txtSlot1.Text = openFileDlg.FileName;
+                string picked = openFileDlg.FileName;
+                txtFirmwarePath.Text = picked;
+
+                if (currentCategory == "MediaTek" && picked.EndsWith(".auth", StringComparison.OrdinalIgnoreCase))
+                {
+                    if (txtSlot3 != null) txtSlot3.Text = picked;   // AUTH slot
+                }
+                else if (currentCategory == "MediaTek")
+                {
+                    if (txtSlot2 != null) txtSlot2.Text = picked;   // DA slot
+                }
+                else
+                {
+                    if (txtSlot1 != null) txtSlot1.Text = picked;   // Programmer / PAC / Odin
+                }
+
+                SyncSlotChecksFromPaths();   // ဖိုင်ရှိတဲ့ slot တွေကို tick (flash ထဲ ပါရမယ်)
+                LogInfo($"📂 Loader/File ရွေးပြီး: {Path.GetFileName(picked)}");
             }
         }
 

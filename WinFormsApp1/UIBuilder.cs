@@ -116,7 +116,8 @@ namespace WinFormsApp1
             form.BuildSettingsPanel(rightPanel);
 
             // ===== Profile Panel with TP Pinout Button =====
-            form.profilePanel = new Form1.BevelCardPanel { Dock = DockStyle.Top, Height = 75, BackColor = Color.FromArgb(27, 36, 48) };
+            // Loader row က unified flash panel ထဲ ရွှေ့သွားပြီမို့ PROFILE panel ကို Brand/Model/Pinout အတွက်ပဲ (ကျစ်တဲ့ အမြင့်)
+            form.profilePanel = new Form1.BevelCardPanel { Dock = DockStyle.Top, Height = 42, BackColor = Color.FromArgb(27, 36, 48) };
             form.profilePanel.Controls.Add(CreateSeaLabel("PROFILE", new Point(10, 10), true));
             form.profilePanel.Controls.Add(CreateSeaLabel("Brand", new Point(75, 10), false));
 
@@ -155,11 +156,10 @@ namespace WinFormsApp1
             Form1.Ui3D.Restyle3D(form.btnShowTp);
             form.profilePanel.Controls.Add(form.btnShowTp);
 
-            form.lblLoaderTitle = CreateSeaLabel("📁 Firehose Loader:", new Point(10, 42), false);
-            form.txtFirmwarePath = CreateServiceTextBox(new Point(140, 40), 395);
-            form.btnBrowseLoader = CreateSeaButton("📂 Browse", new Point(545, 38), 85, 26, form.BrowseFirmware_Click);
-
-            form.profilePanel.Controls.AddRange(new Control[] { form.lblLoaderTitle, form.txtFirmwarePath, form.btnBrowseLoader });
+            // Loader/DA row — unified flash panel ရဲ့ ထိပ်ဆုံး row ထဲ ထည့်မယ် (Browse handler က BrowseFirmware_Click အတိုင်း)
+            form.lblLoaderTitle = CreateSeaLabel("📁 Firehose Loader:", new Point(14, 0), false);
+            form.txtFirmwarePath = CreateServiceTextBox(new Point(168, 2), 395);
+            form.btnBrowseLoader = CreateSeaButton("📂 Browse", new Point(600, 0), 90, 26, form.BrowseFirmware_Click);
 
             form.dynamicActionPanel = new Form1.BevelCardPanel { Dock = DockStyle.Top, Height = 135, BackColor = Color.FromArgb(25, 33, 44), Padding = new Padding(6), AutoScroll = true };
 
@@ -217,6 +217,7 @@ namespace WinFormsApp1
             // Unified Firmware Flashing Panel (QC/MTK/SPD/Samsung) — အဟောင်း hub ကို ဒီထဲမှာ ဝှက်ထားပြီး
             // slot textbox တွေကို flash engine အတွက် data bridge အဖြစ်ပဲ သုံးတယ်
             form.unifiedFlashPanel = new UnifiedFlashPanel { Dock = DockStyle.Top, Height = 190 };
+            form.unifiedFlashPanel.AttachLoaderControls(form.lblLoaderTitle, form.txtFirmwarePath, form.btnBrowseLoader);
             BuildFlasherHub(form, form.unifiedFlashPanel);
 
             // ===== Sideload Package Row (Sideload tab မှာသာ ပေါ်မယ်) =====
