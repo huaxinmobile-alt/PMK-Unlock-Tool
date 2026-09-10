@@ -31,5 +31,3 @@ tools/private/
 
 # Login session (per-PC runtime — logout လုပ်ရင် ဖျက်တယ်)
 session.dat
-"LoaderDB/Loaders/" 
-"WinFormsApp1/mtkclient/mtkclient/Loader/" 
