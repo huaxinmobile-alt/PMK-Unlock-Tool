@@ -47,6 +47,7 @@ namespace WinFormsApp1
         public static string ConfigPath => Path.Combine(Dir, "config.json");
         private static string LockPath => Path.Combine(Dir, "login_state.json");
         public static string AttemptsLogPath => Path.Combine(Dir, "login_attempts.log");
+        private static string SkipFlagPath => Path.Combine(Dir, "skip_autologin.flag");
 
         private static readonly JsonSerializerOptions JsonOpts = new JsonSerializerOptions { WriteIndented = true };
 
@@ -98,13 +99,31 @@ namespace WinFormsApp1
             Save(c);
         }
 
-        /// <summary>Auto-Login ကို ပိတ် (Remember Me ကတော့ ကျန် — Logout နှိပ်ချိန် သုံး)</summary>
-        public static void DisableAutoLogin()
+        /// <summary>
+        /// Auto-Login ကို "ဒီတစ်ခါပဲ" ကျော်ခိုင်း (Logout နှိပ်ချိန် သုံး) — preference (auto_login=true) က မပျက်ဘူး၊
+        /// ဒါကြောင့် Logout လုပ်ပြီး နောက်တစ်ခါ ဖွင့်ရင် ပြန်အလိုအလျောက် ဝင်မယ်။
+        /// </summary>
+        public static void SuppressNextAutoLogin()
         {
-            var c = Load();
-            if (!c.AutoLogin) return;
-            c.AutoLogin = false;
-            Save(c);
+            try
+            {
+                IOFile.WriteAllText(SkipFlagPath,
+                    DateTime.Now.AddMinutes(5).ToString("yyyy-MM-dd HH:mm:ss"));
+            }
+            catch { }
+        }
+
+        /// <summary>ဒီတစ်ခါ Auto-Login ကို ကျော်ရမလား (flag ကို တစ်ခါပဲ သုံးပြီး ဖျက်တယ်)</summary>
+        public static bool ConsumeAutoLoginSuppression()
+        {
+            try
+            {
+                if (!IOFile.Exists(SkipFlagPath)) return false;
+                string txt = IOFile.ReadAllText(SkipFlagPath).Trim();
+                IOFile.Delete(SkipFlagPath);
+                return DateTime.TryParse(txt, out var until) && DateTime.Now <= until;
+            }
+            catch { return false; }
         }
 
         /// <summary>သိမ်းထားတဲ့ password ကို ပြန် decrypt (မအောင်ရင် null)</summary>

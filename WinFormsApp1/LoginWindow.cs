@@ -157,6 +157,9 @@ namespace WinFormsApp1
                 // Update စစ်လို့ မရခဲ့ရင် (offline) warning — block မလုပ်ဘူး
                 if (!string.IsNullOrWhiteSpace(UpdateGate.StartupWarning) && pnlLogin.Visible)
                     ShowError(UpdateGate.StartupWarning);
+                // Logout လုပ်ထားလို့ auto-login ကျော်ထားတာ ရှင်းပြ (နောက်တစ်ခါ ဖွင့်ရင် ပြန်အလိုအလျောက် ဝင်မယ်)
+                if (suppressNote && pnlLogin.Visible)
+                    ShowError("🔒 Logout လုပ်ထားလို့ ဒီတစ်ခါ Auto-Login ကို ကျော်ထားတယ် — LOGIN နှိပ်ပါ။ (နောက်တစ်ခါ ဖွင့်ရင် ပြန်အလိုအလျောက် ဝင်ပါမယ်)", isError: false);
                 if (pnlActivate.Visible) txtInstall.SelectAll();
                 else if (pnlLogin.Visible) { PrefillSaved(); RunPendingAutoLogin(); txtUser.Focus(); }
             };
@@ -262,6 +265,8 @@ namespace WinFormsApp1
         }
 
         private bool autoLoginDone;
+        private bool suppressNote;
+        private bool suppressAutoLogin;   // Logout ပြီးချင်း process အတွက် auto-login ပိတ်ထား
 
         // သိမ်းထားတဲ့ credential တွေ ဖြည့် (Remember Me ဖွင့်ထားရင်) + Auto-Login ရှိရင် အလိုအလျောက် ဝင်
         private void PrefillSaved()
@@ -279,7 +284,19 @@ namespace WinFormsApp1
 
             // Auto-Login ကို ဒီနေရာမှာ မလုပ်ဘူး — Form handle မရှိသေးရင် BeginInvoke crash ဖြစ်တယ်
             // (ctor ထဲကနေ ခေါ်လို့). RunPendingAutoLogin() ကို Shown / panel ပြောင်းချိန်မှာ ခေါ်တယ်.
-            if (cfg.AutoLogin && pw != null && !autoLoginDone) pendingAutoLogin = true;
+            if (cfg.AutoLogin && pw != null && !autoLoginDone)
+            {
+                // Logout လုပ်ပြီးချင်း ဖွင့်တာဆိုရင် ဒီတစ်ခါပဲ auto-login ကို ကျော် (login screen ပြဖို့)
+                // မှတ်ချက်: PrefillSaved() က ctor နဲ့ Shown မှာ နှစ်ခါ ခေါ်ခံရတာမို့ suppressAutoLogin ကို
+                // process တစ်ခုလုံးအတွက် မှတ်ထားရတယ် (မဟုတ်ရင် ဒုတိယအခါမှာ auto-login ပြန်ဖွင့်မိမယ်)
+                if (suppressAutoLogin || LoginSettings.ConsumeAutoLoginSuppression())
+                {
+                    suppressAutoLogin = true;
+                    suppressNote = true;
+                    return;
+                }
+                pendingAutoLogin = true;
+            }
         }
 
         private bool pendingAutoLogin;
@@ -287,6 +304,7 @@ namespace WinFormsApp1
         /// <summary>Form ပေါ်ပြီး handle ရှိမှ Auto-Login စမ်း (ctor ထဲမှာ ခေါ်ရင် crash ဖြစ်တယ်)</summary>
         private void RunPendingAutoLogin()
         {
+            if (suppressAutoLogin) return;
             if (!pendingAutoLogin || autoLoginDone || !pnlLogin.Visible) return;
             string user = txtUser.Text.Trim();
             string pass = txtPass.Text;

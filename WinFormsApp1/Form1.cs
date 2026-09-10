@@ -3671,7 +3671,9 @@ private async void btnFbToFastbootd_Click(object sender, EventArgs e)
         {
             if (MessageBox.Show("Logout လုပ်မလား?\nTool ပိတ်ပြီး login screen ပြန်ပြပါမယ် — နောက်တစ်ခါ ဖွင့်ရင် username/password ပြန်ထည့်ရပါမယ်။",
                 "Logout", MessageBoxButtons.YesNo, MessageBoxIcon.Question) != DialogResult.Yes) return;
-            LoginSession.Clear(); // logout = session ဖျက် → နောက်တစ်ခါ login ပြန်မေး
+            LoginSession.Clear();                          // logout = session ဖျက် → နောက်တစ်ခါ login ပြန်မေး
+            LoginSettings.SuppressNextAutoLogin();         // ဒီတစ်ခါပဲ Auto-Login ကျော် (preference မပျက်)
+            LoginSettings.LogAttempt(UserManager.CurrentUsername, "LOGOUT");
             Application.Restart();
         }
 
