@@ -1,7 +1,7 @@
 {
-  "version": "4.0.17",
-  "notes": "Loader/DA field \u1015\u103c\u1014\u103a\u1015\u102b\u1015\u103c\u102e \u2014 Qualcomm (Firehose Loader), MediaTek (Custom DA/Auth), Spreadtrum (Custom PAC), Samsung (Custom PIT) tab \u1010\u103d\u1031\u101b\u1032\u1037 Flash Panel \u1011\u102d\u1015\u103a\u1019\u103e\u102c \u101b\u103e\u102d\u1015\u102b\u1010\u101a\u103a\u104b Browse \u1014\u1032\u1037 \u1000\u102d\u102f\u101a\u103a\u1010\u102d\u102f\u1004\u103a\u101b\u103d\u1031\u1038\u101c\u102d\u102f\u1037\u101b\u104a path \u101b\u102d\u102f\u1000\u103a\u1011\u100a\u1037\u103a\u101c\u102d\u102f\u1037\u101c\u100a\u103a\u1038\u101b\u104b Folder \u101b\u103d\u1031\u1038\u101b\u1004\u103a \u1010\u103d\u1031\u1037\u1010\u1032\u1037 DA/Programmer/PAC \u1000\u102d\u102f \u1021\u101c\u102d\u102f\u1021\u101c\u103b\u1031\u102c\u1000\u103a \u1016\u103c\u100a\u1037\u103a\u1015\u1031\u1038\u1015\u102b\u1010\u101a\u103a\u104b",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.17/PMK-Unlock-Tool-v4.0.17.zip",
-  "sha256": "00b006f5f9fdffdec5fd2db5de26cd1c3659ae7381e06e8703f4ccf759fb1c21",
-  "size": 135020491
+  "version": "4.0.18",
+  "notes": "Distribution: EXE Installer (PMK-Unlock-Tool-Setup-v4.0.18.exe) \u1015\u102b \u1011\u100a\u1037\u103a\u1015\u103c\u102e\u1038\u1015\u102b\u1015\u103c\u102e \u2014 double-click Install \u101b\u102f\u1036\u1015\u102b\u104b App icon, Start Menu/Desktop shortcut, Add/Remove Programs entry \u1014\u1032\u1037 uninstaller \u1015\u102b\u101d\u1004\u103a\u1015\u102b\u1010\u101a\u103a\u104b Portable zip \u101c\u100a\u103a\u1038 \u1015\u102f\u1036\u1019\u103e\u1014\u103a\u1021\u1010\u102d\u102f\u1004\u103a\u1038 \u101b\u1014\u102d\u102f\u1004\u103a\u1015\u102b\u1010\u101a\u103a\u104b",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.18/PMK-Unlock-Tool-v4.0.18.zip",
+  "sha256": "16745a2c97f370dc9de08bd264df5798f7f6146e57a311dec6f142e9413c12ae",
+  "size": 135060309
 }
