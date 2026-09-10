@@ -176,8 +176,8 @@ namespace WinFormsApp1
             StyleField(txtPass, 98, true);
             pnlLogin.Controls.Add(txtPass);
 
-            chkRemember.Text = "Remember Me (username + password ကို ဒီ PC မှာ သိမ်း)";
-            chkRemember.Location = new Point(24, 140);
+            chkRemember.Text = "Remember Me";
+            chkRemember.Location = new Point(26, 142);
             chkRemember.AutoSize = true;
             chkRemember.ForeColor = Color.FromArgb(205, 220, 235);
             chkRemember.Font = new Font("Segoe UI", 9F);
@@ -193,8 +193,8 @@ namespace WinFormsApp1
             };
             pnlLogin.Controls.Add(chkRemember);
 
-            chkAutoLogin.Text = "Auto-Login (tool ဖွင့်တာနဲ့ အလိုအလျောက် ဝင်)";
-            chkAutoLogin.Location = new Point(24, 164);
+            chkAutoLogin.Text = "Auto-Login";
+            chkAutoLogin.Location = new Point(176, 142);
             chkAutoLogin.AutoSize = true;
             chkAutoLogin.ForeColor = Color.FromArgb(205, 220, 235);
             chkAutoLogin.Font = new Font("Segoe UI", 9F);
@@ -202,42 +202,42 @@ namespace WinFormsApp1
             chkAutoLogin.CheckedChanged += (s, e) => UpdateSavedHint();
             pnlLogin.Controls.Add(chkAutoLogin);
 
-            lblSavedHint.Location = new Point(24, 188);
+            lblSavedHint.Location = new Point(24, 166);
             lblSavedHint.Size = new Size(472, 18);
             lblSavedHint.Font = new Font("Segoe UI", 8.2F);
             lblSavedHint.ForeColor = MutedColor;
             pnlLogin.Controls.Add(lblSavedHint);
 
-            StyleButton(btnLogin, "🔓  LOGIN", Color.FromArgb(21, 101, 192), 212, 472);
+            StyleButton(btnLogin, "🔓  LOGIN", Color.FromArgb(21, 101, 192), 188, 472);
             btnLogin.Height = 38;
             btnLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnLogin.Click += (s, e) => DoLogin();
             pnlLogin.Controls.Add(btnLogin);
 
-            lblSpinner.Location = new Point(24, 262);
+            lblSpinner.Location = new Point(24, 234);
             lblSpinner.Size = new Size(200, 20);
             lblSpinner.ForeColor = InfoColor;
             lblSpinner.Font = new Font("Segoe UI", 9.5F);
             lblSpinner.Visible = false;
             pnlLogin.Controls.Add(lblSpinner);
 
-            lblError.Location = new Point(24, 260);
+            lblError.Location = new Point(24, 232);
             lblError.Size = new Size(472, 40);
             lblError.ForeColor = ErrColor;
             lblError.Font = new Font("Segoe UI", 9F);
             pnlLogin.Controls.Add(lblError);
 
-            Label lblHint = MakeLabel("Authorized users only — အကောင့် မရှိရင် ဆိုင်အက်ဒမင်ကို ဆက်သွယ်ပါ", 300);
+            Label lblHint = MakeLabel("Authorized users only — အကောင့် မရှိရင် ဆိုင်အက်ဒမင်ကို ဆက်သွယ်ပါ", 280);
             lblHint.ForeColor = MutedColor;
             lblHint.Font = new Font("Segoe UI", 8.5F);
             pnlLogin.Controls.Add(lblHint);
 
-            StyleButton(btnRegister, "📧  Create Account (Gmail နဲ့ register)", Color.FromArgb(47, 72, 101), 324, 472);
+            StyleButton(btnRegister, "📧  Create Account (Gmail နဲ့ register)", Color.FromArgb(47, 72, 101), 302, 472);
             btnRegister.Click += (s, e) => DoRegister();
             pnlLogin.Controls.Add(btnRegister);
 
             lnkForgot.Text = "Forgot Password?";
-            lnkForgot.Location = new Point(24, 368);
+            lnkForgot.Location = new Point(24, 346);
             lnkForgot.AutoSize = true;
             lnkForgot.LinkColor = Color.FromArgb(100, 181, 246);
             lnkForgot.ActiveLinkColor = Color.White;
@@ -247,7 +247,7 @@ namespace WinFormsApp1
 
             Label lblSec = new Label
             {
-                Location = new Point(150, 368),
+                Location = new Point(150, 346),
                 AutoSize = false,
                 Size = new Size(346, 20),
                 ForeColor = MutedColor,
@@ -411,52 +411,53 @@ namespace WinFormsApp1
             txtInstall.Text = License.MachineIdDisplay;
             txtInstall.BackColor = Color.FromArgb(24, 32, 44);
             txtInstall.ForeColor = Color.FromArgb(0, 230, 118);
-            txtInstall.Width = 356;
+            txtInstall.Width = 472;
             txtInstall.Click += (s, e) => txtInstall.SelectAll();
             pnlActivate.Controls.Add(txtInstall);
 
-            StyleButton(btnCopyId, "📋 Copy", Color.FromArgb(60, 90, 120), 110, 104);
-            btnCopyId.Location = new Point(392, 110);
+            // Copy to Clipboard — ID field ရဲ့ အောက် သီးသန့် row (spec layout)
+            StyleButton(btnCopyId, "📋  Copy to Clipboard", Color.FromArgb(60, 90, 120), 146, 472);
             btnCopyId.Height = 30;
             btnCopyId.Click += (s, e) => CopyInstallId();
             pnlActivate.Controls.Add(btnCopyId);
 
-            Label lblLicLabel = MakeLabel("License Key (PMK ဆီက ရလာတဲ့ key ကို paste လုပ်ပါ):", 148);
+            Label lblLicLabel = MakeLabel("License Key (PMK ဆီက ရလာတဲ့ key ကို paste လုပ်ပါ):", 184);
             lblLicLabel.ForeColor = Color.FromArgb(200, 214, 230);
             lblLicLabel.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             pnlActivate.Controls.Add(lblLicLabel);
 
-            StyleField(txtLicense, 172, false);
+            StyleField(txtLicense, 208, false);
             txtLicense.Font = new Font("Consolas", 9F);
             txtLicense.Multiline = true;
-            txtLicense.Height = 62;
+            txtLicense.Height = 60;
             txtLicense.ScrollBars = ScrollBars.Vertical;
             txtLicense.WordWrap = true;
             pnlActivate.Controls.Add(txtLicense);
 
-            StyleButton(btnCheckStatus, "🔎 Check Status", Color.FromArgb(60, 90, 120), 244, 120);
+            StyleButton(btnCheckStatus, "🔎 Check Status", Color.FromArgb(60, 90, 120), 276, 140);
+            btnCheckStatus.Location = new Point(252, 276);
             btnCheckStatus.Click += (s, e) => CheckLicenseStatus();
             pnlActivate.Controls.Add(btnCheckStatus);
 
             Button btnActivate = new Button();
-            StyleButton(btnActivate, "✅  ACTIVATE", Color.FromArgb(21, 101, 192), 244, 210);
-            btnActivate.Location = new Point(152, 244);
+            StyleButton(btnActivate, "✅  ACTIVATE", Color.FromArgb(21, 101, 192), 276, 220);
+            btnActivate.Height = 36;
             btnActivate.Click += (s, e) => DoActivate();
             pnlActivate.Controls.Add(btnActivate);
 
-            StyleButton(btnDeactivate, "🗑 Deactivate", Color.FromArgb(90, 60, 60), 244, 100);
-            btnDeactivate.Location = new Point(384, 244);
+            StyleButton(btnDeactivate, "🗑 Deactivate", Color.FromArgb(90, 60, 60), 276, 96);
+            btnDeactivate.Location = new Point(400, 276);
             btnDeactivate.Click += (s, e) => DoDeactivate();
             pnlActivate.Controls.Add(btnDeactivate);
 
-            lblActStatus.Location = new Point(24, 284);
+            lblActStatus.Location = new Point(24, 320);
             lblActStatus.Size = new Size(472, 20);
             lblActStatus.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
             lblActStatus.ForeColor = InfoColor;
             pnlActivate.Controls.Add(lblActStatus);
 
-            lblActError.Location = new Point(24, 306);
-            lblActError.Size = new Size(472, 44);
+            lblActError.Location = new Point(24, 366);
+            lblActError.Size = new Size(472, 30);
             lblActError.ForeColor = ErrColor;
             lblActError.Font = new Font("Segoe UI", 9F);
             pnlActivate.Controls.Add(lblActError);
@@ -465,7 +466,7 @@ namespace WinFormsApp1
             LinkLabel lnkSupport = new LinkLabel
             {
                 Text = "💬 Contact Support",
-                Location = new Point(24, 358),
+                Location = new Point(24, 342),
                 AutoSize = true,
                 LinkColor = Color.FromArgb(100, 181, 246),
                 ActiveLinkColor = Color.White,
@@ -477,7 +478,7 @@ namespace WinFormsApp1
             LinkLabel lnkBuy = new LinkLabel
             {
                 Text = "🛒 Purchase License",
-                Location = new Point(170, 358),
+                Location = new Point(170, 342),
                 AutoSize = true,
                 LinkColor = Color.FromArgb(0, 230, 118),
                 ActiveLinkColor = Color.White,
@@ -488,7 +489,7 @@ namespace WinFormsApp1
 
             Label lblNote = new Label
             {
-                Location = new Point(300, 358),
+                Location = new Point(300, 342),
                 AutoSize = false,
                 Size = new Size(196, 20),
                 ForeColor = MutedColor,
