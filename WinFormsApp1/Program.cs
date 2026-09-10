@@ -29,6 +29,27 @@ namespace WinFormsApp1
 
     internal static class Program
     {
+        // Tool က ကိုယ့် folder ထဲမှာ license.dat / users.dat / session.dat / Loaders ရေးတာမို့
+        // folder က writable ဖြစ်ရမယ် (Program Files ထဲ ထည့်မိရင် ဒီ warning ပေါ်မယ်)
+        private static void WarnIfFolderNotWritable()
+        {
+            try
+            {
+                string probe = System.IO.Path.Combine(AppContext.BaseDirectory, "_pmk_write_test.tmp");
+                System.IO.File.WriteAllText(probe, "x");
+                System.IO.File.Delete(probe);
+            }
+            catch
+            {
+                MessageBox.Show(
+                    "ဒီ folder ထဲမှာ ဖိုင်ရေးလို့ မရပါ:\n" + AppContext.BaseDirectory + "\n\n" +
+                    "ဒါကြောင့် activation (license.dat), account (users.dat), session (auto-login) နဲ့\n" +
+                    "loader download တွေ အလုပ်မလုပ်ပါ။\n\n" +
+                    "ဖြေရှင်းနည်း — PMK-Unlock-Tool-Setup.exe နဲ့ ပြန် install လုပ်ပါ (per-user:\n" +
+                    "%LocalAppData%\\Programs\\PMK Unlock Tool) သို့မဟုတ် Portable zip ကို Desktop / D:\\ မှာ ဖြေပါ။",
+                    "PMK Unlock Tool — Folder မှာ ရေးလို့မရပါ", MessageBoxButtons.OK, MessageBoxIcon.Warning);
+            }
+        }
         [STAThread]
         static void Main()
         {
@@ -71,6 +92,9 @@ namespace WinFormsApp1
                     if (login.ShowDialog() != DialogResult.OK) return;
                 }
             }
+
+            // Folder ရေးလို့မရရင် (ဥပမာ Program Files) — license/session/loader မသိမ်းနိုင်တာ ရှင်းပြ
+            WarnIfFolderNotWritable();
 
             Application.Run(new Form1());
         }

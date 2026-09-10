@@ -3,9 +3,10 @@
 ;  Build:  python tools\make_installer.py            (version ကို csproj ကနေ ဖတ်တယ်)
 ;          iscc tools\installer\PMK-Unlock-Tool.iss /DMyAppVersion=4.0.17
 ;
-;  မှတ်ချက်: default က per-user install (LocalAppData) — tool ရဲ့ in-app auto update
-;  (ဖိုင်တွေကို ကိုယ့်ဖိုင်တွေအပေါ် ပြန်ကူးတာ) admin မလိုဘဲ အလုပ်လုပ်ရအောင်ပါ။
-;  Admin နဲ့ Program Files ထဲ ထည့်ချင်ရင် setup စတင်ချိန် dialog မှာ ရွေးလို့ရတယ်။
+;  မှတ်ချက်: per-user install (LocalAppData\Programs) ပဲ — tool က ကိုယ့် folder ထဲမှာ
+;  license.dat / users.dat / session.dat / Loaders / updates တွေ ရေးတာမို့ folder က
+;  writable ဖြစ်ရမယ်။ Program Files ထဲ ထည့်ရင် အဲဒါတွေ မသိမ်းနိုင်ဘဲ auto-login / activation
+;  အလုပ်မလုပ်တော့ဘူး (per-user ဖြစ်လို့ in-app auto update လည်း admin မလိုဘူး)။
 ; ============================================================================
 
 #ifndef MyAppVersion
@@ -28,8 +29,8 @@ DefaultGroupName={#MyAppName}
 DisableProgramGroupPage=yes
 DisableReadyPage=yes
 AllowNoIcons=yes
+; per-user ONLY — Program Files ထဲ ထည့်ရင် tool က license/session/Loaders ဖိုင်တွေ ရေးလို့မရဘူး
 PrivilegesRequired=lowest
-PrivilegesRequiredOverridesAllowed=dialog
 OutputDir=..\..\Releases
 OutputBaseFilename=PMK-Unlock-Tool-Setup-v{#MyAppVersion}
 SetupIconFile=..\..\WinFormsApp1\app.ico

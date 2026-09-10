@@ -25,6 +25,7 @@ namespace WinFormsApp1
         private readonly LinkLabel lnkForgot = new LinkLabel();
         private readonly Panel pnlLogin = new Panel();
         private readonly Label lblSpinner = new Label();
+        private readonly Label lblSavedHint = new Label();
 
         // ===== Password အသစ် panel (force-change / gmail register) =====
         private readonly Panel pnlChange = new Panel();
@@ -154,7 +155,7 @@ namespace WinFormsApp1
             {
                 UiFocus.BringToFront(this);
                 if (pnlActivate.Visible) txtInstall.SelectAll();
-                else if (pnlLogin.Visible) { PrefillSaved(); txtUser.Focus(); }
+                else if (pnlLogin.Visible) { PrefillSaved(); RunPendingAutoLogin(); txtUser.Focus(); }
             };
         }
 
@@ -188,6 +189,7 @@ namespace WinFormsApp1
                     LoginSettings.ClearCredentials();
                 }
                 chkAutoLogin.Enabled = chkRemember.Checked;
+                UpdateSavedHint();
             };
             pnlLogin.Controls.Add(chkRemember);
 
@@ -197,38 +199,45 @@ namespace WinFormsApp1
             chkAutoLogin.ForeColor = Color.FromArgb(205, 220, 235);
             chkAutoLogin.Font = new Font("Segoe UI", 9F);
             chkAutoLogin.Enabled = false;
+            chkAutoLogin.CheckedChanged += (s, e) => UpdateSavedHint();
             pnlLogin.Controls.Add(chkAutoLogin);
 
-            StyleButton(btnLogin, "🔓  LOGIN", Color.FromArgb(21, 101, 192), 196, 472);
+            lblSavedHint.Location = new Point(24, 188);
+            lblSavedHint.Size = new Size(472, 18);
+            lblSavedHint.Font = new Font("Segoe UI", 8.2F);
+            lblSavedHint.ForeColor = MutedColor;
+            pnlLogin.Controls.Add(lblSavedHint);
+
+            StyleButton(btnLogin, "🔓  LOGIN", Color.FromArgb(21, 101, 192), 212, 472);
             btnLogin.Height = 38;
             btnLogin.Font = new Font("Segoe UI", 11F, FontStyle.Bold);
             btnLogin.Click += (s, e) => DoLogin();
             pnlLogin.Controls.Add(btnLogin);
 
-            lblSpinner.Location = new Point(24, 246);
+            lblSpinner.Location = new Point(24, 262);
             lblSpinner.Size = new Size(200, 20);
             lblSpinner.ForeColor = InfoColor;
             lblSpinner.Font = new Font("Segoe UI", 9.5F);
             lblSpinner.Visible = false;
             pnlLogin.Controls.Add(lblSpinner);
 
-            lblError.Location = new Point(24, 244);
+            lblError.Location = new Point(24, 260);
             lblError.Size = new Size(472, 40);
             lblError.ForeColor = ErrColor;
             lblError.Font = new Font("Segoe UI", 9F);
             pnlLogin.Controls.Add(lblError);
 
-            Label lblHint = MakeLabel("Authorized users only — အကောင့် မရှိရင် ဆိုင်အက်ဒမင်ကို ဆက်သွယ်ပါ", 288);
+            Label lblHint = MakeLabel("Authorized users only — အကောင့် မရှိရင် ဆိုင်အက်ဒမင်ကို ဆက်သွယ်ပါ", 300);
             lblHint.ForeColor = MutedColor;
             lblHint.Font = new Font("Segoe UI", 8.5F);
             pnlLogin.Controls.Add(lblHint);
 
-            StyleButton(btnRegister, "📧  Create Account (Gmail နဲ့ register)", Color.FromArgb(47, 72, 101), 312, 472);
+            StyleButton(btnRegister, "📧  Create Account (Gmail နဲ့ register)", Color.FromArgb(47, 72, 101), 324, 472);
             btnRegister.Click += (s, e) => DoRegister();
             pnlLogin.Controls.Add(btnRegister);
 
             lnkForgot.Text = "Forgot Password?";
-            lnkForgot.Location = new Point(24, 356);
+            lnkForgot.Location = new Point(24, 368);
             lnkForgot.AutoSize = true;
             lnkForgot.LinkColor = Color.FromArgb(100, 181, 246);
             lnkForgot.ActiveLinkColor = Color.White;
@@ -238,7 +247,7 @@ namespace WinFormsApp1
 
             Label lblSec = new Label
             {
-                Location = new Point(150, 356),
+                Location = new Point(150, 368),
                 AutoSize = false,
                 Size = new Size(346, 20),
                 ForeColor = MutedColor,
@@ -249,19 +258,62 @@ namespace WinFormsApp1
             pnlLogin.Controls.Add(lblSec);
         }
 
-        // သိမ်းထားတဲ့ credential တွေ ဖြည့် (Remember Me ဖွင့်ထားရင်)
+        private bool autoLoginDone;
+
+        // သိမ်းထားတဲ့ credential တွေ ဖြည့် (Remember Me ဖွင့်ထားရင်) + Auto-Login ရှိရင် အလိုအလျောက် ဝင်
         private void PrefillSaved()
         {
             var cfg = LoginSettings.Load();
             chkRemember.Checked = cfg.RememberMe;
             chkAutoLogin.Enabled = cfg.RememberMe;
             chkAutoLogin.Checked = cfg.AutoLogin;
+            UpdateSavedHint();
 
             if (!cfg.RememberMe || string.IsNullOrWhiteSpace(cfg.Username)) return;
             txtUser.Text = cfg.Username;
             string pw = LoginSettings.GetSavedPassword(cfg);
             if (pw != null) txtPass.Text = pw;
-            if (cfg.AutoLogin && pw != null) BeginInvoke(new Action(() => DoLogin()));
+
+            // Auto-Login ကို ဒီနေရာမှာ မလုပ်ဘူး — Form handle မရှိသေးရင် BeginInvoke crash ဖြစ်တယ်
+            // (ctor ထဲကနေ ခေါ်လို့). RunPendingAutoLogin() ကို Shown / panel ပြောင်းချိန်မှာ ခေါ်တယ်.
+            if (cfg.AutoLogin && pw != null && !autoLoginDone) pendingAutoLogin = true;
+        }
+
+        private bool pendingAutoLogin;
+
+        /// <summary>Form ပေါ်ပြီး handle ရှိမှ Auto-Login စမ်း (ctor ထဲမှာ ခေါ်ရင် crash ဖြစ်တယ်)</summary>
+        private void RunPendingAutoLogin()
+        {
+            if (!pendingAutoLogin || autoLoginDone || !pnlLogin.Visible) return;
+            string user = txtUser.Text.Trim();
+            string pass = txtPass.Text;
+            if (user.Length == 0 || pass.Length == 0) return;
+
+            autoLoginDone = true;
+            pendingAutoLogin = false;
+            LoginSettings.LogAttempt(user, "AUTO-LOGIN");
+            DoLogin(autoLogin: true);
+        }
+
+        // သိမ်းထားတဲ့ အခြေအနေကို ရှင်းရှင်းလင်းလင်း ပြ
+        private void UpdateSavedHint()
+        {
+            if (lblSavedHint == null) return;
+            if (!chkRemember.Checked)
+            {
+                lblSavedHint.Text = "💾 သိမ်းထားတာ မရှိပါ — ပိတ်/ဖွင့်တိုင်း username + password ရိုက်ရမယ်";
+                lblSavedHint.ForeColor = MutedColor;
+            }
+            else if (chkAutoLogin.Checked)
+            {
+                lblSavedHint.Text = "⚡ Auto-Login ဖွင့်ထားတယ် — နောက်တစ်ခါ ဖွင့်ရင် LOGIN နှိပ်စရာ မလိုဘူး (session ရက် ၃၀)";
+                lblSavedHint.ForeColor = OkColor;
+            }
+            else
+            {
+                lblSavedHint.Text = "👤 username/password ဖြည့်ပြီးသား ဖြစ်မယ် — LOGIN နှိပ်ရမယ် (Auto-Login ကိုပါ tick လုပ်ရင် အလိုအလျောက် ဝင်မယ်)";
+                lblSavedHint.ForeColor = WarnColor;
+            }
         }
 
         private void ShowForgotHelp()
@@ -639,6 +691,9 @@ namespace WinFormsApp1
             pnlChange.Visible = false;
             pnlLogin.Visible = true;
             AcceptButton = btnLogin;
+            // Activation/force-change ပြီးလို့ login panel ပြန်ရောက်ချိန်လည်း သိမ်းထားတာ ဖြည့် + Auto-Login လုပ်
+            PrefillSaved();
+            if (IsHandleCreated) BeginInvoke(new Action(RunPendingAutoLogin));
             txtUser.Focus();
         }
 
@@ -710,7 +765,9 @@ namespace WinFormsApp1
         // =====================================================================
         //  LOGIN
         // =====================================================================
-        private async void DoLogin()
+        private void DoLogin() => DoLogin(autoLogin: false);
+
+        private async void DoLogin(bool autoLogin)
         {
             if (!pnlLogin.Visible || loginBusy) return;
             if (DateTime.Now < lockUntil) { UpdateLockState(); return; }
@@ -741,7 +798,15 @@ namespace WinFormsApp1
 
             if (entry == null)
             {
-                LoginSettings.LogAttempt(user, "FAIL: " + reason);
+                LoginSettings.LogAttempt(user, (autoLogin ? "AUTO-FAIL: " : "FAIL: ") + reason);
+                if (autoLogin)
+                {
+                    // သိမ်းထားတဲ့ password က အဟောင်း ဖြစ်နေတာ — လက်ဖြင်း ရိုက်ခိုင်း (lock မချ)
+                    ShowError("⚡ Auto-Login မအောင်ဘူး — သိမ်းထားတဲ့ password က မကိုက်တော့ပါ။\nPassword ပြန်ရိုက်ပြီး LOGIN နှိပ်ပါ (အောင်ရင် အသစ် ပြန်သိမ်းပေးမယ်)");
+                    txtPass.SelectAll();
+                    txtPass.Focus();
+                    return;
+                }
                 failCount++;
                 var until = LoginSettings.RegisterFailure();
                 int left = LoginSettings.RemainingAttempts();
@@ -761,7 +826,7 @@ namespace WinFormsApp1
                 return;
             }
 
-            LoginSettings.LogAttempt(user, "OK");
+            LoginSettings.LogAttempt(user, autoLogin ? "AUTO-OK" : "OK");
             LoginSettings.ResetFailures();
             failCount = 0;
 
@@ -884,8 +949,14 @@ namespace WinFormsApp1
 
         protected override void OnPaintBackground(PaintEventArgs e)
         {
-            using var grad = new LinearGradientBrush(ClientRectangle, Bg, BgDeep, LinearGradientMode.Vertical);
-            e.Graphics.FillRectangle(grad, ClientRectangle);
+            // Size သုည (ဖွင့်စ) အချိန် LinearGradientBrush က "Parameter is not valid" ဖြစ်တတ်လို့ ကာကွယ်
+            if (ClientRectangle.Width <= 0 || ClientRectangle.Height <= 0) { base.OnPaintBackground(e); return; }
+            try
+            {
+                using var grad = new LinearGradientBrush(ClientRectangle, Bg, BgDeep, LinearGradientMode.Vertical);
+                e.Graphics.FillRectangle(grad, ClientRectangle);
+            }
+            catch { base.OnPaintBackground(e); }
         }
     }
 }
