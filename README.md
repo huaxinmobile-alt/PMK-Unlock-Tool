@@ -6,11 +6,23 @@ for the optional update check.
 
 ## 📥 Download (for shops / technicians)
 
-Portable package (self-contained — no .NET runtime needed) is published on the **Releases** page:
+**Releases** page: **https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases**
 
-**https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases**
+### Option A — EXE Installer (အသစ်၊ လွယ်ဆုံး)
 
-`PMK-Unlock-Tool-v4.0.0.zip` — extract to any writable folder (Desktop / `D:\` — **not** `C:\Program Files`, because
+`PMK-Unlock-Tool-Setup-v<version>.exe` — double-click → Next → Install (no .NET runtime needed).
+
+- Default က **per-user install** (`%LOCALAPPDATA%\Programs\PMK Unlock Tool`) — UAC မလို၊ folder က
+  user-writable ဖြစ်လို့ **in-app auto-update** ဆက်အလုပ်လုပ်တယ်
+- Admin နဲ့ Program Files ထဲ ထည့်ချင်ရင် setup စတင်ချိန် dialog မှာ ရွေးလို့ရ
+  (ဒါပေမဲ့ update လုပ်တိုင်း admin လိုမယ် — per-user ကို အကြံပြုပါတယ်)
+- Start Menu + Desktop shortcut, Add/Remove Programs မှာ "PMK Unlock Tool" (uninstaller ပါ)
+- Uninstall လုပ်ရင် user data (accounts / license / Loaders) ဖျက်/မဖျက် မေးတယ် (default: မဖျက်)
+- Rebuild: `python tools\make_installer.py` (Inno Setup 6 လိုအပ်) · GitHub မှာ တင်ရန်: `--upload`
+
+### Option B — Portable ZIP
+
+`PMK-Unlock-Tool-v<version>.zip` — extract to any writable folder (Desktop / `D:\` — **not** `C:\Program Files`, because
 the built-in updater needs write access to its own folder) and run `WinFormsApp1.exe`.
 
 > ☁️ **Loaders က zip ထဲ မပါတော့ပါ** (download သေးအောင် ~130MB) — tool က ဖုန်းတစ်လုံးလုပ်တဲ့အခါ လိုအပ်တဲ့
