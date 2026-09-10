@@ -240,39 +240,17 @@ namespace WinFormsApp1
             Form1.Ui3D.Restyle3D(btnSlBrowse);
             form.sideloadPanel.Controls.Add(btnSlBrowse);
 
-            // Footer Bar with Progress Bar
+            // Footer Bar — progress bar မလိုတော့ (unified flash panel ထဲမှာ သီးသန့်ရှိပြီး)
             Panel footerBar = new Panel { Dock = DockStyle.Bottom, Height = 30, BackColor = Color.FromArgb(20, 28, 38) };
 
-            form.globalProgressBar = new ProgressBar
-            {
-                Location = new Point(8, 6),
-                Size = new Size(300, 18),
-                Style = ProgressBarStyle.Continuous,
-                Minimum = 0,
-                Maximum = 100,
-                Value = 0
-            };
-
-            form.lblProgressPercent = new Label
-            {
-                Text = "0%",
-                Location = new Point(315, 6),
-                AutoSize = true,
-                Font = new Font("Segoe UI", 9F, FontStyle.Bold),
-                ForeColor = Color.FromArgb(0, 230, 118)
-            };
-
-            footerBar.Controls.Add(form.globalProgressBar);
-            footerBar.Controls.Add(form.lblProgressPercent);
-
             // ===== Memory Type Selector (Qualcomm EDL: eMMC / UFS) =====
-            form.lblMemType = CreateSeaLabel("Mem:", new Point(660, 8), false);
+            form.lblMemType = CreateSeaLabel("Mem:", new Point(10, 8), false);
             form.lblMemType.ForeColor = Color.FromArgb(0, 230, 118);
             form.lblMemType.Font = new Font("Segoe UI", 8.5F, FontStyle.Bold);
 
             form.cboMemoryType = new ComboBox
             {
-                Location = new Point(695, 4),
+                Location = new Point(48, 4),
                 Size = new Size(85, 23),
                 DropDownStyle = ComboBoxStyle.DropDownList,
                 BackColor = Color.FromArgb(35, 45, 58),
@@ -289,9 +267,32 @@ namespace WinFormsApp1
             footerBar.Controls.Add(form.lblMemType);
             footerBar.Controls.Add(form.cboMemoryType);
 
+            // ===== Partition Toolbar — grid ရဲ့ ညာဘက်အပေါ်မှာ (firmware partition / Read GPT ရလဒ်မှသာ ပေါ်) =====
+            form.partitionToolbar = new Form1.BevelCardPanel
+            {
+                Dock = DockStyle.Top,
+                Height = 34,
+                BackColor = Color.FromArgb(27, 36, 48),
+                Visible = false
+            };
+            form.lblPartitionInfo = CreateSeaLabel("Partitions: 0 / 0 selected", new Point(12, 9), false);
+            form.lblPartitionInfo.Font = new Font("Segoe UI", 9F, FontStyle.Bold);
+            form.lblPartitionInfo.ForeColor = Color.FromArgb(0, 230, 118);
+
+            form.btnSelectAllParts = CreateSeaButton("☑ Select All", new Point(300, 4), 105, 26, (s, e) => form.SetAllPartitionChecks(true));
+            form.btnSelectAllParts.BackColor = Color.FromArgb(60, 90, 120);
+            Form1.Ui3D.Restyle3D(form.btnSelectAllParts);
+
+            form.btnDeselectAllParts = CreateSeaButton("☐ Deselect All", new Point(411, 4), 110, 26, (s, e) => form.SetAllPartitionChecks(false));
+            form.btnDeselectAllParts.BackColor = Color.FromArgb(60, 70, 85);
+            Form1.Ui3D.Restyle3D(form.btnDeselectAllParts);
+
+            form.partitionToolbar.Controls.AddRange(new Control[] { form.lblPartitionInfo, form.btnSelectAllParts, form.btnDeselectAllParts });
+
             rightPanel.Controls.Add(form.mobilePartitionGrid);
             if (form.settingsPanel != null) rightPanel.Controls.Add(form.settingsPanel);
             rightPanel.Controls.Add(footerBar);
+            rightPanel.Controls.Add(form.partitionToolbar); // grid ရဲ့ အပေါ် တိုက်ရိုက်
             rightPanel.Controls.Add(form.dynamicActionPanel);
             rightPanel.Controls.Add(form.unifiedFlashPanel); // PROFILE ရဲ့ အောက်၊ action buttons အပေါ်
             if (form.sideloadPanel != null) rightPanel.Controls.Add(form.sideloadPanel);

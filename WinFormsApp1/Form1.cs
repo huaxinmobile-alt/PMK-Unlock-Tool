@@ -65,8 +65,6 @@ namespace WinFormsApp1
 
         // ================= UI Controls =================
         internal Panel mobileSeaShell = null;
-        internal ProgressBar globalProgressBar = null;
-        internal Label lblProgressPercent = null;
         internal ComboBox cboMemoryType = null;
         internal Label lblMemType = null;
         internal DataGridView mobilePartitionGrid = null;
@@ -84,6 +82,10 @@ namespace WinFormsApp1
         // Dedicated Multi-Flashing Hub Panel — အခု unified panel အောက်မှာ ဝှက်ထားပြီး
         // slot textbox/checkbox တွေကို flash engine အတွက် data bridge အဖြစ်ပဲ သုံးတယ်
         internal Panel flasherHubPanel = null;
+        // Partition toolbar (grid အပေါ်မှာ — grid ပေါ်ချိန်မှသာ)
+        internal Panel partitionToolbar = null;
+        internal Label lblPartitionInfo = null;
+        internal Button btnSelectAllParts = null, btnDeselectAllParts = null;
         internal Label lblFlasherTitle = null;
 
         // Unified Firmware Flashing Panel (QC/MTK/SPD/Samsung) + persistent flash options
@@ -269,8 +271,6 @@ namespace WinFormsApp1
             {
                 unifiedFlashPanel.FlashRequested += OnUnifiedFlashRequested;
                 unifiedFlashPanel.FolderSelected += OnUnifiedFolderSelected;
-                unifiedFlashPanel.SelectAllRequested += (s, e) => SetAllPartitionChecks(true);
-                unifiedFlashPanel.DeselectAllRequested += (s, e) => SetAllPartitionChecks(false);
                 unifiedFlashPanel.OptionsChanged += OnUnifiedOptionsChanged;
                 unifiedFlashPanel.Options = flashOptions;
             }
@@ -789,8 +789,8 @@ namespace WinFormsApp1
 
                 qcFirmwarePreviewMode = true;
                 mobilePartitionGrid.ContextMenuStrip = null; // device partition menu ကို preview mode မှာ ပိတ်
-                mobilePartitionGrid.Visible = true;          // partition list — unified panel ရဲ့ အောက်မှာ
-                UpdateFlashSelButtonText();                  // START ခလုတ်ရဲ့ count ကို update (action button မလို)
+                SetPartitionGridVisible(true);               // partition list — ဒီအခါမှသာ grid ပေါ်
+                UpdateFlashSelButtonText();                  // START ခလုတ်ရဲ့ count ကို update
                 ReflowActionButtons();
 
                 Log("\n╔══════════════════════════════════════════════════════════╗", colorQualcomm);
@@ -818,6 +818,8 @@ namespace WinFormsApp1
         internal void UpdateFlashSelButtonText()
         {
             int n = CountCheckedFirmwareRows();
+            if (lblPartitionInfo != null)
+                lblPartitionInfo.Text = $"Partitions:  {n} / {(mobilePartitionGrid?.Rows.Count ?? 0)} selected";
             RefreshUnifiedFlashUi();
             if (btnQcFlashSelected == null) return;
             btnQcFlashSelected.Text = n > 0 ? $"🔥 Flash Selected ({n})" : "🔥 Flash Selected (0)";
@@ -841,10 +843,7 @@ namespace WinFormsApp1
             mobilePartitionGrid.ContextMenuStrip = partitionContextMenu;
             if (btnQcFlashSelected != null) btnQcFlashSelected.Visible = false;
             ReflowActionButtons();
-            if (flasherHubPanel != null && currentCategory == "Qualcomm")
-            {
-                mobilePartitionGrid.Visible = false;
-            }
+            SetPartitionGridVisible(false); // preview ထွက်ရင် grid+toolbar ပြန်ဖျောက် (tab ပြောင်းလည်း ကျန် မနေရ)
         }
 
         // ================= Unified Flash Panel handlers =================
@@ -933,7 +932,16 @@ namespace WinFormsApp1
             if (chkSlot5 != null) chkSlot5.Checked = !string.IsNullOrWhiteSpace(txtSlot5.Text) && IOFile.Exists(txtSlot5.Text.Trim());
         }
 
-        private void SetAllPartitionChecks(bool value)
+        // Grid နဲ့ partition toolbar ကို တွဲဖွင့်/ပိတ် — flash panel ပဲပေါ်ချိန် grid မလို
+        // (firmware partition preview / Read GPT ရလဒ် ရှိမှသာ grid ပေါ်)
+        private void SetPartitionGridVisible(bool visible)
+        {
+            if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = visible;
+            if (partitionToolbar != null) partitionToolbar.Visible = visible;
+            if (visible) UpdateFlashSelButtonText();
+        }
+
+        internal void SetAllPartitionChecks(bool value)
         {
             if (mobilePartitionGrid == null || mobilePartitionGrid.Rows.Count == 0) return;
             foreach (DataGridViewRow row in mobilePartitionGrid.Rows)
@@ -1409,7 +1417,7 @@ namespace WinFormsApp1
                 if (dynamicActionPanel != null) dynamicActionPanel.Visible = false;
                 if (profilePanel != null) profilePanel.Visible = false; // PROFILE/loader row မပြစေရ
                 SetFlasherHubVisible(false);
-                if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = false;
+                SetPartitionGridVisible(false);
                 if (sideloadPanel != null) sideloadPanel.Visible = false;
                 if (settingsPanel != null)
                 {
@@ -1466,8 +1474,8 @@ namespace WinFormsApp1
             if (flasherHubPanel != null && mobilePartitionGrid != null)
             {
                 SetFlasherHubVisible(showFlasherHub); // chipset tab တွေမှာသာ flash panel ပေါ်
-                mobilePartitionGrid.Visible = !showFlasherHub;
-                if (category == "Sideload") mobilePartitionGrid.Visible = false; // sideload မှာ grid မလို
+                // Grid ကို default ဖျောက် — firmware folder ရွေးပြီး partition တွေရမှ (သို့) Read GPT နှိပ်မှသာ ပေါ်
+                SetPartitionGridVisible(false);
                 if (showFlasherHub) ConfigureFlasherHubForCategory(category);
             }
 
@@ -1479,7 +1487,7 @@ namespace WinFormsApp1
             else if (qcFirmwarePreviewMode && flasherHubPanel != null && mobilePartitionGrid != null)
             {
                 // Qualcomm tab ပြန်နှိပ်ရင်လည်း preview grid view ပဲ ပြနေစေမယ်
-                mobilePartitionGrid.Visible = true;
+                SetPartitionGridVisible(true);
             }
             RefreshUnifiedFlashUi(); // START ခလုတ်ရဲ့ partition count ကို category အလိုက် ပြန်ချိန်
 
@@ -1504,7 +1512,7 @@ namespace WinFormsApp1
             switch (category)
             {
                 case "Qualcomm":
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { mobilePartitionGrid.Visible = true; btnQcDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(210, 70, 70), (s, e) => { SetPartitionGridVisible(true); btnQcDetect_Click(s, e); });
                     AddActionBtn("💾 Backup EFS", Color.FromArgb(156, 39, 176), btnQcBackupEfs_Click);
                     AddActionBtn("✏️ Restore EFS", Color.FromArgb(120, 50, 140), btnQcRestoreEfs_Click);
                     AddActionBtn("🔓 Reset FRP", Color.FromArgb(244, 67, 54), btnQcResetFrp_Click);
@@ -1529,12 +1537,12 @@ namespace WinFormsApp1
                     btnQcFlashSelected = dynamicButtons[dynamicButtons.Count - 1];
                     // Flash စတင်တာက unified panel ရဲ့ START ခလုတ်ကနေပဲ — ဒီဟာကို မပြတော့ (ခလုတ် ၂ ခု မဖြစ်ရ)
                     btnQcFlashSelected.Visible = false;
-                    if (qcFirmwarePreviewMode) mobilePartitionGrid.Visible = true;
+                    if (qcFirmwarePreviewMode) SetPartitionGridVisible(true);
                     break;
 
                 case "MediaTek":
                     AddActionBtn("ℹ️ MTK Info", Color.FromArgb(76, 175, 80), btnMtkInfo_Click);
-                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { mobilePartitionGrid.Visible = true; btnMtkDetect_Click(s, e); });
+                    AddActionBtn("📋 Read GPT", Color.FromArgb(60, 90, 120), (s, e) => { SetPartitionGridVisible(true); btnMtkDetect_Click(s, e); });
                     AddActionBtn("🔓 BL Unlock", Color.FromArgb(255, 152, 0), btnMtkUnlockBL_Click);
                     AddActionBtn("🔒 BL Relock", Color.FromArgb(200, 120, 0), btnMtkRelockBL_Click);
                     AddActionBtn("🔓 Format FRP", Color.FromArgb(244, 67, 54), btnMtkFormatFrp_Click);
@@ -1665,15 +1673,7 @@ namespace WinFormsApp1
             if (percentage < 0) percentage = 0;
             if (percentage > 100) percentage = 100;
 
-            if (globalProgressBar != null) globalProgressBar.Value = percentage;
-            if (lblProgressPercent != null)
-            {
-                if (!string.IsNullOrEmpty(statusInfo))
-                    lblProgressPercent.Text = $"{percentage}% ({statusInfo})";
-                else
-                    lblProgressPercent.Text = $"{percentage}%";
-            }
-            // Unified panel ရဲ့ ကိုယ်ပိုင် progress bar/label ကိုပါ တစ်ချိန်တည်း update
+            // Progress ကို unified flash panel ထဲက bar/label မှာပဲ ပြ (footer က progress bar ဖျက်ထားပြီ)
             if (unifiedFlashPanel != null) unifiedFlashPanel.SetProgress(percentage, statusInfo);
         }
 
@@ -2421,6 +2421,8 @@ namespace WinFormsApp1
             {
                 string deviceTxt = !string.IsNullOrEmpty(_processRunner.DetectedChipset) ? $"{_processRunner.DetectedChipset} — " : "";
                 LogSuccess($"✅ {deviceTxt}{partitions.Count} partitions loaded into table.");
+                SetPartitionGridVisible(true);   // Read GPT ရလဒ်ကို grid+toolbar နဲ့ ပြ
+                UpdateFlashSelButtonText();      // toolbar ရဲ့ count ကို update
             }
         }
 

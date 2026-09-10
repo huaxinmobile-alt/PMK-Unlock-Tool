@@ -184,8 +184,6 @@ namespace WinFormsApp1
     {
         public event EventHandler? FlashRequested;
         public event EventHandler<string>? FolderSelected;
-        public event EventHandler? SelectAllRequested;
-        public event EventHandler? DeselectAllRequested;
         public event EventHandler? OptionsChanged;
 
         internal Label lblTitle = null!;
@@ -193,8 +191,6 @@ namespace WinFormsApp1
         internal TextBox txtFolder = null!;
         internal Button btnClearFolder = null!;
         internal readonly Label[] fileRows = new Label[5];
-        internal Button btnSelectAll = null!;
-        internal Button btnDeselectAll = null!;
         internal CheckBox chkErase = null!;
         internal CheckBox chkVerify = null!;
         internal CheckBox chkAutoReboot = null!;
@@ -212,7 +208,7 @@ namespace WinFormsApp1
         private static readonly Color BgCard = Color.FromArgb(24, 32, 43);
         private static readonly Color FgText = Color.FromArgb(215, 228, 242);
         private static readonly Color OkGreen = Color.FromArgb(0, 230, 118);
-        private static readonly Color MissingGray = Color.FromArgb(140, 152, 168);
+        private static readonly Color MissingRed = Color.FromArgb(255, 105, 105);
 
         public UnifiedFlashPanel()
         {
@@ -265,7 +261,7 @@ namespace WinFormsApp1
                 {
                     AutoSize = false,
                     Font = new Font("Segoe UI", 9F),
-                    ForeColor = MissingGray,
+                    ForeColor = MissingRed,
                     BackColor = Color.Transparent,
                     Text = "",
                     Visible = false
@@ -273,14 +269,7 @@ namespace WinFormsApp1
                 Controls.Add(fileRows[i]);
             }
 
-            btnSelectAll = MakeButton("☑ Select All", Color.FromArgb(60, 90, 120), 100, 24);
-            btnSelectAll.Click += (s, e) => SelectAllRequested?.Invoke(this, EventArgs.Empty);
-            Controls.Add(btnSelectAll);
-
-            btnDeselectAll = MakeButton("☐ Deselect All", Color.FromArgb(60, 70, 85), 108, 24);
-            btnDeselectAll.Click += (s, e) => DeselectAllRequested?.Invoke(this, EventArgs.Empty);
-            Controls.Add(btnDeselectAll);
-
+            // Select All / Deselect All က partition grid ရဲ့ အပေါ်မှာ သီးသန့် (Form1 ရဲ့ partitionToolbar)
             chkErase = MakeOption("Erase before flash", 150);
             chkVerify = MakeOption("Verify after flash", 155);
             chkAutoReboot = MakeOption("Auto reboot after flash", 175);
@@ -385,10 +374,6 @@ namespace WinFormsApp1
             lblTitle.Text = title;
             lblTitle.ForeColor = titleColor;
 
-            bool showPartitionTools = category == "Qualcomm";
-            btnSelectAll.Visible = showPartitionTools;
-            btnDeselectAll.Visible = showPartitionTools;
-
             Relayout();
             RenderFileRows();
         }
@@ -471,8 +456,8 @@ namespace WinFormsApp1
                 string path = GetRolePath(i);
                 bool ok = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
                 fileRows[i].Visible = true;
-                fileRows[i].Text = $"{(ok ? "✅" : "❌")}  {roles[i]}:   {(ok ? Describe(path) : "— မတွေ့ပါ")}";
-                fileRows[i].ForeColor = ok ? OkGreen : MissingGray;
+                fileRows[i].Text = $"{(ok ? "✅" : "❌")}  {roles[i]}:   {(ok ? Describe(path) : "Not found")}";
+                fileRows[i].ForeColor = ok ? OkGreen : MissingRed;
             }
         }
 
@@ -503,8 +488,6 @@ namespace WinFormsApp1
             busy = isBusy;
             btnStartFlash.Enabled = !isBusy;
             btnSelectFolder.Enabled = !isBusy;
-            btnSelectAll.Enabled = !isBusy;
-            btnDeselectAll.Enabled = !isBusy;
             btnStartFlash.Text = isBusy ? "⏳ FLASHING — ခဏစောင့်ပါ..." : "⚡ START FLASHING";
             btnStartFlash.BackColor = isBusy ? Color.FromArgb(120, 60, 60) : Color.FromArgb(230, 60, 60);
         }
@@ -603,17 +586,13 @@ namespace WinFormsApp1
             }
             y += 2;
 
+            // Options — ဘယ်ဘက်ညီ နှစ်တန်း (ခလုတ်တွေ ရောမနေရအောင်)
             int optY = y;
             chkErase.Location = new Point(14, optY + 2);
-            chkVerify.Location = new Point(14 + 152, optY + 2);
-            chkAutoReboot.Location = new Point(14 + 152 + 157, optY + 2);
-            chkSkipUserData.Location = new Point(14 + 152 + 157 + 177, optY + 2);
-            if (category == "Qualcomm")
-            {
-                btnDeselectAll.Location = new Point(w - 12 - 108, optY + 1);
-                btnSelectAll.Location = new Point(w - 12 - 108 - 4 - 100, optY + 1);
-            }
-            y += 26;
+            chkVerify.Location = new Point(14 + 160, optY + 2);
+            chkAutoReboot.Location = new Point(14, optY + 24);
+            chkSkipUserData.Location = new Point(14 + 190, optY + 24);
+            y += 48;
 
             const int flashH = 36;
             btnStartFlash.SetBounds(10, y, 300, flashH);
