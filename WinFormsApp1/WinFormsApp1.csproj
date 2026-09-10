@@ -6,7 +6,7 @@
 		<Nullable>enable</Nullable>
 		<UseWindowsForms>true</UseWindowsForms>
 		<ImplicitUsings>enable</ImplicitUsings>
-		<Version>4.0.10</Version>
+		<Version>4.0.11</Version>
 		<Product>PMK Unlock Tool</Product>
 		<AssemblyTitle>PMK Unlock Tool</AssemblyTitle>
 		<Description>All-in-one Android flashing &amp; repair tool - Qualcomm EDL, MediaTek, Samsung, Spreadtrum, ADB, Fastboot</Description>
@@ -18,12 +18,10 @@
 	  <PackageReference Include="System.IO.Ports" Version="10.0.11" />
 	</ItemGroup>
 
-	<!-- Loaders / edl / mtkclient ကို build ပြီးတိုင်း output folder ထဲ အလိုအလျောက် sync လုပ်ပေးခြင်း
+	<!-- edl / mtkclient ကို build ပြီးတိုင်း output folder ထဲ အလိုအလျောက် sync လုပ်ပေးခြင်း
+	     (Loaders တွေက repo ရဲ့ LoaderDB\ မှာ — tool က လိုအပ်မှ on-demand download လုပ်တယ်၊ output ထဲ copy မလုပ်တော့)
 	     (အသစ် clone လုပ်ပြီး build ရင် runtime folder တွေ bin ထဲ ကိုယ်တိုင်ရောက်လာမယ်) -->
 	<ItemGroup>
-		<Content Include="Loaders\**\*">
-			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
-		</Content>
 		<Content Include="edl\**\*">
 			<CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
 		</Content>

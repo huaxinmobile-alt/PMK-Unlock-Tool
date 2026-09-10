@@ -84,7 +84,7 @@ no manual zip re-downloading on every PC.
 |---|---|
 | `WinFormsApp1/Form1.cs` | UI + handlers (code-built WinForms, no designer) |
 | `WinFormsApp1/UpdateManager.cs` | Online update engine (manifest fetch / download / verify / self-update) |
-| `WinFormsApp1/Loaders/` | Qualcomm firehose loader DB by brand/model |
+|  `LoaderDB/Loaders/` | Qualcomm firehose loader DB by brand/model |
 | `WinFormsApp1/edl/` | Python EDL client (bkerler-based) used for QC operations |
 | `WinFormsApp1/mtkclient/` | MTK (MediaTek) client source |
 | `update/latest.json` | Version manifest served to the in-app update checker |

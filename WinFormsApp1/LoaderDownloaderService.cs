@@ -18,7 +18,8 @@ namespace WinFormsApp1
         private readonly HttpClient _httpClient;
 
         // GitHub Raw Base URL for the loaders (repo: huaxinmobile-alt/PMK-Unlock-Tool, branch: main)
-        private const string GITHUB_RAW_BASE = "https://raw.githubusercontent.com/huaxinmobile-alt/PMK-Unlock-Tool/main/WinFormsApp1/";
+        // Loaders တွေက Tool ရဲ့ project အပြင် LoaderDB\ folder မှာ — အဲဒီကနေပဲ လိုအပ်မှ download
+        private const string GITHUB_RAW_BASE = "https://raw.githubusercontent.com/huaxinmobile-alt/PMK-Unlock-Tool/main/LoaderDB/";
 
         public LoaderDownloaderService(Action<string, Color> log, Action<int, string> updateProgress)
         {

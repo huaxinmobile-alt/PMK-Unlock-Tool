@@ -21,8 +21,8 @@ import subprocess
 import sys
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-LOADERS = os.path.join(ROOT, "WinFormsApp1", "Loaders")
-PROJECT = os.path.join(ROOT, "WinFormsApp1")  # p က "Loaders/..." နဲ့ စတယ် (app ဘက်က ဒီပုံစံပဲ မျှော်တယ်)
+LOADERS = os.path.join(ROOT, "LoaderDB", "Loaders")
+PROJECT = os.path.join(ROOT, "LoaderDB")  # p က "Loaders/..." နဲ့ စတယ် (app ဘက်က ဒီပုံစံပဲ မျှော်တယ်)
 OUT = os.path.join(ROOT, "loaders", "index.json")
 EXTS = {".elf", ".mbn", ".bin", ".melf"}
 NO_EXT_MIN_SIZE = 100_000  # extension မပါတဲ့ firehose/programmer ဖိုင်တွေ (size ဒီထက် ကြီးမှ loader)
