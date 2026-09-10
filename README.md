@@ -57,7 +57,11 @@ Tool ပထမဆုံး ဖွင့်ရင် **activation screen** ပေ
 - ဝယ်သူ: Installation ID ကို PMK ကို ပို့ → **license key** ပြန်ရ → tool ထဲ paste → Activate
 - License က **ဒီ PC နဲ့ပဲ** အလုပ်လုပ်တယ် — ဖိုင် ကော်ပီကူးသွားရင် တစ်ခြား PC မှာ မရဘူး
 - Activate ပြီးမှ login (admin/staff accounts) ဝင်လို့ရတယ်
-- **PMK ဘက်က license ထုတ်ရန်**: `python tools/make_license.py <Installation-ID> "ဆိုင်နာမည်" [days]`
+- **PMK ဘက်က license ထုတ်ရန် (GUI)**: `LicenseMaker\Publish\PMK License Maker.exe` — Installation ID ကို paste →
+  ဆိုင်နာမည် → သက်တမ်း → **GENERATE LICENSE** → **Copy** → ဝယ်သူကို ပို့ (issued: `tools\private\issued_licenses.log`)
+  - Build/refresh: `python tools\make_license_maker.py --run`
+  - ⚠️ ဒီ exe ကို ဝယ်သူတွေဆီ ဘယ်တော့မှ မဖြန့်ရ (private key နဲ့ တွဲသုံး) — release zip/installer ထဲ မထည့်ရ
+- **PMK ဘက်က license ထုတ်ရန် (command line)**: `python tools/make_license.py <Installation-ID> "ဆိုင်နာမည်" [days]`
   - private key က `tools/private/activation_key.pem` — **backup သေချာယူပါ**၊ မပျောက်စေနဲ့ (ဒီဖိုင် ပျောက်ရင် အကုန်ပြန်ထုတ်ရတယ်)
   - `days` မထည့်ရင် သက်တမ်းမကုန် — ထည့်ရင် အဲဒီရက်ပြီး သက်တမ်းကုန်မယ် (ပြန် renew လို့ရ)
 - Keypair ပြန်ထုတ်ချင်ရင် (အရေးပေါ်မှသာ): `openssl genpkey -algorithm RSA -pkeyopt rsa_keygen_bits:2048 -out tools/private/activation_key.pem` ပြီးရင် public key ကို `WinFormsApp1/License.cs` ထဲ update ပြီး rebuild

@@ -1,0 +1,20 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>WinExe</OutputType>
+    <TargetFramework>net9.0-windows</TargetFramework>
+    <Nullable>disable</Nullable>
+    <UseWindowsForms>true</UseWindowsForms>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <AssemblyName>PMK License Maker</AssemblyName>
+    <RootNamespace>PMKLicenseMaker</RootNamespace>
+    <Version>1.0.0</Version>
+    <Product>PMK License Maker</Product>
+    <AssemblyTitle>PMK License Maker</AssemblyTitle>
+    <Description>PMK Unlock Tool — per-PC license ထုတ်ပေးတဲ့ tool (PMK အတွက်သာ — private key လိုတယ်)</Description>
+    <Company>PMK</Company>
+    <ApplicationIcon>..\WinFormsApp1\app.ico</ApplicationIcon>
+    <!-- ⚠️ ဒီ project ကို release zip/installer ထဲ ဘယ်တော့မှ မထည့်ရ — private key နဲ့ တွဲသုံးတယ် -->
+  </PropertyGroup>
+
+</Project>
