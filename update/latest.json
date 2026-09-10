@@ -1,7 +1,7 @@
 {
-  "version": "4.0.11",
-  "notes": "PMK Unlock Tool v4.0.11 \u2014 loader DB relocated + fully on-demand.\n\n- Loader files now live in the repo's LoaderDB/ folder (outside the tool project) and are downloaded ONLY when a model is selected\n- The tool itself (including PMK's own install) ships/keeps no bulk loader folder \u2014 select a model to fetch just that one loader\n- Same single-file download behaviour everywhere (fresh and existing installs)",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.11/PMK-Unlock-Tool-v4.0.11.zip",
-  "sha256": "7aa2fe0e2b6dc6965d87055f7dbf49f9a4846db8f3e64355cd7b0675a280c42b",
-  "size": 135005640
+  "version": "4.0.12",
+  "notes": "PMK Unlock Tool v4.0.12 \u2014 on-demand loader download fix.\n\n- Removed a leftover dev-only search path so selecting a model now always triggers the intended single-file download (previously it could silently use a stale folder)\n- Loader DB stays browsable from the remote index; downloads remain one file per selected model\n- Verified live: Xiaomi / MI 6X -> exactly 1 loader file downloaded",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.12/PMK-Unlock-Tool-v4.0.12.zip",
+  "sha256": "0403f75ba167597686eb02624f8d68fdfc0fcd516193c5be32b871bf217cc0b1",
+  "size": 135005606
 }
