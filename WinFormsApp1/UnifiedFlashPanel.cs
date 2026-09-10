@@ -190,7 +190,8 @@ namespace WinFormsApp1
         internal Button btnSelectFolder = null!;
         internal TextBox txtFolder = null!;
         internal Button btnClearFolder = null!;
-        internal readonly Label[] fileRows = new Label[5];
+        internal Button btnRescan = null!;
+        private readonly ToolTip folderTip = new ToolTip();
         internal CheckBox chkErase = null!;
         internal CheckBox chkVerify = null!;
         internal CheckBox chkAutoReboot = null!;
@@ -208,7 +209,7 @@ namespace WinFormsApp1
         private static readonly Color BgCard = Color.FromArgb(24, 32, 43);
         private static readonly Color FgText = Color.FromArgb(215, 228, 242);
         private static readonly Color OkGreen = Color.FromArgb(0, 230, 118);
-        private static readonly Color MissingRed = Color.FromArgb(255, 105, 105);
+        private static readonly Color WarnOrange = Color.FromArgb(255, 152, 0);
 
         public UnifiedFlashPanel()
         {
@@ -239,7 +240,9 @@ namespace WinFormsApp1
                 ForeColor = FgText,
                 BorderStyle = BorderStyle.FixedSingle,
                 Font = new Font("Segoe UI", 9F),
-                AllowDrop = true
+                AllowDrop = true,
+                // Hint စာသား — label မလိုဘဲ နေရာမကုန်ဘဲ ပြတယ်
+                PlaceholderText = "📁  Select a firmware folder to auto-detect files  (drag & drop / paste path + Enter)"
             };
             txtFolder.DragEnter += OnDragEnterOrOver;
             txtFolder.DragDrop += OnDragDropAny;
@@ -255,19 +258,16 @@ namespace WinFormsApp1
             btnClearFolder.Click += (s, e) => ClearFolder();
             Controls.Add(btnClearFolder);
 
-            for (int i = 0; i < fileRows.Length; i++)
-            {
-                fileRows[i] = new Label
-                {
-                    AutoSize = false,
-                    Font = new Font("Segoe UI", 9F),
-                    ForeColor = MissingRed,
-                    BackColor = Color.Transparent,
-                    Text = "",
-                    Visible = false
-                };
-                Controls.Add(fileRows[i]);
-            }
+            // Folder ထဲက ဖိုင်တွေကို နေရာမကုန်ဘဲ ပြဖို့ — folder button ရဲ့ tooltip နဲ့ ခလုတ်စာသားပဲ သုံးတယ်
+            folderTip.AutoPopDelay = 30000;
+            folderTip.InitialDelay = 250;
+            folderTip.ReshowDelay = 100;
+            folderTip.ShowAlways = true;
+
+            btnRescan = MakeButton("🔍", Color.FromArgb(60, 90, 120), 34, 28);
+            btnRescan.Click += (s, e) => RaiseFolder(txtFolder.Text); // folder ထဲ ဖိုင်အသစ်ထည့်ပြီး ပြန်ရှာချင်ရင်
+            btnRescan.Visible = false;
+            Controls.Add(btnRescan);
 
             // Select All / Deselect All က partition grid ရဲ့ အပေါ်မှာ သီးသန့် (Form1 ရဲ့ partitionToolbar)
             chkErase = MakeOption("Erase before flash", 150);
@@ -375,19 +375,20 @@ namespace WinFormsApp1
             lblTitle.ForeColor = titleColor;
 
             Relayout();
-            RenderFileRows();
+            RefreshDetectionUi();
         }
 
         internal void SetFolder(string folder)
         {
             txtFolder.Text = folder ?? "";
+            if (btnRescan != null) btnRescan.Visible = !string.IsNullOrWhiteSpace(txtFolder.Text);
         }
 
         internal void SetFiles(FlashFileSet set)
         {
             files = set ?? new FlashFileSet();
             SetFolder(files.Folder);
-            RenderFileRows();
+            RefreshDetectionUi();
         }
 
         internal string GetRolePath(int index)
@@ -438,28 +439,68 @@ namespace WinFormsApp1
                     break;
             }
             if (string.IsNullOrEmpty(files.Folder)) SetFolder(Path.GetDirectoryName(path) ?? "");
-            RenderFileRows();
+            RefreshDetectionUi();
         }
 
         internal void ClearFolder()
         {
             files = new FlashFileSet();
             SetFolder("");
-            RenderFileRows();
+            RefreshDetectionUi();
         }
 
-        private void RenderFileRows()
+        // ===== Detection display =====
+        // ဖိုင် status ကို label တွေနဲ့ မပြတော့ဘူး (နေရာ ကုန်တယ်) — folder button ရဲ့ tooltip ထဲမှာ
+        // ဖိုင်စာရင်း (✅ name + size / ❌ Not found) ကို ပြ၊ ခလုတ်စာသားမှာ တွေ့တဲ့ အရေအတွက် ပြ
+        private void RefreshDetectionUi()
         {
-            for (int i = 0; i < fileRows.Length; i++)
+            if (btnSelectFolder == null) return;
+            bool hasFolder = !string.IsNullOrWhiteSpace(txtFolder.Text);
+
+            if (!hasFolder)
             {
-                if (i >= fileRowCount) { fileRows[i].Visible = false; continue; }
+                btnSelectFolder.Text = "📁 Select Firmware Folder";
+                btnSelectFolder.BackColor = Color.FromArgb(33, 150, 243);
+                folderTip.SetToolTip(btnSelectFolder, "Firmware folder တစ်ခု ရွေးပါ — ဖိုင်တွေကို အလိုအလျောက် ရှာပြပါမယ်");
+                folderTip.SetToolTip(txtFolder, "Folder path ကို paste/ရိုက်ထည့်ပြီး Enter နှိပ်လည်း ရပါတယ်");
+                return;
+            }
+
+            int found = CountFound();
+            var sb = new System.Text.StringBuilder();
+            if (found == 0) sb.AppendLine("⚠️  No firmware files detected in this folder");
+            else sb.AppendLine($"✅  {found} / {fileRowCount} files detected");
+            sb.AppendLine();
+            for (int i = 0; i < fileRowCount; i++)
+            {
                 string path = GetRolePath(i);
                 bool ok = !string.IsNullOrWhiteSpace(path) && File.Exists(path);
-                fileRows[i].Visible = true;
-                fileRows[i].Text = $"{(ok ? "✅" : "❌")}  {roles[i]}:   {(ok ? Describe(path) : "Not found")}";
-                fileRows[i].ForeColor = ok ? OkGreen : MissingRed;
+                sb.AppendLine(ok ? $"✅  {roles[i]}:   {Describe(path)}" : $"❌  {roles[i]}:   Not found");
             }
+            string tip = sb.ToString().TrimEnd();
+
+            btnSelectFolder.Text = found > 0
+                ? $"📁 Firmware Folder  •  {found} ✅"
+                : "📁 Firmware Folder  •  none ⚠";
+            btnSelectFolder.BackColor = found > 0 ? Color.FromArgb(46, 125, 50) : WarnOrange;
+            folderTip.SetToolTip(btnSelectFolder, tip);
+            folderTip.SetToolTip(txtFolder, tip);
         }
+
+        /// <summary>Category အလိုက် တွေ့တဲ့ firmware ဖိုင် အရေအတွက်</summary>
+        internal int CountFound()
+        {
+            int n = 0;
+            for (int i = 0; i < fileRowCount; i++)
+            {
+                string path = GetRolePath(i);
+                if (!string.IsNullOrWhiteSpace(path) && File.Exists(path)) n++;
+            }
+            return n;
+        }
+
+        /// <summary>Category အလိုက် လိုအပ်တဲ့ ဖိုင် အရေအတွက်</summary>
+        internal int ExpectedCount => fileRowCount;
 
         private static string Describe(string path)
         {
@@ -488,6 +529,7 @@ namespace WinFormsApp1
             busy = isBusy;
             btnStartFlash.Enabled = !isBusy;
             btnSelectFolder.Enabled = !isBusy;
+            if (btnRescan != null) btnRescan.Enabled = !isBusy;
             btnStartFlash.Text = isBusy ? "⏳ FLASHING — ခဏစောင့်ပါ..." : "⚡ START FLASHING";
             btnStartFlash.BackColor = isBusy ? Color.FromArgb(120, 60, 60) : Color.FromArgb(230, 60, 60);
         }
@@ -571,20 +613,14 @@ namespace WinFormsApp1
             lblTitle.Location = new Point(10, y);
             y += 20;
 
-            const int btnW = 200, btnH = 28, clearW = 30, gap = 6;
+            const int btnW = 210, btnH = 28, clearW = 30, rescanW = 34, gap = 6;
+            int rescanX = w - 10 - clearW - gap - rescanW;
             btnSelectFolder.SetBounds(10, y, btnW, btnH);
             btnClearFolder.SetBounds(w - 10 - clearW, y, clearW, btnH);
-            txtFolder.SetBounds(10 + btnW + gap, y + 2, Math.Max(80, w - 20 - clearW - btnW - gap * 2), btnH - 4);
-            y += btnH + 6;
-
-            // သတိ: Control.Visible getter က parent chain ကိုပါ ထည့်တွက်တာမို့ Form မ ပေါ်သေးချိန် false ပြန်တယ် —
-            // ဒါကြောင့် layout အတွက် fileRowCount ကိုပဲ မှီခိုတယ် (Visible ကို မစစ်)
-            for (int i = 0; i < fileRowCount && i < fileRows.Length; i++)
-            {
-                fileRows[i].SetBounds(14, y, Math.Max(100, w - 28), 16);
-                y += 17;
-            }
-            y += 2;
+            if (btnRescan != null) btnRescan.SetBounds(rescanX, y, rescanW, btnH);
+            txtFolder.SetBounds(10 + btnW + gap, y + 2,
+                Math.Max(80, rescanX - (10 + btnW + gap) - gap), btnH - 4);
+            y += btnH + 10;
 
             // Options — ဘယ်ဘက်ညီ နှစ်တန်း (ခလုတ်တွေ ရောမနေရအောင်)
             int optY = y;

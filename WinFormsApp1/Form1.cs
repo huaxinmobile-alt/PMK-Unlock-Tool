@@ -864,8 +864,14 @@ namespace WinFormsApp1
                 if (!Directory.Exists(folder))
                 {
                     LogError($"❌ Folder မတွေ့ပါ: {folder}");
+                    // Panel မှာ "No firmware files detected" အခြေအနေ ပြဖို့ folder path ကို ပေးလိုက်
+                    if (unifiedFlashPanel != null) unifiedFlashPanel.SetFiles(new FlashFileSet { Folder = folder });
                     return;
                 }
+
+                // Loaders library ထဲက loader (Brand/Model auto-detect) ကိုပဲ ဆက်ထား၊ folder အဟောင်းက
+                // programmer ကို မလိုက်ယူ (folder အသစ်မှာ မပါရင် stale ဖြစ်နေမယ်)
+                string keepLibraryLoader = IsUnderLoaderLibrary(txtFirmwarePath.Text) ? txtFirmwarePath.Text.Trim() : "";
 
                 var set = FirmwareFolderScanner.Scan(folder, currentCategory);
                 ResetFlasherSlots();                                  // အရင် ရှင်း (panel ကိုပါ ရှင်းတယ်)
@@ -877,8 +883,19 @@ namespace WinFormsApp1
                         txtSlot1.Text = set.Programmer;
                         txtSlot2.Text = set.RawProgram;
                         txtSlot3.Text = set.Patch;
-                        if (!string.IsNullOrWhiteSpace(set.Programmer)) txtFirmwarePath.Text = set.Programmer;
-                        if (!string.IsNullOrWhiteSpace(set.RawProgram)) LoadFirmwarePreview(set.RawProgram);
+                        // folder ထဲက programmer > library loader အစဉ်လိုက်
+                        txtFirmwarePath.Text = !string.IsNullOrWhiteSpace(set.Programmer) ? set.Programmer : keepLibraryLoader;
+                        if (!string.IsNullOrWhiteSpace(set.RawProgram))
+                        {
+                            LoadFirmwarePreview(set.RawProgram);
+                        }
+                        else if (qcFirmwarePreviewMode)
+                        {
+                            // folder အသစ်မှာ rawprogram မရှိ — firmware အဟောင်းရဲ့ partition စာရင်း မကျန်ရအောင် ရှင်း
+                            qcFirmwareSourceXml = "";
+                            mobilePartitionGrid.Rows.Clear();
+                            ExitFirmwarePreview();
+                        }
                         break;
                     case "MediaTek":
                         txtSlot1.Text = set.Scatter;
@@ -913,13 +930,25 @@ namespace WinFormsApp1
 
                 if (flashOptions.SkipUserData) ApplySkipUserDataToGrid();
 
-                LogInfo($"📁 Firmware folder ရွေးပြီး: {folder}");
+                // တွေ့တဲ့ ဖိုင် အရေအတွက်ကို log မှာ ရှင်းရှင်းလင်းလင်း ပြ (tooltip မဖွင့်လည်း သိရအောင်)
+                int foundCount = unifiedFlashPanel?.CountFound() ?? 0;
+                int expected = unifiedFlashPanel?.ExpectedCount ?? 0;
+                if (foundCount > 0) LogSuccess($"📁 Firmware folder: {foundCount}/{expected} ဖိုင် တွေ့ပါတယ် — {folder}");
+                else LogWarning($"⚠️ No firmware files detected in this folder: {folder}");
                 if (unifiedFlashPanel != null) unifiedFlashPanel.SetFolder(folder);
             }
             catch (Exception ex)
             {
                 LogError($"❌ Firmware folder ဖတ်ရင်း error: {ex.Message}");
             }
+        }
+
+        // Loaders library (BaseDir\Loaders) ထဲက ဖိုင် ဟုတ်/မဟုတ် — library loader ကို folder ပြောင်းလည်း ဆက်သုံး
+        private static bool IsUnderLoaderLibrary(string path)
+        {
+            if (string.IsNullOrWhiteSpace(path)) return false;
+            try { return Path.GetFullPath(path).StartsWith(Path.GetFullPath(AppConfig.LoadersDir), StringComparison.OrdinalIgnoreCase); }
+            catch { return false; }
         }
 
         // slot textbox တွေမှာ ဖိုင်ရှိရင် tick၊ မရှိရင် untick (flash engine က tick ထားတာကိုပဲ flash တယ်)
@@ -938,7 +967,9 @@ namespace WinFormsApp1
         {
             if (mobilePartitionGrid != null) mobilePartitionGrid.Visible = visible;
             if (partitionToolbar != null) partitionToolbar.Visible = visible;
+            // ဖျောက်တဲ့အခါလည်း START ခရဲ့ partition count ကို ပြန်ချိန် (stale count မကျန်ရ)
             if (visible) UpdateFlashSelButtonText();
+            else RefreshUnifiedFlashUi();
         }
 
         internal void SetAllPartitionChecks(bool value)
