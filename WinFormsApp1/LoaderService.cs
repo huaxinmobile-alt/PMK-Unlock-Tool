@@ -106,6 +106,20 @@ namespace WinFormsApp1
         }
 
         // ===== Index-based helpers (Loaders မရှိသေးတောင် စာရင်း/ရှာဖွေ ရအောင်) =====
+        // Loader ဖိုင် ဟုတ်မဟုတ် — extension ပါတာတွေ + extension မပါဘဲ ကြီးတဲ့ programmer ဖိုင်တွေ (>=100KB)
+        // (SNAPDRAGON 888, MI 9 SE လို ဖိုင်တွေ extension မပါဘဲ ရှိတတ်လို့)
+        private static bool LooksLikeLoader(string path)
+        {
+            try
+            {
+                string ext = Path.GetExtension(path).ToLowerInvariant();
+                if (ext == ".elf" || ext == ".mbn" || ext == ".bin" || ext == ".melf") return true;
+                if (ext.Length == 0 && IOFile.Exists(path) && new FileInfo(path).Length >= 100_000) return true;
+            }
+            catch { }
+            return false;
+        }
+
         private List<LoaderIndexEntry> IndexEntriesUnder(string brandFolder)
         {
             EnsureIndexCacheLoaded();
@@ -138,7 +152,7 @@ namespace WinFormsApp1
             {
                 string name = Path.GetFileNameWithoutExtension(e.p).Trim();
                 if (name.Length == 0) continue;
-                if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram)", RegexOptions.IgnoreCase)) continue;
+                if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram|devprg_)", RegexOptions.IgnoreCase)) continue;
                 if (Regex.IsMatch(name, @"^\d+$")) continue;
                 if (seen.Add(name)) models.Add(name);
             }
@@ -376,9 +390,7 @@ namespace WinFormsApp1
                     string targetDir = Directory.Exists(brandDir) ? brandDir : baseDir;
 
                     var allLoaderFiles = Directory.GetFiles(targetDir, "*.*", SearchOption.AllDirectories)
-                                                  .Where(f => f.EndsWith(".elf", StringComparison.OrdinalIgnoreCase) ||
-                                                              f.EndsWith(".mbn", StringComparison.OrdinalIgnoreCase) ||
-                                                              f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase))
+                                                  .Where(LooksLikeLoader)
                                                   .ToList();
 
                     var priorityFiles = allLoaderFiles.OrderBy(f => {
@@ -460,14 +472,13 @@ namespace WinFormsApp1
                 {
                     foreach (var f in Directory.GetFiles(baseDir, "*.*", SearchOption.AllDirectories))
                     {
-                        string ext = Path.GetExtension(f).ToLowerInvariant();
-                        if (ext != ".elf" && ext != ".mbn" && ext != ".bin" && ext != ".melf") continue;
+                        if (!LooksLikeLoader(f)) continue;
 
                         string name = Path.GetFileNameWithoutExtension(f).Trim();
                         if (name.Length == 0) continue;
 
                         // generic programmer / meta ဖိုင်တွေကို model အဖြစ် မထည့်ဘူး
-                        if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram)", RegexOptions.IgnoreCase)) continue;
+                        if (Regex.IsMatch(name, @"^(prog_|sahara|fh_loader|patch|rawprogram|devprg_)", RegexOptions.IgnoreCase)) continue;
                         if (Regex.IsMatch(name, @"^\d+$")) continue; // chipset number သက်သက် (610, 430...) က model မဟုတ်ဘူး
 
                         if (seen.Add(name)) models.Add(name);
@@ -499,10 +510,7 @@ namespace WinFormsApp1
                     foreach (var dir in Directory.GetDirectories(loadersRoot))
                     {
                         string folderName = Path.GetFileName(dir);
-                        bool hasLoaders = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories)
-                            .Any(f => f.EndsWith(".elf", StringComparison.OrdinalIgnoreCase) ||
-                                      f.EndsWith(".mbn", StringComparison.OrdinalIgnoreCase) ||
-                                      f.EndsWith(".bin", StringComparison.OrdinalIgnoreCase));
+                        bool hasLoaders = Directory.GetFiles(dir, "*.*", SearchOption.AllDirectories).Any(LooksLikeLoader);
                         if (hasLoaders && seen.Add(folderName)) brands.Add(folderName);
                     }
                 }

@@ -25,6 +25,17 @@ LOADERS = os.path.join(ROOT, "WinFormsApp1", "Loaders")
 PROJECT = os.path.join(ROOT, "WinFormsApp1")  # p က "Loaders/..." နဲ့ စတယ် (app ဘက်က ဒီပုံစံပဲ မျှော်တယ်)
 OUT = os.path.join(ROOT, "loaders", "index.json")
 EXTS = {".elf", ".mbn", ".bin", ".melf"}
+NO_EXT_MIN_SIZE = 100_000  # extension မပါတဲ့ firehose/programmer ဖိုင်တွေ (size ဒီထက် ကြီးမှ loader)
+
+
+def is_loader(full: str, name: str) -> bool:
+    ext = os.path.splitext(name)[1].lower()
+    if ext in EXTS:
+        return True
+    # extension မပါဘဲ ကြီးတဲ့ ဖိုင်တွေ = extension မပါတဲ့ programmer တွေ (digest/sig/QLM လေးတွေ မပါအောင် size စစ်)
+    if ext == "" and os.path.getsize(full) >= NO_EXT_MIN_SIZE:
+        return True
+    return False
 
 
 def main():
@@ -37,10 +48,11 @@ def main():
 
     files = []
     for dirpath, dirnames, filenames in os.walk(LOADERS):
+        dirnames[:] = [d for d in dirnames if not d.startswith("_")]  # _backup လို folder တွေ ကျော်
         for f in sorted(filenames):
-            if os.path.splitext(f)[1].lower() not in EXTS:
-                continue
             full = os.path.join(dirpath, f)
+            if not is_loader(full, f):
+                continue
             rel = os.path.relpath(full, PROJECT).replace("\\", "/")  # "Loaders/..." (WinFormsApp1 အောက်ကနေ)
             h = hashlib.sha256()
             with open(full, "rb") as fh:
