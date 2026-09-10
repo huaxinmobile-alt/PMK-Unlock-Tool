@@ -1,7 +1,7 @@
 {
-  "version": "4.0.13",
-  "notes": "UI fix: Qualcomm/MediaTek/Spreadtrum/Samsung tabs \u2014 Flasher Hub \u1015\u1031\u102b\u103a\u1014\u1031\u1001\u103b\u102d\u1014\u103a PROFILE \u101b\u1032\u1037 loader row (Firehose Loader + Browse) \u1000\u102d\u102f \u1016\u103b\u1031\u102c\u1000\u103a\u1011\u102c\u1038\u101c\u102d\u102f\u1000\u103a\u1015\u102b\u1010\u101a\u103a\u104b Browse \u1001\u101c\u102f\u1010\u103a \u1042 \u1001\u102f \u1010\u1005\u103a\u1015\u103c\u102d\u102f\u1004\u103a\u1014\u1000\u103a \u1019\u1019\u103c\u1004\u103a\u101b\u1010\u1031\u102c\u1037\u1015\u102b\u104b Hub \u1000\u103d\u101a\u103a\u1001\u103b\u102d\u1014\u103a (Read GPT / Backup) \u1019\u103e\u102c \u1015\u102f\u1036\u1019\u103e\u1014\u103a\u1015\u103c\u1014\u103a\u1015\u103c\u1015\u102b\u1010\u101a\u103a\u104b",
-  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.13/PMK-Unlock-Tool-v4.0.13.zip",
-  "sha256": "9fe893f560196c05f668e087da30b5684ee7c3b2ec25ed3ee20a2a721f7c27af",
-  "size": 135005748
+  "version": "4.0.14",
+  "notes": "New UI: Unified Firmware Flashing Panel (Qualcomm/MediaTek/Spreadtrum/Samsung). Folder \u1010\u1005\u103a\u1001\u102f\u101b\u103d\u1031\u1038\u101c\u102d\u102f\u1000\u103a\u101b\u1004\u103a firmware \u1016\u102d\u102f\u1004\u103a\u1010\u103d\u1031\u1000\u102d\u102f \u1021\u101c\u102d\u102f\u1021\u101c\u103b\u1031\u102c\u1000\u103a \u101b\u103e\u102c\u1015\u103c\u1015\u103c\u102e\u1038 (\u2705 list), Qualcomm \u1019\u103e\u102c partition \u1005\u102c\u101b\u1004\u103a\u1038 + Select All/Deselect All \u1015\u102b \u1015\u1031\u102b\u103a\u101c\u102c\u1015\u102b\u1010\u101a\u103a\u104b Flash button \u1010\u1005\u103a\u1001\u102f\u1010\u100a\u103a\u1038 (\u26a1 START FLASHING) \u2014 Browse \u1001\u101c\u102f\u1010\u103a\u1010\u103d\u1031 \u1011\u1015\u103a\u1014\u1031\u1010\u102c \u1019\u101b\u103e\u102d\u1010\u1031\u102c\u1037\u1015\u102b\u104b Flash options (Erase/Verify/Auto reboot/Skip userdata) \u1000\u102d\u102f \u101e\u102d\u1019\u103a\u1038\u1011\u102c\u1038\u1015\u102b\u1010\u101a\u103a\u104b Folder drag & drop \u101b\u1015\u102b\u1010\u101a\u103a\u104b",
+  "url": "https://github.com/huaxinmobile-alt/PMK-Unlock-Tool/releases/download/v4.0.14/PMK-Unlock-Tool-v4.0.14.zip",
+  "sha256": "e96a5989c10dce839091ead06af055190ea9d2ded4e12014d3f8d7d4f9799c82",
+  "size": 135018894
 }
