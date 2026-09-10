@@ -27,7 +27,7 @@ namespace WinFormsApp1
     public class UserManager
     {
         // File ကို ဝှက်ဖို့ key အရင်းအမြစ် (obfuscation level — exe ထဲ ကြည့်ရင် တွေ့နိုင်တယ်)
-        private const string Pepper = "PMK-Unlock-Tool::userdb::v4::7d3a1f9c";
+        internal const string Pepper = "PMK-Unlock-Tool::userdb::v4::7d3a1f9c";
         private const string FileMagic = "PMKUF1|";
         public const string DefaultAdmin = "admin";
         public const string DefaultAdminPassword = "admin1234";

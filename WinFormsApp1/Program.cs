@@ -57,8 +57,14 @@ namespace WinFormsApp1
 
             // Login gate — ဝင်ပြီးမှသာ main UI ပွင့်တယ် (ပိတ်/cancel ဆို app ထွက်တယ်)
             // Session ရှိပြီး (logout မထွက်ရသေးဘဲ) license valid ဆိုရင် login ကို ကျော်တယ်
-            string remembered = LoginSession.RememberedUser;
-            if (remembered == null || !License.IsActivated || !UserManager.RestoreSession(remembered))
+            string remembered = LoginSession.RememberedUser ?? "";   // HMAC မှန် + ရက် ၃၀ မကျော်မှ username ပြန်တယ်
+            bool haveSession = remembered.Length > 0;
+            if (haveSession && (!License.IsActivated || !UserManager.RestoreSession(remembered)))
+            {
+                LoginSession.Clear();   // session က မကိုက်တော့ဘူး (user ဖျက်ခံရ / license မရှိ) — ရှင်းလိုက်
+                haveSession = false;
+            }
+            if (!haveSession)
             {
                 using (var login = new LoginWindow())
                 {

@@ -153,6 +153,12 @@ namespace WinFormsApp1
         public static string ShopName => Current?.ShopName ?? "";
         public static bool HasExpiry => Current != null && Current.Expiry != "none";
 
+        /// <summary>ဒီ PC က license ကို ဖျက် (activation screen ပြန်ရောက်) — key က PC-bound မို့ ပြန်ထည့်ရင် ရပါတယ်</summary>
+        public static void Deactivate()
+        {
+            try { if (IOFile.Exists(FilePath)) IOFile.Delete(FilePath); } catch { }
+        }
+
         // Activate — အောင်ရင် null, မအောင်ရင် error message
         public static string Activate(string licenseText)
         {
