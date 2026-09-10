@@ -16,6 +16,7 @@ Usage:
 Version is read automatically from WinFormsApp1/WinFormsApp1.csproj <Version>.
 """
 import argparse
+import datetime
 import hashlib
 import json
 import os
@@ -76,19 +77,37 @@ def build_zip(version):
     return out, size, sha.hexdigest(), n
 
 
-def write_manifest(version, notes, size, sha, asset_name):
+def read_prev_min_required():
+    """manifest ရဲ့ လက်ရှိ minimum_required ကို ဆက်ထား (မရှိရင် "0.0.0" = force update မလုပ်)"""
+    try:
+        path = os.path.join(UPDATE_DIR, "latest.json")
+        if os.path.isfile(path):
+            with open(path, "r", encoding="utf-8") as f:
+                return (json.load(f).get("minimum_required") or "0.0.0").strip()
+    except Exception:
+        pass
+    return "0.0.0"
+
+
+def write_manifest(version, notes, size, sha, asset_name, min_required=None):
     os.makedirs(UPDATE_DIR, exist_ok=True)
+    if min_required is None:
+        min_required = read_prev_min_required()   # --min-required မပေးရင် ရှိပြီးသားအတိုင်း
     m = {
         "version": version,
+        "minimum_required": (min_required or "0.0.0").strip(),
         "notes": notes or "",
+        "changelog": (notes or "")[:400],
         "url": f"https://github.com/{REPO}/releases/download/v{version}/{asset_name}",
+        "download_url": f"https://github.com/{REPO}/releases/latest",
+        "release_date": datetime.date.today().isoformat(),
         "sha256": sha,
         "size": size,
     }
     path = os.path.join(UPDATE_DIR, "latest.json")
     with open(path, "w", encoding="utf-8") as f:
         json.dump(m, f, indent=2)
-    print(f"Manifest: {path} -> v{version}, {size / 1048576:.0f} MB")
+    print(f"Manifest: {path} -> v{version}, min v{m['minimum_required']}, {size / 1048576:.0f} MB")
     return path
 
 
@@ -112,6 +131,7 @@ def main():
     ap = argparse.ArgumentParser()
     ap.add_argument("--notes", default="")
     ap.add_argument("--skip-publish-check", action="store_true", help="publish version စစ်တာ ကျော်")
+    ap.add_argument("--min-required", default=None, help="Force update အတွက် အနည်းဆုံး version (ဥပမာ 4.0.20)")
     ap.add_argument("--git", action="store_true", help="commit + push update/latest.json")
     ap.add_argument("--release", action="store_true", help="--git + create GitHub release + upload")
     args = ap.parse_args()
@@ -124,7 +144,7 @@ def main():
     zip_path, size, sha, nfiles = build_zip(version)
     print(f"ZIP: {zip_path} ({nfiles} files, {size / 1048576:.0f} MB)")
     print(f"SHA256: {sha}")
-    write_manifest(version, args.notes, size, sha, asset_name)
+    write_manifest(version, args.notes, size, sha, asset_name, min_required=args.min_required)
 
     if args.git or args.release:
         run(["git", "add", "update/latest.json"])

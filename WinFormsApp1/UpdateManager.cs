@@ -20,6 +20,12 @@ namespace WinFormsApp1
         public string url { get; set; }
         public string sha256 { get; set; }
         public long size { get; set; }
+
+        // Force-update (UpdateGate) အတွက် — ဟောင်းတဲ့ manifest တွေမှာ မပါရင် "" ဖြစ်နေမယ်
+        public string minimum_required { get; set; }
+        public string download_url { get; set; }
+        public string changelog { get; set; }
+        public string release_date { get; set; }
     }
 
     // Online update engine — repo ရဲ့ update/latest.json ကို ဖတ်ပြီး
@@ -35,6 +41,69 @@ namespace WinFormsApp1
         // Manifest အဓိကလိပ်စာ — env var (PMK_UPDATE_URL) နဲ့ test အတွက် ပြောင်းလို့ရတယ်
         public const string DefaultManifestUrl =
             "https://raw.githubusercontent.com/huaxinmobile-alt/PMK-Unlock-Tool/main/update/latest.json";
+
+        public static string ManifestUrlStatic =>
+            Environment.GetEnvironmentVariable("PMK_UPDATE_URL") ?? DefaultManifestUrl;
+
+        /// <summary>လက်ရှိ app version (major.minor.build) — UI/log မလိုဘဲ တွက်လို့ရ</summary>
+        public static string CurrentVersion
+        {
+            get
+            {
+                try
+                {
+                    string v = Application.ProductVersion ?? "0.0.0";
+                    int cut = v.IndexOfAny(new[] { '+', '-' });
+                    if (cut > 0) v = v.Substring(0, cut);
+                    return string.IsNullOrWhiteSpace(v) ? "0.0.0" : v.Trim();
+                }
+                catch { return "0.0.0"; }
+            }
+        }
+
+        /// <summary>a &lt; b လား (version အပိုင်း ၁-၄ ခုထိ၊ မကိုက်ရင် 0 လို့ ယူ) — "4.0.9" &lt; "4.0.16" ✓</summary>
+        public static bool IsBelow(string a, string b)
+        {
+            var pa = ParseParts(a);
+            var pb = ParseParts(b);
+            int n = Math.Max(pa.Length, pb.Length);
+            for (int i = 0; i < n; i++)
+            {
+                int va = i < pa.Length ? pa[i] : 0;
+                int vb = i < pb.Length ? pb[i] : 0;
+                if (va < vb) return true;
+                if (va > vb) return false;
+            }
+            return false;
+        }
+
+        private static int[] ParseParts(string v)
+        {
+            if (string.IsNullOrWhiteSpace(v)) return new int[0];
+            var raw = v.Trim().Split('.');
+            var list = new System.Collections.Generic.List<int>();
+            foreach (var r in raw)
+            {
+                string digits = new string(Array.FindAll(r.ToCharArray(), char.IsDigit));
+                list.Add(int.TryParse(digits, out int n) ? n : 0);
+            }
+            return list.ToArray();
+        }
+
+        /// <summary>Form မတိုင်ခင် (Program.cs) ခေါ်လို့ရတဲ့ manifest fetch — မရရင် null</summary>
+        public static async Task<UpdateManifest> TryFetchManifestAsync(int timeoutSeconds = 7)
+        {
+            try
+            {
+                using var http = new HttpClient { Timeout = TimeSpan.FromSeconds(timeoutSeconds) };
+                string json = await http.GetStringAsync(ManifestUrlStatic).ConfigureAwait(false);
+                if (string.IsNullOrWhiteSpace(json)) return null;
+                var opt = new JsonSerializerOptions { PropertyNameCaseInsensitive = true };
+                var m = JsonSerializer.Deserialize<UpdateManifest>(json, opt);
+                return m != null && !string.IsNullOrWhiteSpace(m.version) ? m : null;
+            }
+            catch { return null; }
+        }
 
         private readonly LogHandler _log;
         private readonly Action<int, string> _updateProgress;
@@ -61,12 +130,13 @@ namespace WinFormsApp1
             {
                 try
                 {
-                    string v = _getCurrentVersion() ?? "0.0.0";
+                    string v = _getCurrentVersion();
+                    if (string.IsNullOrWhiteSpace(v)) return CurrentVersion;
                     int cut = v.IndexOfAny(new[] { '+', '-' });
                     if (cut > 0) v = v.Substring(0, cut);
                     return string.IsNullOrWhiteSpace(v) ? "0.0.0" : v.Trim();
                 }
-                catch { return "0.0.0"; }
+                catch { return CurrentVersion; }
             }
         }
 

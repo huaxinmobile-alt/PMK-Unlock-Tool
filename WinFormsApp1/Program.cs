@@ -76,6 +76,10 @@ namespace WinFormsApp1
                 catch { }
             };
 
+            // Force-update gate — minimum_required ထက် ငယ်နေရင် login ကို လုံးဝ မပြ (update လုပ်ခိုင်း)
+            // (internet မရရင် ပိတ်မထား — warning ပဲပြ; UpdateGate.StartupWarning ကို LoginWindow က ပြ)
+            if (!UpdateGate.RunStartupCheck()) return;
+
             // Login gate — ဝင်ပြီးမှသာ main UI ပွင့်တယ် (ပိတ်/cancel ဆို app ထွက်တယ်)
             // Session ရှိပြီး (logout မထွက်ရသေးဘဲ) license valid ဆိုရင် login ကို ကျော်တယ်
             string remembered = LoginSession.RememberedUser ?? "";   // HMAC မှန် + ရက် ၃၀ မကျော်မှ username ပြန်တယ်

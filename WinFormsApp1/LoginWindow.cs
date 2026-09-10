@@ -154,6 +154,9 @@ namespace WinFormsApp1
             Shown += (s, e) =>
             {
                 UiFocus.BringToFront(this);
+                // Update စစ်လို့ မရခဲ့ရင် (offline) warning — block မလုပ်ဘူး
+                if (!string.IsNullOrWhiteSpace(UpdateGate.StartupWarning) && pnlLogin.Visible)
+                    ShowError(UpdateGate.StartupWarning);
                 if (pnlActivate.Visible) txtInstall.SelectAll();
                 else if (pnlLogin.Visible) { PrefillSaved(); RunPendingAutoLogin(); txtUser.Focus(); }
             };
